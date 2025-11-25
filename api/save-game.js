@@ -18,6 +18,26 @@ export default async function handler(req, res) {
     const airtableUrl = `https://api.airtable.com/v0/${baseId}/${tableId}`;
 
     const response = await fetch(airtableUrl, {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${token}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({ fields: game })
+});
+
+const data = await response.json();
+
++ console.log("Airtable response:", data);   // <-- ADD THIS
+
+if (data?.id) {
+  return res.status(200).json({ success: true, id: data.id });
+} else {
+  return res.status(500).json({ success: false, data });
+}
+
+    
+    const response = await fetch(airtableUrl, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${token}`,

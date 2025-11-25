@@ -19,7 +19,7 @@ module.exports = async function handler(req, res) {
     const response = await fetch(airtableUrl, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({ fields: game })
@@ -33,7 +33,6 @@ module.exports = async function handler(req, res) {
     } else {
       return res.status(500).json({ success: false, data });
     }
-
   } catch (err) {
     console.error("Airtable error:", err);
     return res.status(500).json({ error: "Server error" });

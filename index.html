@@ -1974,51 +1974,27 @@ saveGameToAirtable(gameData);
   
 }
 
-  async function saveGameToAirtable(game) {
+async function saveGameToAirtable(game) {
   try {
     const response = await fetch('/api/save-game', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({
-  game: {
-    Date: state.date,
-    Opponent: state.opponent,
-    Level: state.level,
-    TeamScore: Team.total,
-    GoalieScore: K.total,
-    SF: F.shots,
-    SA: A.shots,
-    GF: F.goals,
-    GA: A.goals,
-    BreakawaysAgainst: state.team.breakawaysAgainst,
-    DZTurnovers: state.team.dzTurnovers,
-    Smothers: A.smothers,
-    BadRebounds: A.badRebounds,
-    BigSaves: A.bigSaves,
-    SoftGoals: A.softGoals,
-    GA_BA: gaBA,
-    GA_DZ: gaDZ,
-    GA_BR: gaBR,
-    GA_Other: gaOther
-  }
-})
-
-
+      body: JSON.stringify({ game })
     });
 
     const data = await response.json();
-    
+
     if (data.success) {
       alert('Game saved to Airtable!');
     } else {
       alert('Airtable save failed.');
     }
-
   } catch (error) {
     console.error('Error saving game:', error);
     alert('Error sending to Airtable.');
   }
 }
+
 
 /* ===== CSV (per game only) ===== */
 function safeName(s){

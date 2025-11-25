@@ -1,52 +1,52 @@
 module.exports = async function handler(req, res) {
+  console.log("DEBUG: Incoming request method:", req.method);
+
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
-    // ------- Parse Body Safely -------
-    let body = req.body;
-    if (typeof body === "string") {
-      try {
-        body = JSON.parse(body);
-      } catch (e) {
-        console.error("Bad JSON body:", e);
-        return res.status(400).json({ error: "Invalid JSON" });
-      }
+    // Log raw body
+    console.log("DEBUG: Raw req.body:", req.body);
+
+    let body = {};
+    try {
+      body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+    } catch (err) {
+      console.log("DEBUG: JSON parse error:", err);
+      body = req.body;
     }
+
+    console.log("DEBUG: Parsed body:", body);
 
     const game = body?.game;
-    if (!game || typeof game !== "object") {
-      return res.status(400).json({ error: "Missing or invalid game object" });
+    if (!game) {
+      console.log("DEBUG: Missing game data");
+      return res.status(400).json({ error: "Missing game data" });
     }
 
-    console.log("Incoming game data:", game);
-
-    // ------- Environment Vars -------
     const baseId = process.env.AIRTABLE_BASE_ID;
     const tableId = process.env.AIRTABLE_TABLE_ID;
     const token = process.env.AIRTABLE_PAT;
 
+    console.log("DEBUG: env loaded?", {
+      baseId: !!baseId,
+      tableId: !!tableId,
+      token: !!token
+    });
+
     if (!baseId || !tableId || !token) {
-      console.error("Missing environment variables");
       return res.status(500).json({ error: "Missing Airtable credentials" });
     }
 
-    // ------- Airtable URL -------
     const airtableUrl = `https://api.airtable.com/v0/${baseId}/${tableId}`;
 
-    // ------- Airtable Payload (CORRECT FORMAT) -------
     const payload = {
-      records: [
-        {
-          fields: { ...game }
-        }
-      ]
+      records: [{ fields: game }]
     };
 
-    console.log("Sending payload to Airtable:", payload);
+    console.log("DEBUG: Sending payload to Airtable:", JSON.stringify(payload));
 
-    // ------- Send to Airtable -------
     const response = await fetch(airtableUrl, {
       method: "POST",
       headers: {
@@ -57,24 +57,15 @@ module.exports = async function handler(req, res) {
     });
 
     const data = await response.json();
-    console.log("Airtable response:", data);
+    console.log("DEBUG: Airtable response:", data);
 
-    // ------- Success? -------
     if (data?.records?.[0]?.id) {
-      return res.status(200).json({
-        success: true,
-        id: data.records[0].id
-      });
+      return res.status(200).json({ success: true, id: data.records[0].id });
+    } else {
+      return res.status(500).json({ success: false, data });
     }
-
-    // Airtable error surfaced
-    return res.status(500).json({
-      success: false,
-      airtable: data
-    });
-
   } catch (err) {
-    console.error("Unhandled server error:", err);
-    return res.status(500).json({ error: "Server error", detail: err.message });
+    console.error("Airtable error:", err);
+    return res.status(500).json({ error: "Server error" });
   }
 };

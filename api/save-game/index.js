@@ -4,7 +4,7 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    // Ensure body is parsed
+    // Parse body
     let body = {};
     try {
       body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
@@ -13,7 +13,6 @@ module.exports = async function handler(req, res) {
     }
 
     const game = body?.game;
-
     if (!game) {
       return res.status(400).json({ error: "Missing game data" });
     }
@@ -28,20 +27,29 @@ module.exports = async function handler(req, res) {
 
     const airtableUrl = `https://api.airtable.com/v0/${baseId}/${tableId}`;
 
+    // IMPORTANT: Airtable expects records[] wrapper
+    const payload = {
+      records: [
+        {
+          fields: game
+        }
+      ]
+    };
+
     const response = await fetch(airtableUrl, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
+        "Content-Type": "application/json"
       },
-      body: JSON.stringify({ fields: game }),
+      body: JSON.stringify(payload)
     });
 
     const data = await response.json();
     console.log("Airtable response:", data);
 
-    if (data?.id) {
-      return res.status(200).json({ success: true, id: data.id });
+    if (data?.records?.[0]?.id) {
+      return res.status(200).json({ success: true, id: data.records[0].id });
     } else {
       return res.status(500).json({ success: false, data });
     }

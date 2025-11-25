@@ -3,39 +3,63 @@ export default async function handler(req, res) {
 
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
-  }
+    }
 
   try {
-    // ---- FIXED: Vercel requires explicit JSON parsing ----
-    let body = {};
-    try {
-      body = await new Promise((resolve, reject) => {
-        let data = "";
-        req.on("data", (chunk) => (data += chunk));
-        req.on("end", () => {
-          try {
-            resolve(JSON.parse(data || "{}"));
-          } catch (err) {
-            console.log("DEBUG: JSON parse error:", err);
-            resolve({});
-          }
-        });
-        req.on("error", reject);
+    // --- Parse JSON body manually (Vercel quirk) ---
+    const body = await new Promise((resolve) => {
+      let data = "";
+      req.on("data", (chunk) => (data += chunk));
+      req.on("end", () => {
+        try {
+          resolve(JSON.parse(data || "{}"));
+        } catch (err) {
+          console.log("DEBUG: JSON parse error:", err);
+          resolve({});
+        }
       });
-    } catch (err) {
-      console.log("DEBUG: Error reading request body:", err);
-      body = {};
-    }
+    });
 
     console.log("DEBUG: Parsed body:", body);
 
-    const game = body?.game;
-    if (!game) {
+    // --- Accept BOTH formats ---
+    // (1) Simple:   { game: {...fields} }
+    // (2) Season:   { gameId, startedAt, savedAt, meta, aggregates, events }
+    let recordFields = null;
+
+    if (body.game) {
+      // Simple payload from saveGameToAirtable()
+      recordFields = body.game;
+      console.log("DEBUG: Using simple game payload");
+    } else if (body.gameId && body.meta && body.aggregates) {
+      // Season payload from saveToSeason()
+      console.log("DEBUG: Using SEASON payload");
+
+      recordFields = {
+        GameID: body.gameId,
+        StartedAt: body.startedAt,
+        SavedAt: body.savedAt,
+
+        Opponent: body.meta.opponent || "",
+        Level: body.meta.level || "",
+        Date: body.meta.date || "",
+
+        // Flatten key gameRow stats
+        ...(body.aggregates.gameRow || {}),
+
+        // Optional: include JSON blobs
+        GoalieJSON: JSON.stringify(body.aggregates.goalie || {}),
+        TeamJSON: JSON.stringify(body.aggregates.team || {}),
+        EventsJSON: JSON.stringify(body.events || [])
+      };
+    }
+
+    if (!recordFields) {
       console.log("DEBUG: Missing game data");
       return res.status(400).json({ error: "Missing game data" });
     }
 
-    // ---- ENV ----
+    // Environment
     const baseId = process.env.AIRTABLE_BASE_ID;
     const tableId = process.env.AIRTABLE_TABLE_ID;
     const token = process.env.AIRTABLE_PAT;
@@ -50,15 +74,17 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: "Missing Airtable credentials" });
     }
 
-    // ---- Airtable URL ----
+    // --- Airtable API ---
     const airtableUrl = `https://api.airtable.com/v0/${baseId}/${tableId}`;
-
-    // ---- Proper Airtable payload ----
     const payload = {
-      records: [{ fields: game }]
+      records: [
+        {
+          fields: recordFields
+        }
+      ]
     };
 
-    console.log("DEBUG: Sending payload to Airtable:", JSON.stringify(payload));
+    console.log("DEBUG: Sending payload to Airtable:", JSON.stringify(payload, null, 2));
 
     const response = await fetch(airtableUrl, {
       method: "POST",
@@ -73,14 +99,10 @@ export default async function handler(req, res) {
     console.log("DEBUG: Airtable response:", data);
 
     if (data?.records?.[0]?.id) {
-      return res.status(200).json({
-        success: true,
-        id: data.records[0].id
-      });
-    } else {
-      console.log("DEBUG: Airtable error response:", data);
-      return res.status(500).json({ success: false, data });
+      return res.status(200).json({ success: true, id: data.records[0].id });
     }
+
+    return res.status(500).json({ success: false, data });
   } catch (err) {
     console.error("Airtable error:", err);
     return res.status(500).json({ error: "Server error" });

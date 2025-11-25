@@ -1979,7 +1979,28 @@ saveGameToAirtable(gameData);
     const response = await fetch('/api/save-game', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ game })
+      body: JSON.stringify({
+  Date: state.date,
+  Opponent: state.opponent,
+  Level: state.level,
+  TeamScore: Team.total,
+  GoalieScore: K.total,
+  SF: F.shots,
+  SA: A.shots,
+  GF: F.goals,
+  GA: A.goals,
+  BreakawaysAgainst: state.team.breakawaysAgainst,
+  DZTurnovers: state.team.dzTurnovers,
+  Smothers: A.smothers,
+  BadRebounds: A.badRebounds,
+  BigSaves: A.bigSaves,
+  SoftGoals: A.softGoals,
+  GA_BA: gaBA,
+  GA_DZ: gaDZ,
+  GA_BR: gaBR,
+  GA_Other: gaOther
+})
+
     });
 
     const data = await response.json();

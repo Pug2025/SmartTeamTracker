@@ -6,14 +6,25 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Ensure body is parsed
-    let body = req.body;
-    if (typeof body === "string") {
-      try {
-        body = JSON.parse(body);
-      } catch (err) {
-        console.log("DEBUG: JSON parse error:", err);
-      }
+    // ---- FIXED: Vercel requires explicit JSON parsing ----
+    let body = {};
+    try {
+      body = await new Promise((resolve, reject) => {
+        let data = "";
+        req.on("data", (chunk) => (data += chunk));
+        req.on("end", () => {
+          try {
+            resolve(JSON.parse(data || "{}"));
+          } catch (err) {
+            console.log("DEBUG: JSON parse error:", err);
+            resolve({});
+          }
+        });
+        req.on("error", reject);
+      });
+    } catch (err) {
+      console.log("DEBUG: Error reading request body:", err);
+      body = {};
     }
 
     console.log("DEBUG: Parsed body:", body);
@@ -24,12 +35,12 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Missing game data" });
     }
 
-    // Airtable credentials
+    // ---- ENV ----
     const baseId = process.env.AIRTABLE_BASE_ID;
     const tableId = process.env.AIRTABLE_TABLE_ID;
     const token = process.env.AIRTABLE_PAT;
 
-    console.log("DEBUG: env loaded:", {
+    console.log("DEBUG: env loaded?", {
       baseId: !!baseId,
       tableId: !!tableId,
       token: !!token
@@ -39,20 +50,17 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: "Missing Airtable credentials" });
     }
 
+    // ---- Airtable URL ----
     const airtableUrl = `https://api.airtable.com/v0/${baseId}/${tableId}`;
 
-    // Airtable requires { records: [{ fields: { ... } }] }
+    // ---- Proper Airtable payload ----
     const payload = {
-      records: [
-        {
-          fields: game
-        }
-      ]
+      records: [{ fields: game }]
     };
 
-    console.log("DEBUG → Sending to Airtable:", payload);
+    console.log("DEBUG: Sending payload to Airtable:", JSON.stringify(payload));
 
-    const airtableRes = await fetch(airtableUrl, {
+    const response = await fetch(airtableUrl, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -61,24 +69,20 @@ export default async function handler(req, res) {
       body: JSON.stringify(payload)
     });
 
-    const data = await airtableRes.json();
-    console.log("DEBUG → Airtable response:", data);
+    const data = await response.json();
+    console.log("DEBUG: Airtable response:", data);
 
     if (data?.records?.[0]?.id) {
       return res.status(200).json({
         success: true,
         id: data.records[0].id
       });
+    } else {
+      console.log("DEBUG: Airtable error response:", data);
+      return res.status(500).json({ success: false, data });
     }
-
-    return res.status(500).json({
-      success: false,
-      error: "Airtable insert failed",
-      data
-    });
-
   } catch (err) {
-    console.error("FATAL ERROR:", err);
+    console.error("Airtable error:", err);
     return res.status(500).json({ error: "Server error" });
   }
 }

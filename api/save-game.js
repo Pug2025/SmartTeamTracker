@@ -1,4 +1,4 @@
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -6,9 +6,8 @@ export default async function handler(req, res) {
   try {
     const { game } = req.body;
 
-    // Airtable API details
     const baseId = process.env.AIRTABLE_BASE_ID;
-    const tableId = process.env.AIRTABLE_TABLE_ID;  // your real Airtable table ID
+    const tableId = process.env.AIRTABLE_TABLE_ID;
     const token = process.env.AIRTABLE_PAT;
 
     if (!baseId || !tableId || !token) {
@@ -17,26 +16,6 @@ export default async function handler(req, res) {
 
     const airtableUrl = `https://api.airtable.com/v0/${baseId}/${tableId}`;
 
-    const response = await fetch(airtableUrl, {
-  method: "POST",
-  headers: {
-    "Authorization": `Bearer ${token}`,
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({ fields: game })
-});
-
-const data = await response.json();
-
-+ console.log("Airtable response:", data);   // <-- ADD THIS
-
-if (data?.id) {
-  return res.status(200).json({ success: true, id: data.id });
-} else {
-  return res.status(500).json({ success: false, data });
-}
-
-    
     const response = await fetch(airtableUrl, {
       method: "POST",
       headers: {
@@ -47,6 +26,7 @@ if (data?.id) {
     });
 
     const data = await response.json();
+    console.log("Airtable response:", data);
 
     if (data?.id) {
       return res.status(200).json({ success: true, id: data.id });
@@ -58,4 +38,4 @@ if (data?.id) {
     console.error("Airtable error:", err);
     return res.status(500).json({ error: "Server error" });
   }
-}
+};

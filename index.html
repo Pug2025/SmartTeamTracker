@@ -1947,6 +1947,35 @@ function endGame(){
   $('summaryPanel').classList.remove('hidden');
   window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
 
+  // Compute GA breakdown for Airtable
+  const gaBA = state.events.filter(e => {
+    if (e.type !== 'goal' && e.type !== 'soft_goal') return false;
+    const cause = typeof e.ga_cause === 'string' ? e.ga_cause : '';
+    return e.ga_ba || cause.includes('BA');
+  }).length;
+
+  const gaDZ = state.events.filter(e => {
+    if (e.type !== 'goal' && e.type !== 'soft_goal') return false;
+    const cause = typeof e.ga_cause === 'string' ? e.ga_cause : '';
+    return e.ga_dz || cause.includes('DZ');
+  }).length;
+
+  const gaBR = state.events.filter(e => {
+    if (e.type !== 'goal' && e.type !== 'soft_goal') return false;
+    const cause = typeof e.ga_cause === 'string' ? e.ga_cause : '';
+    return e.ga_br || cause.includes('BR');
+  }).length;
+
+  const gaOther = state.events.filter(e => {
+    if (e.type !== 'goal' && e.type !== 'soft_goal') return false;
+    const cause = typeof e.ga_cause === 'string' ? e.ga_cause : '';
+    const taggedBA = e.ga_ba || cause.includes('BA');
+    const taggedDZ = e.ga_dz || cause.includes('DZ');
+    const taggedBR = e.ga_br || cause.includes('BR');
+    return !taggedBA && !taggedDZ && !taggedBR;
+  }).length;
+
+  
   const gameData = {
   Date: state.date || new Date().toISOString().slice(0,10),
   Opponent: state.opponent || '',

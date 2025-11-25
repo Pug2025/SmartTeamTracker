@@ -1946,6 +1946,54 @@ function endGame(){
 
   $('summaryPanel').classList.remove('hidden');
   window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+
+  const gameData = {
+  Date: state.date || new Date().toISOString().slice(0,10),
+  Opponent: state.opponent || '',
+  Level: state.level || '',
+  TeamScore: Team.total,
+  GoalieScore: K.total,
+  SF: state.countsF.shots || 0,
+  SA: state.countsA.shots || 0,
+  GF: state.countsF.goals || 0,
+  GA: state.countsA.goals || 0,
+  BreakawaysAgainst: state.team.breakawaysAgainst || 0,
+  DZTurnovers: state.team.dzTurnovers || 0,
+  Smothers: state.countsA.smothers || 0,
+  BadRebounds: state.countsA.badRebounds || 0,
+  BigSaves: state.countsA.bigSaves || 0,
+  SoftGoals: state.countsA.softGoals || 0,
+  GA_BA: gaBA,
+  GA_DZ: gaDZ,
+  GA_BR: gaBR,
+  GA_Other: gaOther
+};
+
+// send to Airtable
+saveGameToAirtable(gameData);
+  
+}
+
+  async function saveGameToAirtable(game) {
+  try {
+    const response = await fetch('/api/save-game', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ game })
+    });
+
+    const data = await response.json();
+    
+    if (data.success) {
+      alert('Game saved to Airtable!');
+    } else {
+      alert('Airtable save failed.');
+    }
+
+  } catch (error) {
+    console.error('Error saving game:', error);
+    alert('Error sending to Airtable.');
+  }
 }
 
 /* ===== CSV (per game only) ===== */

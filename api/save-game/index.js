@@ -1,4 +1,4 @@
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   console.log("DEBUG: Incoming request method:", req.method);
 
   if (req.method !== "POST") {
@@ -6,15 +6,14 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    // Log raw body
-    console.log("DEBUG: Raw req.body:", req.body);
-
-    let body = {};
-    try {
-      body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
-    } catch (err) {
-      console.log("DEBUG: JSON parse error:", err);
-      body = req.body;
+    // Ensure body is parsed
+    let body = req.body;
+    if (typeof body === "string") {
+      try {
+        body = JSON.parse(body);
+      } catch (err) {
+        console.log("DEBUG: JSON parse error:", err);
+      }
     }
 
     console.log("DEBUG: Parsed body:", body);
@@ -25,11 +24,12 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: "Missing game data" });
     }
 
+    // Airtable credentials
     const baseId = process.env.AIRTABLE_BASE_ID;
     const tableId = process.env.AIRTABLE_TABLE_ID;
     const token = process.env.AIRTABLE_PAT;
 
-    console.log("DEBUG: env loaded?", {
+    console.log("DEBUG: env loaded:", {
       baseId: !!baseId,
       tableId: !!tableId,
       token: !!token
@@ -41,13 +41,18 @@ module.exports = async function handler(req, res) {
 
     const airtableUrl = `https://api.airtable.com/v0/${baseId}/${tableId}`;
 
+    // Airtable requires { records: [{ fields: { ... } }] }
     const payload = {
-      records: [{ fields: game }]
+      records: [
+        {
+          fields: game
+        }
+      ]
     };
 
-    console.log("DEBUG: Sending payload to Airtable:", JSON.stringify(payload));
+    console.log("DEBUG → Sending to Airtable:", payload);
 
-    const response = await fetch(airtableUrl, {
+    const airtableRes = await fetch(airtableUrl, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -56,16 +61,24 @@ module.exports = async function handler(req, res) {
       body: JSON.stringify(payload)
     });
 
-    const data = await response.json();
-    console.log("DEBUG: Airtable response:", data);
+    const data = await airtableRes.json();
+    console.log("DEBUG → Airtable response:", data);
 
     if (data?.records?.[0]?.id) {
-      return res.status(200).json({ success: true, id: data.records[0].id });
-    } else {
-      return res.status(500).json({ success: false, data });
+      return res.status(200).json({
+        success: true,
+        id: data.records[0].id
+      });
     }
+
+    return res.status(500).json({
+      success: false,
+      error: "Airtable insert failed",
+      data
+    });
+
   } catch (err) {
-    console.error("Airtable error:", err);
+    console.error("FATAL ERROR:", err);
     return res.status(500).json({ error: "Server error" });
   }
-};
+}

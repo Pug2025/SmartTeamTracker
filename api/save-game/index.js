@@ -4,7 +4,19 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const { game } = req.body;
+    // Ensure body is parsed
+    let body = {};
+    try {
+      body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+    } catch {
+      body = req.body;
+    }
+
+    const game = body?.game;
+
+    if (!game) {
+      return res.status(400).json({ error: "Missing game data" });
+    }
 
     const baseId = process.env.AIRTABLE_BASE_ID;
     const tableId = process.env.AIRTABLE_TABLE_ID;
@@ -20,9 +32,9 @@ module.exports = async function handler(req, res) {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
-      body: JSON.stringify({ fields: game })
+      body: JSON.stringify({ fields: game }),
     });
 
     const data = await response.json();

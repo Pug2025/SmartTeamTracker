@@ -1,4 +1,5 @@
 // api/save-game/index.js
+// Version: v5.0.0 – keep in sync with app version
 
 // 1. CONFIGURATION: The strict Allowlist matches your Airtable Schema exactly.
 const AIRTABLE_ALLOWED_FIELDS = [
@@ -123,7 +124,10 @@ export default async function handler(req, res) {
       }
     });
 
-    console.log("DEBUG: Final fields going to Airtable:", JSON.stringify(finalFields, null, 2));
+    console.log(
+      "DEBUG: Final fields going to Airtable:",
+      JSON.stringify(finalFields, null, 2)
+    );
 
     if (Object.keys(finalFields).length === 0) {
       console.warn("DEBUG: No allowed Airtable fields present in candidateData.");
@@ -136,8 +140,14 @@ export default async function handler(req, res) {
     const pat = process.env.AIRTABLE_PAT;
 
     if (!baseId || !tableId || !pat) {
-      console.error("DEBUG: Missing Airtable env vars", { baseId: !!baseId, tableId: !!tableId, pat: !!pat });
-      return res.status(500).json({ error: "Server configuration error (Airtable env vars)" });
+      console.error("DEBUG: Missing Airtable env vars", {
+        baseId: !!baseId,
+        tableId: !!tableId,
+        pat: !!pat
+      });
+      return res
+        .status(500)
+        .json({ error: "Server configuration error (Airtable env vars)" });
     }
 
     const airtableUrl = `https://api.airtable.com/v0/${baseId}/${tableId}`;
@@ -151,7 +161,10 @@ export default async function handler(req, res) {
       typecast: true // Let Airtable coerce types where possible
     };
 
-    console.log("DEBUG: Sending payload to Airtable:", JSON.stringify(airtablePayload, null, 2));
+    console.log(
+      "DEBUG: Sending payload to Airtable:",
+      JSON.stringify(airtablePayload, null, 2)
+    );
 
     const response = await fetch(airtableUrl, {
       method: "POST",
@@ -163,7 +176,11 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
-    console.log("DEBUG: Airtable status / response:", response.status, JSON.stringify(data, null, 2));
+    console.log(
+      "DEBUG: Airtable status / response:",
+      response.status,
+      JSON.stringify(data, null, 2)
+    );
 
     if (!response.ok) {
       console.error("DEBUG: Airtable Error:", JSON.stringify(data));
@@ -179,6 +196,8 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true, id: recordId });
   } catch (error) {
     console.error("DEBUG: Server Exception:", error);
-    return res.status(500).json({ error: "Internal Server Error", message: error.message });
+    return res
+      .status(500)
+      .json({ error: "Internal Server Error", message: error.message });
   }
 }

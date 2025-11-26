@@ -1,13 +1,12 @@
 {
-  "name": "Smart Team Tracker",
+  "name": "Team Tracker",
   "short_name": "TeamTracker",
-  "description": "Shot, goal, and context tracker for youth hockey goalies with live scoring and summaries.",
+  "description": "iPhone-optimized rink-side tracker for team and goalie performance.",
   "start_url": "/",
-  "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0b0e11",
-  "theme_color": "#0b0e11",
+  "background_color": "#000000",
+  "theme_color": "#000000",
   "icons": [
     {
       "src": "/icon-192.png",
@@ -18,12 +17,6 @@
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
-    },
-    {
-      "src": "/apple-touch-icon.png",
-      "sizes": "180x180",
-      "type": "image/png",
-      "purpose": "any"
     }
   ]
 }

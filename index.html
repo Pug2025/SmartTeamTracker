@@ -977,6 +977,18 @@ function setCloudStatus(text, tone){
   el.classList.remove('good','warn','bad');
   if(tone) el.classList.add(tone);
 }
+function refreshCloudStatus(){
+  try{
+    const last = localStorage.getItem(LAST_SAVED_KEY);
+    if(last && last === state.gameId){
+      setCloudStatus('Cloud: Saved','good');
+    } else {
+      setCloudStatus('Cloud: —');
+    }
+  }catch(_){
+    setCloudStatus('Cloud: —');
+  }
+}
 
 /* ===== Persistence ===== */
 async function persistStorage(){
@@ -1479,6 +1491,20 @@ function computeTeamScore(){
   };
 }
 
+/* GA breakdown helper for reuse */
+function computeGABreakdown(){
+  return state.events.reduce((acc,e)=>{
+    if(e.type==='goal'||e.type==='soft_goal'){
+      const c=e.ga_cause||'';
+      if(e.ga_ba||c.includes('BA')) acc.BA++;
+      else if(e.ga_dz||c.includes('DZ')) acc.DZ++;
+      else if(e.ga_br||c.includes('BR')) acc.BR++;
+      else acc.Other++;
+    }
+    return acc;
+  }, {BA:0,DZ:0,BR:0,Other:0});
+}
+
 /* ===== Live Renders ===== */
 function updateMeta(){
   const F=state.countsF, A=state.countsA;
@@ -1565,16 +1591,7 @@ function endGame(){
   $('pmTableWrap').innerHTML=makePlusMinusTable();
   
   // GA detail summary
-  const gaStats = state.events.reduce((acc,e)=>{
-      if(e.type==='goal'||e.type==='soft_goal'){
-          const c=e.ga_cause||'';
-          if(e.ga_ba||c.includes('BA')) acc.BA++;
-          else if(e.ga_dz||c.includes('DZ')) acc.DZ++;
-          else if(e.ga_br||c.includes('BR')) acc.BR++;
-          else acc.Other++;
-      }
-      return acc;
-  }, {BA:0,DZ:0,BR:0,Other:0});
+  const gaStats = computeGABreakdown();
   $('gaDetailWrap').innerHTML = `
     <div class="small">
       Goals Against Breakdown: 
@@ -1594,7 +1611,8 @@ function endGame(){
   $('summaryPanel').classList.remove('hidden');
   window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
   
-  // Build condensed gameData for Airtable
+  // Build condensed gameData for Airtable (simple row)
+  const gaStatsSimple = computeGABreakdown();
   const gameData = {
       Date: state.date||new Date().toISOString().slice(0,10), 
       Opponent: state.opponent, 
@@ -1611,10 +1629,10 @@ function endGame(){
       BadRebounds: state.countsA.badRebounds, 
       BigSaves: state.countsA.bigSaves, 
       SoftGoals: state.countsA.softGoals,
-      GA_BA: gaStats.BA, 
-      GA_DZ: gaStats.DZ, 
-      GA_BR: gaStats.BR, 
-      GA_Other: gaStats.Other
+      GA_BA: gaStatsSimple.BA, 
+      GA_DZ: gaStatsSimple.DZ, 
+      GA_BR: gaStatsSimple.BR, 
+      GA_Other: gaStatsSimple.Other
   };
   saveGameToAirtable(gameData);
 }
@@ -1629,6 +1647,7 @@ async function saveGameToAirtable(game){
     });
     const d=await res.json();
     if(d.success){
+      localStorage.setItem(LAST_SAVED_KEY, state.gameId);
       setCloudStatus('Cloud: Saved','good');
       alert('Saved to Airtable!');
     }else{
@@ -1639,6 +1658,71 @@ async function saveGameToAirtable(game){
     console.error(e); 
     setCloudStatus('Cloud: Error','bad');
     alert('Error saving.'); 
+  }
+}
+
+/* Full season-style save using aggregates + events for JSONDump */
+async function saveSeasonToAirtable(){
+  try{
+    const K = computeGoalieScore();
+    const T = computeTeamScore();
+    const SF=state.countsF.shots, SA=state.countsA.shots, GF=state.countsF.goals, GA=state.countsA.goals;
+    const gaStats = computeGABreakdown();
+    const date = state.date || new Date().toISOString().slice(0,10);
+
+    const row = {
+      date,
+      opponent: state.opponent || '',
+      level: state.level || '',
+      teamScore: T.total,
+      goalieScore: K.total,
+      SF, SA, GF, GA,
+      breakawaysAgainst: state.team.breakawaysAgainst,
+      dzTurnovers: state.team.dzTurnovers,
+      smothers: state.countsA.smothers,
+      badRebounds: state.countsA.badRebounds,
+      bigSaves: state.countsA.bigSaves,
+      softGoals: state.countsA.softGoals,
+      GA_off_BA: gaStats.BA,
+      GA_off_DZ: gaStats.DZ,
+      GA_off_BR: gaStats.BR,
+      GA_other: gaStats.Other
+    };
+
+    const payload = {
+      gameId: state.gameId,
+      meta: {
+        opponent: state.opponent || '',
+        level: state.level || '',
+        date,
+        period: state.period
+      },
+      aggregates: {
+        gameRow: row
+      },
+      events: state.events
+    };
+
+    setCloudStatus('Cloud: Saving…','warn');
+    const res = await fetch('/api/save-game',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    const d = await res.json();
+    if(d.success){
+      localStorage.setItem(LAST_SAVED_KEY, state.gameId);
+      setCloudStatus('Cloud: Saved','good');
+      alert('Season saved to Airtable!');
+    }else{
+      console.error('Season save error', d);
+      setCloudStatus('Cloud: Error','bad');
+      alert('Season save failed');
+    }
+  }catch(e){
+    console.error(e);
+    setCloudStatus('Cloud: Error','bad');
+    alert('Error saving season.');
   }
 }
 
@@ -1755,7 +1839,6 @@ function applyPickerSelection(num){
     addEvent('for_shot',{player:num});
   }else if(pickerTargetType==='for_goal'){
     const ev = addEvent('for_goal',{player:num});
-    // Optionally tag on-ice for GF later via GA-like flow if desired
     openMultiPicker({title:'Forwards On Ice (optional)', max:5, event:ev, field:'forOnIce', exclude:[num]});
   }
   $('pickerModal').style.display='none';
@@ -1778,6 +1861,7 @@ function applyPickerSelection(num){
     updateMeta();
     highlightPeriod();
     if(state.events.length>0) renderAll();
+    refreshCloudStatus();
   });
 })();
 
@@ -1833,6 +1917,7 @@ $('btnReset').onclick=()=>{
     toggleSetup(true); 
     renderAll(); 
     $('summaryPanel').classList.add('hidden');
+    refreshCloudStatus();
 };
 
 /* Modals close on backdrop click */
@@ -1866,8 +1951,8 @@ $('btnCopyClose').addEventListener('click', ()=>{
 /* Export CSV */
 $('btnExportGameCSV').addEventListener('click', exportGameCSV);
 
-/* Debug AI buttons: no-op for now */
-$('btnSaveSeason').addEventListener('click', ()=>{ /* handled server-side via Airtable save */ });
+/* AI / Season buttons */
+$('btnSaveSeason').addEventListener('click', saveSeasonToAirtable);
 $('btnAIPractice').addEventListener('click', ()=>{ /* placeholder */ });
 $('btnAIGoalieReport').addEventListener('click', ()=>{ /* placeholder */ });
 $('btnAIFocus').addEventListener('click', ()=>{ /* placeholder */ });

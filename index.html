@@ -1320,6 +1320,12 @@ function addEvent(type, meta={}){
     ...meta 
   };
 
+    // If a follow-up outcome happens, cancel the pending "good rebound" credit
+  // (shot → smother means no rebound; shot → bad rebound means rebound was bad; goal ends the sequence)
+  if(type === 'smother' || type === 'bad_rebound' || type === 'goal' || type === 'soft_goal'){
+    cancelRecentGoodCredit();
+  }
+
   const isGoalAgainst = (type === 'goal' || type === 'soft_goal');
   const isBreakawayGA = isGoalAgainst && wasRecentEvent('breakaway_against', 10);
 

@@ -888,19 +888,31 @@
       <div id="allStatsGrid"></div>
     </div>
 
+        <!-- Always-visible: quick, readable context breakdown -->
     <div class="card" style="margin-top:10px;">
-      <h3 style="margin:0 0 6px 0;">Strength Breakdown</h3>
-      <div class="small" id="strengthBreakdown"></div>
+      <h3 style="margin:0 0 6px 0;">Goal Context</h3>
+      <div class="small" id="goalContextSummary"></div>
     </div>
 
-    <div class="card" style="margin-top:10px;">
-      <h3 style="margin:0 0 6px 0;">Goalie Breakdown</h3>
-      <div class="small" id="scoreBreakdown"></div>
-    </div>
-    <div class="card" style="margin-top:10px;">
-      <h3 style="margin:0 0 6px 0;">Team Breakdown</h3>
-      <div class="small" id="teamBreakdown"></div>
-    </div>
+    <!-- Scoring audit (expandable): strength + goalie + team -->
+    <details class="card" style="margin-top:10px;">
+      <summary style="cursor:pointer; font-weight:800;">Scoring audit (expand)</summary>
+
+      <div style="margin-top:10px;">
+        <div class="small" style="font-weight:800; margin-bottom:4px;">Strength</div>
+        <div class="small" id="strengthBreakdown"></div>
+      </div>
+
+      <div style="margin-top:10px;">
+        <div class="small" style="font-weight:800; margin-bottom:4px;">Goalie</div>
+        <div class="small" id="scoreBreakdown"></div>
+      </div>
+
+      <div style="margin-top:10px;">
+        <div class="small" style="font-weight:800; margin-bottom:4px;">Team</div>
+        <div class="small" id="teamBreakdown"></div>
+      </div>
+    </details>
 
     <div id="summaryTableWrap" style="margin-top:15px;"></div>
     <div id="pmTableWrap" style="margin-top:15px;"></div>
@@ -1773,6 +1785,36 @@ function computeGABreakdown(){
   }, {BA:0,DZ:0,BR:0,Other:0});
 }
 
+  function computeGFContextBreakdown(){
+  // Count Goals For that happened within 10s of an offensive context event.
+  // Priority: Breakaway > Odd-Man Rush. (If both happened, we count it as Breakaway.)
+  return state.events.reduce((acc, e, idx) => {
+    if(e.type !== 'for_goal') return acc;
+
+    const tGoal = new Date(e.tISO).getTime();
+    const lookback = tGoal - 10000;
+
+    let hasBA = false;
+    let hasOMR = false;
+
+    // Walk backward from the goal to find recent context events fast
+    for(let i = idx - 1; i >= 0; i--){
+      const prior = state.events[i];
+      const t = new Date(prior.tISO).getTime();
+      if(t < lookback) break;
+
+      if(prior.type === 'breakaway_for') hasBA = true;
+      if(prior.type === 'odd_man_rush_for') hasOMR = true;
+    }
+
+    if(hasBA) acc.BA++;
+    else if(hasOMR) acc.OMR++;
+    else acc.Other++;
+
+    return acc;
+  }, {BA:0, OMR:0, Other:0});
+}
+
 /* Strength breakdown */
 function computeStrengthBreakdown(){
   const out = {
@@ -1978,10 +2020,22 @@ function endGame(){
 
   // GA detail summary
   const gaStats = computeGABreakdown();
+  const gfStats = computeGFContextBreakdown();
+
+  // Visible, simple, "read this first" summary
+  $('goalContextSummary').textContent =
+    `Goals Against: off Breakaways ${gaStats.BA}, off DZ Turnovers ${gaStats.DZ}. ` +
+    `Goals For: off Breakaways ${gfStats.BA}, off Odd-Man Rushes ${gfStats.OMR}.`;
+
+  // Keep the detailed GA breakdown section (still useful, but now secondary)
   $('gaDetailWrap').innerHTML = `
     <div class="small">
       Goals Against Breakdown:
       BA: ${gaStats.BA} • DZ: ${gaStats.DZ} • BR: ${gaStats.BR} • Other: ${gaStats.Other}
+    </div>
+    <div class="small" style="margin-top:6px;">
+      Goals For Breakdown:
+      BA: ${gfStats.BA} • OMR: ${gfStats.OMR} • Other: ${gfStats.Other}
     </div>
   `;
 

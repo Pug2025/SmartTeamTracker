@@ -6,7 +6,7 @@
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Team Tracker – iPhone</title>
+<title>Team Tracker – iPhone (v5.1.0)</title>
 <style>
   :root{
     /* Theme: High Contrast / Split Brain */
@@ -35,11 +35,32 @@
     padding-bottom:80px; /* Space for FAB */
   }
 
-  .inlineRow{ display:flex; align-items:center; gap:8px; }
-  .small{ font-size:12px; color:var(--muted); }
-  .banner{ font-size:12px; padding:6px 10px; border-radius:10px; background:#1a1200; border:1px solid #444; }
-  .card{ background:#111; border:1px solid #333; border-radius:12px; padding:10px; }
-  .btn{ font-family:inherit; }
+  /* Basic utility / text classes */
+  .inlineRow{
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .small{
+    font-size:12px;
+    color:var(--muted);
+  }
+  .banner{
+    font-size:12px;
+    padding:6px 10px;
+    border-radius:10px;
+    background:#1a1200;
+    border:1px solid #444;
+  }
+  .card{
+    background:#111;
+    border:1px solid #333;
+    border-radius:12px;
+    padding:10px;
+  }
+  .btn{
+    font-family:inherit;
+  }
 
   /* ===== Sticky Header & Scoreboard ===== */
   .sticky-header{
@@ -103,13 +124,15 @@
     margin-top:2px;
     transition: transform 0.1s;
   }
-  .shot-under{
-    font-size:11px;
-    color:#cfcfcf;
-    opacity:0.85;
-    margin-top:2px;
+  .score-sub{
+    margin-top:4px;
+    font-size:12px;
+    color:var(--muted);
+    font-weight:700;
+    letter-spacing:0.2px;
   }
 
+  /* Pulse Animation for Score */
   @keyframes pulse-green {
     0% {color:#fff;}
     50% {color:var(--good); transform:scale(1.2);}
@@ -123,6 +146,7 @@
   .pulse-good { animation: pulse-green 0.4s ease-out; }
   .pulse-bad { animation: pulse-red 0.4s ease-out; }
 
+  /* Period Selector (Segmented) */
   .period-seg{
     display:flex;
     background:#1c1c1e;
@@ -175,7 +199,7 @@
     color:var(--muted);
     margin-bottom:6px;
   }
-  input, select{
+  input, select, textarea{
     width:100%;
     box-sizing:border-box;
     background:#000;
@@ -222,6 +246,7 @@
     gap:8px;
   }
 
+  /* Button Styling */
   .g-btn{
     -webkit-tap-highlight-color:transparent;
     border-radius:12px;
@@ -247,16 +272,18 @@
     box-shadow:0 4px 10px rgba(0,0,0,0.4);
   }
 
+  /* Sizes */
   .h-lg{
     height:85px;
     font-size:18px;
     font-weight:800;
-  }
+  } /* Primary Action */
   .h-md{
     height:55px;
     font-size:14px;
   }
 
+  /* Theme: THEM (Left/Red) */
   .theme-them .g-btn{
     background:var(--zone-them);
     border-color:#5a1a1a;
@@ -272,6 +299,7 @@
     font-size:12px;
   }
 
+  /* Theme: US (Right/Blue) */
   .theme-us .g-btn{
     background:var(--zone-us);
     border-color:#1a3a5a;
@@ -284,14 +312,15 @@
   .theme-us .g-btn.positive{
     border-color:var(--good);
     color:var(--good);
-  }
+  } /* Smother/Saves */
   .theme-us .g-btn.ctx{
-    background:#07121a;
+    background:#071421;
     border-color:#1a3a5a;
     border-style:dashed;
     font-size:12px;
   }
 
+  /* Grid dividers/labels */
   .col-label{
     font-size:10px;
     text-transform:uppercase;
@@ -300,6 +329,13 @@
     margin-bottom:4px;
     opacity:0.5;
   }
+
+  .context-row{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:8px;
+  }
+
   .def-context-label{
     font-size:10px;
     text-transform:uppercase;
@@ -308,7 +344,10 @@
     margin-top:4px;
   }
 
-  .next-period-wrap{ margin-top:14px; }
+  /* ===== Next Period Full-Width Bar ===== */
+  .next-period-wrap{
+    margin-top:14px;
+  }
   .next-period-btn{
     width:100%;
     background:#222;
@@ -317,6 +356,7 @@
     border-radius:999px;
   }
 
+  /* ===== Floating Undo (FAB) ===== */
   .fab-undo{
     position:fixed;
     bottom:24px;
@@ -341,28 +381,84 @@
     background:#333;
   }
 
-  .stats-strip{
-    display:grid;
-    grid-template-columns:repeat(4, 1fr);
-    gap:6px;
-    margin-top:16px;
-  }
-  .mini-stat{
-    background:#111;
+  /* ===== Live Dashboard ===== */
+  .dash{
+    margin-top:14px;
+    background:#0b0b0b;
     border:1px solid #222;
-    border-radius:8px;
-    padding:6px;
+    border-radius:14px;
+    padding:10px;
+  }
+  .dashTop{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:6px 4px 10px 4px;
+    border-bottom:1px solid #1f1f1f;
+    margin-bottom:10px;
+  }
+  .dashTop .t{
+    font-weight:800;
+    letter-spacing:-0.2px;
+  }
+  .dashGrid{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap:10px;
+  }
+  .dashTile{
+    background:#0f0f0f;
+    border:1px solid #242424;
+    border-radius:14px;
+    padding:10px;
+    min-height:70px;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+  }
+  .dashTile .k{
+    font-size:12px;
+    color:#9aa6b2;
+    font-weight:700;
+  }
+  .dashTile .v{
+    font-size:26px;
+    font-weight:900;
+    letter-spacing:-0.5px;
+  }
+  .dashTile .s{
+    font-size:12px;
+    color:var(--muted);
+    font-weight:700;
+  }
+  .dashWide{
+    grid-column:1/-1;
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    align-items:center;
+  }
+  .ringsRow{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:10px;
+    margin-bottom:10px;
+  }
+  .ringCard{
+    background:#0f0f0f;
+    border:1px solid #242424;
+    border-radius:14px;
+    padding:10px;
     text-align:center;
   }
-  .mini-stat .l{ font-size:10px; color:var(--muted); display:block; }
-  .mini-stat .v{ font-size:14px; font-weight:700; color:#fff; }
 
+  /* ===== Stats & Log ===== */
   .log-container{
     margin-top:16px;
     background:#080808;
     border:1px solid #222;
     border-radius:12px;
-    height:140px;
+    height:160px;
     overflow-y:auto;
     padding:8px;
   }
@@ -376,8 +472,13 @@
     gap:8px;
     align-items:center;
   }
-  .log-main{ flex:1; }
-  .log-meta{ opacity:0.7; margin-right:4px; }
+  .log-main{
+    flex:1;
+  }
+  .log-meta{
+    opacity:0.7;
+    margin-right:4px;
+  }
   .badge{
     display:inline-block;
     padding:2px 6px;
@@ -392,6 +493,7 @@
     cursor:pointer;
   }
 
+  /* ===== Summary Panels / Dialogs (reused) ===== */
   .panel{
     background:var(--panel);
     border-radius:var(--radius);
@@ -415,19 +517,33 @@
     border:1px solid #333;
     border-radius:12px;
     width:100%;
-    max-width:400px;
+    max-width:420px;
     padding:16px;
   }
 
-  .scoreRing{ position:relative; width:80px; height:80px; margin:0 auto; }
-  .ringSvg{ transform:rotate(-90deg); width:100%; height:100%; }
-  .ringBg{ fill:none; stroke:#333; stroke-width:6; }
+  /* Rings */
+  .scoreRing{
+    position:relative;
+    width:80px;
+    height:80px;
+    margin:0 auto;
+  }
+  .ringSvg{
+    transform:rotate(-90deg);
+    width:100%;
+    height:100%;
+  }
+  .ringBg{
+    fill:none;
+    stroke:#333;
+    stroke-width:6;
+  }
   .ringFg{
     fill:none;
     stroke:var(--accent-us);
     stroke-width:6;
     stroke-linecap:round;
-    transition:stroke-dashoffset 0.5s;
+    transition:stroke-dashoffset 0.5s, stroke 0.2s;
     stroke-dasharray:220;
     stroke-dashoffset:220;
   }
@@ -449,9 +565,18 @@
     border:1px solid #333;
     color:#888;
   }
-  .pill.good{ color:var(--good); border-color:var(--good); }
-  .pill.warn{ color:var(--warn); border-color:var(--warn); }
-  .pill.bad{ color:var(--accent-them); border-color:var(--accent-them); }
+  .pill.good{
+    color:var(--good);
+    border-color:var(--good);
+  }
+  .pill.warn{
+    color:var(--warn);
+    border-color:var(--warn);
+  }
+  .pill.bad{
+    color:var(--accent-them);
+    border-color:var(--accent-them);
+  }
 
   .ai-actions{
     display:flex;
@@ -468,7 +593,14 @@
     flex:1;
   }
 
-  .rowbtn{ display:flex; gap:10px; margin-top:10px; justify-content:flex-end; }
+  /* Common utils */
+  .rowbtn{
+    display:flex;
+    gap:10px;
+    margin-top:10px;
+    justify-content:flex-end;
+    flex-wrap:wrap;
+  }
   .btn-std{
     padding:10px 16px;
     background:#222;
@@ -478,6 +610,7 @@
     cursor:pointer;
   }
 
+  /* Picker Grid */
   .pickerGrid{
     display:grid;
     grid-template-columns:repeat(4,1fr);
@@ -493,8 +626,12 @@
     font-weight:700;
     cursor:pointer;
   }
-  .pickerBtn.selected{ background:#0f2b45; border-color:var(--accent-us); }
+  .pickerBtn.selected{
+    background:#0f2b45;
+    border-color:var(--accent-us);
+  }
 
+  /* Tables in summary */
   table{
     width:100%;
     border-collapse:collapse;
@@ -503,11 +640,14 @@
   }
   th,td{
     border:1px solid #333;
-    padding:4px 6px;
+    padding:6px 6px;
     text-align:center;
   }
-  th{ background:#181818; }
+  th{
+    background:#181818;
+  }
 
+  /* Undo Modal */
   .undoRow{
     padding:6px 4px;
     border-bottom:1px solid #222;
@@ -515,6 +655,7 @@
     font-size:12px;
   }
 
+  /* Toast */
   .toast{
     position:fixed;
     left:50%;
@@ -532,24 +673,26 @@
 </head>
 <body>
 
+<!-- Sticky Header -->
 <header class="sticky-header">
   <div class="top-row">
     <div class="inlineRow">
       <h1>Team Tracker</h1>
-      <div class="pill" id="versionPill">v—</div>
+      <div class="pill" id="verPill">v—</div>
       <div class="pill" id="cloudStatus">Cloud: —</div>
     </div>
-    <div>
+    <div class="inlineRow">
       <button class="btn-edit-setup" id="btnEditSetup" style="display:none;">Edit Info</button>
       <button class="btn-std" id="btnRoster" style="font-size:11px; padding:6px 10px;">Roster</button>
     </div>
   </div>
 
   <div class="scoreboard-row">
+    <!-- THEM LEFT, US RIGHT -->
     <div class="score-block them">
       <span class="score-label">THEM</span>
       <span id="liveGA" class="score-val">0</span>
-      <div class="shot-under">SA <span id="hdrSA">0</span></div>
+      <div class="score-sub" id="liveSA_sub">SA: 0</div>
     </div>
 
     <div class="period-seg" id="periodChips">
@@ -562,13 +705,14 @@
     <div class="score-block us">
       <span class="score-label">US</span>
       <span id="liveGF" class="score-val">0</span>
-      <div class="shot-under">SF <span id="hdrSF">0</span></div>
+      <div class="score-sub" id="liveSF_sub">SF: 0</div>
     </div>
   </div>
 </header>
 
 <div class="wrap">
 
+  <!-- Setup Panel (Initially Visible) -->
   <div id="setupContainer">
     <div class="setup-card">
       <h2>Game Setup</h2>
@@ -596,53 +740,112 @@
     </div>
   </div>
 
+  <!-- Game Controls (Initially Hidden) -->
   <div id="gameControls">
 
     <div class="split-grid">
 
-      <!-- LEFT COLUMN: THEM / DEFENSIVE -->
+      <!-- LEFT COLUMN: THEM / BAD (Red) -->
       <div class="col-zone theme-them">
         <div class="col-label">Them</div>
-
+        <!-- Primary -->
         <div class="g-btn primary h-lg" id="btnShot">Shot Against</div>
         <div class="g-btn primary h-lg" id="btnGoal">Goal Against</div>
-
+        <!-- Secondary -->
         <div class="g-btn h-md" id="btnSoftGoal">Soft Goal</div>
         <div class="g-btn h-md" id="btnBadRebound">Bad Rebound</div>
 
         <div class="def-context-label">Defensive Context</div>
-        <div class="g-btn ctx h-md" id="btnBreakaway">Breakaway Ag</div>
-        <div class="g-btn ctx h-md" id="btnDZTurnover">DZ Turnover</div>
+        <div class="context-row">
+          <div class="g-btn ctx h-md" id="btnBreakaway">Breakaway Ag</div>
+          <div class="g-btn ctx h-md" id="btnDZTurnover">DZ Turnover</div>
+        </div>
       </div>
 
-      <!-- RIGHT COLUMN: US / OFFENSIVE -->
+      <!-- RIGHT COLUMN: US / GOOD (Blue) -->
       <div class="col-zone theme-us">
         <div class="col-label">Us</div>
-
+        <!-- Primary -->
         <div class="g-btn primary h-lg" id="btnForShot">Shot For</div>
         <div class="g-btn primary h-lg" id="btnForGoal">Goal For</div>
-
+        <!-- Goalies -->
         <div class="g-btn positive h-md" id="btnSmother">Smother</div>
         <div class="g-btn positive h-md" id="btnBigSave">Big Save</div>
 
         <div class="def-context-label">Offensive Context</div>
-        <div class="g-btn ctx h-md" id="btnOddManRushFor">Odd Man Rush</div>
-        <div class="g-btn ctx h-md" id="btnBreakawayFor">Breakaway</div>
+        <div class="context-row">
+          <div class="g-btn ctx h-md" id="btnOddManRushFor">Odd Man Rush</div>
+          <div class="g-btn ctx h-md" id="btnBreakawayFor">Breakaway</div>
+        </div>
       </div>
 
     </div>
 
+    <!-- Next Period: global full-width control -->
     <div class="next-period-wrap">
       <div class="g-btn next-period-btn" id="btnNextPeriod">Next Period</div>
     </div>
 
-    <div class="stats-strip">
-      <div class="mini-stat"><span class="l">SF</span><span class="v" id="liveSF">0</span></div>
-      <div class="mini-stat"><span class="l">SA</span><span class="v" id="liveSA">0</span></div>
-      <div class="mini-stat"><span class="l">Saves</span><span class="v" id="savesVal">0</span></div>
-      <div class="mini-stat"><span class="l">SV%</span><span class="v" id="svVal">—</span></div>
+    <!-- Live Dashboard -->
+    <div class="dash">
+      <div class="dashTop">
+        <div class="t">Scoreboard</div>
+        <div class="small" id="dashLine">GF 0 • GA 0 • SF 0 • SA 0</div>
+      </div>
+
+      <div class="ringsRow">
+        <div class="ringCard">
+          <div class="small" style="margin-bottom:6px;">Goalie Score</div>
+          <div class="scoreRing">
+            <svg viewBox="0 0 80 80" class="ringSvg">
+              <circle class="ringBg" cx="40" cy="40" r="35"></circle>
+              <circle class="ringFg" id="gsArc" cx="40" cy="40" r="35"></circle>
+            </svg>
+            <div class="val" id="goalieScoreNum">—</div>
+          </div>
+        </div>
+        <div class="ringCard">
+          <div class="small" style="margin-bottom:6px;">Team Score</div>
+          <div class="scoreRing">
+            <svg viewBox="0 0 80 80" class="ringSvg">
+              <circle class="ringBg" cx="40" cy="40" r="35"></circle>
+              <circle class="ringFg" id="tsArc" cx="40" cy="40" r="35"></circle>
+            </svg>
+            <div class="val" id="teamScoreNum">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dashGrid">
+        <div class="dashTile"><div class="k">Saves</div><div class="v" id="savesVal">0</div><div class="s" id="svVal">SV% —</div></div>
+        <div class="dashTile"><div class="k">Smothers</div><div class="v" id="smothersVal">0</div><div class="s">Tracked</div></div>
+        <div class="dashTile"><div class="k">Bad Rebounds</div><div class="v" id="badRebVal">0</div><div class="s">Tracked</div></div>
+
+        <div class="dashTile"><div class="k">Big Saves</div><div class="v" id="bigSavesVal">0</div><div class="s">Tracked</div></div>
+        <div class="dashTile"><div class="k">Our Shooting %</div><div class="v" id="shootPctVal">—</div><div class="s">GF / SF</div></div>
+        <div class="dashTile"><div class="k">Shot Share</div><div class="v" id="shotShareVal">—</div><div class="s">SF / (SF+SA)</div></div>
+
+        <div class="dashTile"><div class="k">Breakaways Ag</div><div class="v" id="baAgVal">0</div><div class="s">Tracked</div></div>
+        <div class="dashTile"><div class="k">D-Zone TO</div><div class="v" id="dzVal">0</div><div class="s">Tracked</div></div>
+        <div class="dashTile"><div class="k">Soft Goals</div><div class="v" id="softVal">0</div><div class="s">Tracked</div></div>
+
+        <div class="dashTile"><div class="k">Breakaways For</div><div class="v" id="baForVal">0</div><div class="s">Offensive ctx</div></div>
+        <div class="dashTile"><div class="k">Odd Man Rush For</div><div class="v" id="omrForVal">0</div><div class="s">Offensive ctx</div></div>
+        <div class="dashTile"><div class="k">Good Rebounds</div><div class="v" id="goodRebVal">0</div><div class="s">Auto credit</div></div>
+      </div>
+
+      <div class="card" style="margin-top:10px;">
+        <div class="small" style="margin-bottom:8px;">By Period</div>
+        <div class="dashGrid" style="grid-template-columns:repeat(2,1fr);">
+          <div class="dashTile"><div class="k">P1</div><div class="v" id="p1Line">—</div><div class="s">—</div></div>
+          <div class="dashTile"><div class="k">P2</div><div class="v" id="p2Line">—</div><div class="s">—</div></div>
+          <div class="dashTile"><div class="k">P3</div><div class="v" id="p3Line">—</div><div class="s">—</div></div>
+          <div class="dashTile"><div class="k">OT</div><div class="v" id="p4Line">—</div><div class="s">—</div></div>
+        </div>
+      </div>
     </div>
 
+    <!-- Log -->
     <div class="log-container" id="log"></div>
 
     <div class="rowbtn" style="justify-content:center; margin-top:20px;">
@@ -650,8 +853,9 @@
       <button class="btn-std" id="btnReset">New Game</button>
     </div>
 
-  </div>
+  </div> <!-- End Game Controls -->
 
+  <!-- Summary Panel -->
   <section class="panel hidden" id="summaryPanel">
     <h2 style="margin:0 0 10px 0; font-size:16px;">Game Summary</h2>
     <div id="summaryTitle" class="small" style="margin-bottom:12px; color:#aaa;"></div>
@@ -659,30 +863,45 @@
     <div style="display:flex; justify-content:center; gap:20px; margin-bottom:20px;">
       <div style="text-align:center;">
         <div class="scoreRing" id="gsRing">
-           <svg viewBox="0 0 80 80" class="ringSvg"><circle class="ringBg" cx="40" cy="40" r="35"></circle><circle class="ringFg" id="gsArc" cx="40" cy="40" r="35"></circle></svg>
-           <div class="val" id="goalieScoreNum">—</div>
+          <svg viewBox="0 0 80 80" class="ringSvg">
+            <circle class="ringBg" cx="40" cy="40" r="35"></circle>
+            <circle class="ringFg" id="gsArcSum" cx="40" cy="40" r="35"></circle>
+          </svg>
+          <div class="val" id="goalieScoreNumSum">—</div>
         </div>
         <div class="small" style="margin-top:6px;">Goalie Score</div>
       </div>
       <div style="text-align:center;">
         <div class="scoreRing" id="tsRing">
-           <svg viewBox="0 0 80 80" class="ringSvg"><circle class="ringBg" cx="40" cy="40" r="35"></circle><circle class="ringFg" id="tsArc" cx="40" cy="40" r="35"></circle></svg>
-           <div class="val" id="teamScoreNum">—</div>
+          <svg viewBox="0 0 80 80" class="ringSvg">
+            <circle class="ringBg" cx="40" cy="40" r="35"></circle>
+            <circle class="ringFg" id="tsArcSum" cx="40" cy="40" r="35"></circle>
+          </svg>
+          <div class="val" id="teamScoreNumSum">—</div>
         </div>
         <div class="small" style="margin-top:6px;">Team Score</div>
       </div>
     </div>
 
     <div class="card" style="margin-top:10px;">
-      <h3>Goalie Breakdown</h3>
+      <h3 style="margin:0 0 6px 0;">All Stats</h3>
+      <div id="allStatsGrid"></div>
+    </div>
+
+    <div class="card" style="margin-top:10px;">
+      <h3 style="margin:0 0 6px 0;">Strength Breakdown</h3>
+      <div class="small" id="strengthBreakdown"></div>
+    </div>
+
+    <div class="card" style="margin-top:10px;">
+      <h3 style="margin:0 0 6px 0;">Goalie Breakdown</h3>
       <div class="small" id="scoreBreakdown"></div>
     </div>
     <div class="card" style="margin-top:10px;">
-      <h3>Team Breakdown</h3>
+      <h3 style="margin:0 0 6px 0;">Team Breakdown</h3>
       <div class="small" id="teamBreakdown"></div>
     </div>
 
-    <div id="summaryReadable" style="margin-top:15px; font-size:13px; line-height:1.5;"></div>
     <div id="summaryTableWrap" style="margin-top:15px;"></div>
     <div id="pmTableWrap" style="margin-top:15px;"></div>
     <div id="gaDetailWrap" style="margin-top:15px;"></div>
@@ -694,14 +913,15 @@
       <button class="btn ai" id="btnAIFocus">Next Game Focus</button>
     </div>
 
+    <!-- AI Results Cards -->
     <div class="card" id="aiPracticeCard" style="margin-top:10px;display:none;">
-      <h3>AI Practice Plan</h3><div class="small" id="aiPracticeBody"></div>
+      <h3 style="margin:0 0 6px 0;">AI Practice Plan</h3><div class="small" id="aiPracticeBody"></div>
     </div>
     <div class="card" id="aiGoalieCard" style="margin-top:10px;display:none;">
-      <h3>AI Goalie Report</h3><div class="small" id="aiGoalieBody"></div>
+      <h3 style="margin:0 0 6px 0;">AI Goalie Report</h3><div class="small" id="aiGoalieBody"></div>
     </div>
     <div class="card" id="aiFocusCard" style="margin-top:10px;display:none;">
-      <h3>AI Next Game Focus</h3><div class="small" id="aiFocusBody"></div>
+      <h3 style="margin:0 0 6px 0;">AI Next Game Focus</h3><div class="small" id="aiFocusBody"></div>
     </div>
 
     <div class="rowbtn" style="margin-top:20px; justify-content:center;">
@@ -712,9 +932,11 @@
 
 </div>
 
+<!-- Floating Undo Button -->
 <div id="btnUndo" class="fab-undo">UNDO</div>
 
 <!-- MODALS -->
+<!-- Roster modal -->
 <div class="modal" id="rosterModal"><div class="box">
   <div class="small" style="margin-bottom:6px;">Roster (one # per line)</div>
   <textarea id="rosterArea" style="width:100%; height:150px; background:#000; border:1px solid #333; color:#fff; padding:8px;"></textarea>
@@ -724,6 +946,7 @@
   </div>
 </div></div>
 
+<!-- Player picker -->
 <div class="modal" id="pickerModal"><div class="box">
   <div class="small" style="margin-bottom:8px;" id="pickerTitle">Select Player</div>
   <div class="pickerGrid" id="pickerGrid"></div>
@@ -732,22 +955,24 @@
     <button class="btn-std" id="pickerAdd">Use</button>
   </div>
   <div class="rowbtn" style="justify-content:space-between;">
-    <button class="btn-std" id="pickerNoAssist" style="display:none;">No Assist</button>
-    <div style="display:flex; gap:10px; margin-left:auto;">
+    <button class="btn-std" id="pickerNone" style="display:none;">No Assist</button>
+    <div style="display:flex; gap:8px;">
       <button class="btn-std" id="pickerUnknown">Unknown</button>
       <button class="btn-std" id="pickerCancel">Cancel</button>
     </div>
   </div>
 </div></div>
 
+<!-- GA Context -->
 <div class="modal" id="gaOverlay"><div class="box">
-  <div class="small" style="margin-bottom:8px;">Goal Context</div>
+  <div class="small" style="margin-bottom:8px;">Goal Against Context</div>
   <div class="pickerGrid" id="gaGrid" style="grid-template-columns:1fr 1fr;"></div>
   <div class="rowbtn">
     <button class="btn-std" id="gaSkip">Tag Later</button>
   </div>
 </div></div>
 
+<!-- Multi Picker -->
 <div class="modal" id="onIceModal"><div class="box">
   <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
     <span class="small" id="onIceTitle">On Ice</span>
@@ -766,6 +991,7 @@
   <div class="small" id="onIceUnknownBadge" style="text-align:center; margin-top:6px; opacity:0.5;"></div>
 </div></div>
 
+<!-- Strength -->
 <div class="modal" id="strengthModal"><div class="box">
   <div class="small" style="margin-bottom:8px;" id="strengthTitle">Situation</div>
   <div class="pickerGrid" style="grid-template-columns:1fr;">
@@ -776,6 +1002,7 @@
   <div class="rowbtn"><button class="btn-std" id="strengthSkip">Skip</button></div>
 </div></div>
 
+<!-- Copy -->
 <div class="modal" id="copyModal"><div class="box">
   <div class="small">Summary Text</div>
   <textarea id="copyArea" style="width:100%; height:200px; background:#000; color:#fff; margin-top:8px;"></textarea>
@@ -785,6 +1012,7 @@
   </div>
 </div></div>
 
+<!-- Undo List -->
 <div class="modal" id="undoModal"><div class="box">
   <div class="small">Undo Event</div>
   <div class="undoList" id="undoList" style="max-height:250px; overflow:auto; margin-top:8px;"></div>
@@ -793,21 +1021,17 @@
 
 <div class="toast" id="toast">Removed. <button id="toastRestore" style="background:none; border:none; color:var(--accent-us); font-weight:700;">Restore</button></div>
 
+<!-- Debug (Hidden by default in UI but kept for ref) -->
 <div id="debugWrap" style="display:none;">
   <div id="debugGoalieLine"></div><div id="debugTeamLine"></div>
 </div>
 
 <script>
-/*
-Version display approach:
-- Good idea to keep a SINGLE VERSION constant here and render it into the UI + document.title.
-- It still requires updating index.html to bump the version, but you only change it in one place.
-- Trying to "pull it from the file name" or other pages usually adds fragility for little gain.
-*/
-const APP_VERSION = 'v5.2.0';
+/* ===== App Version ===== */
+const APP_VERSION = '5.1.0';
 
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', ()=>navigator.serviceWorker.register('service-worker.js?v=5200'));
+  window.addEventListener('load', ()=>navigator.serviceWorker.register('service-worker.js?v=5100'));
 }
 
 /* ===== IndexedDB KV helper ===== */
@@ -858,11 +1082,14 @@ const state = {
   events:[],
   countsA:{shots:0, goals:0, softGoals:0, smothers:0, badRebounds:0, bigSaves:0},
   countsF:{shots:0, goals:0},
-  team:{breakawaysAgainst:0, dzTurnovers:0},
-  offense:{breakawaysFor:0, oddManRushFor:0},
+  team:{
+    breakawaysAgainst:0,
+    dzTurnovers:0,
+    breakawaysFor:0,
+    oddManRushFor:0
+  },
   roster:[],
-  lastEventId:0,
-  lastOffBreakawayAt:null
+  lastEventId:0
 };
 
 let per = {1:initP(),2:initP(),3:initP(),4:initP()};
@@ -889,22 +1116,16 @@ function toggleSetup(showSetup){
     $('btnUndo').style.display='flex';
   }
 }
-function syncSetupIntoState(){
-  const opp = ($('opponent').value || '').trim();
-  const lvl = $('level').value || 'Other';
-  const dt  = $('date').value || new Date().toISOString().slice(0,10);
-  state.opponent = opp;
-  state.level = lvl;
-  state.date = dt;
-  save();
-}
 $('btnStartGame').addEventListener('click', ()=>{
-  syncSetupIntoState();
-  if(!state.startedAt) state.startedAt = new Date().toISOString();
+  // Ensure state has the displayed date even if user never touched the field
+  if(!state.date){
+    const v = $('date').value;
+    if(v) state.date = v;
+  }
   toggleSetup(false);
   vibrate(10);
 });
-$('btnEditSetup').addEventListener('click', ()=>toggleSetup(true));
+$('btnEditSetup').addEventListener('click', ()=>{ toggleSetup(true); });
 
 /* ===== Cloud status helper ===== */
 function setCloudStatus(text, tone){
@@ -954,24 +1175,18 @@ async function load(){
   return null;
 }
 
-/* Crash-safety autosaves */
-let autosaveTimer = null;
-function startAutosave(){
-  if(autosaveTimer) clearInterval(autosaveTimer);
-  autosaveTimer = setInterval(()=>{ save(); }, 4000);
-  window.addEventListener('pagehide', ()=>{ save(); }, {capture:true});
-  document.addEventListener('visibilitychange', ()=>{
-    if(document.visibilityState === 'hidden') save();
-  }, {capture:true});
-}
+/* Autosave & lifecycle saves (crash safety) */
+setInterval(()=>save(), 4000);
+window.addEventListener('pagehide', ()=>save());
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'hidden') save();
+});
 
 /* ===== Helpers ===== */
 function vibrate(ms=20){ if(navigator.vibrate) navigator.vibrate(ms); }
 
 function highlightPeriod(){
-  const chips = $('periodChips');
-  if(!chips) return;
-  [...chips.children].forEach(ch=>{
+  [...$('periodChips').children].forEach(ch=>{
     const p = Number(ch.dataset.p);
     ch.classList.toggle('active', p===state.period);
   });
@@ -982,48 +1197,25 @@ function fmtTime(iso){
   return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
 }
 function clamp01(x){ return Math.max(0, Math.min(1, x)); }
-function compressUnknown(arr){
-  const unknowns = arr.filter(x=>x==='Unknown').length;
-  const rest = arr.filter(x=>x!=='Unknown');
-  return unknowns ? [...rest, `Unknown×${unknowns}`] : rest;
+function isNumStr(x){ return typeof x==='string' && /^\d+$/.test(x.trim()); }
+function sortRoster(arr){
+  // numeric first, then alpha; stable-ish
+  return [...arr].sort((a,b)=>{
+    const an = isNumStr(String(a)) ? Number(a) : null;
+    const bn = isNumStr(String(b)) ? Number(b) : null;
+    if(an!==null && bn!==null) return an-bn;
+    if(an!==null) return -1;
+    if(bn!==null) return 1;
+    return String(a).localeCompare(String(b));
+  });
 }
-
-/* Sorting helpers */
-function toNumOrNaN(v){
-  const s = String(v ?? '').trim();
-  if(!s) return NaN;
-  if(/^\d+$/.test(s)) return Number(s);
-  return NaN;
-}
-function smartRosterSort(a,b){
-  const na = toNumOrNaN(a), nb = toNumOrNaN(b);
-  const aIsNum = !Number.isNaN(na);
-  const bIsNum = !Number.isNaN(nb);
-  if(aIsNum && bIsNum) return na - nb;
-  if(aIsNum && !bIsNum) return -1;
-  if(!aIsNum && bIsNum) return 1;
-  return String(a).localeCompare(String(b));
-}
-function normalizeLevelKey(levelStr){
-  const s = String(levelStr || '').trim();
-  const m = s.match(/^(U\d{1,2})\b/i);
-  if(m){
-    const key = m[1].toUpperCase();
-    if(LEVEL_PROFILES[key]) return key;
-  }
-  return 'Other';
-}
-
-/* ===== Roster auto-growth ===== */
-function maybeAddToRoster(num){
-  const s = String(num ?? '').trim();
-  if(!s) return;
-  if(s === '?' || s === 'Unknown') return;
-  if(!/^\d+$/.test(s)) return;
-  const roster = state.roster || [];
-  if(!roster.includes(s)){
-    roster.push(s);
-    state.roster = roster;
+function ensureRosterNumber(num){
+  const n = String(num||'').trim();
+  if(!isNumStr(n)) return;
+  const roster = new Set((state.roster||[]).map(x=>String(x).trim()).filter(Boolean));
+  if(!roster.has(n)){
+    roster.add(n);
+    state.roster = sortRoster([...roster]);
     try{ localStorage.setItem(ROSTER_KEY, JSON.stringify(state.roster)); }catch(_){}
     save();
   }
@@ -1059,9 +1251,9 @@ function bump(type, period){
   }else if(type==='dz_turnover'){
     state.team.dzTurnovers++; p.DZ++;
   }else if(type==='breakaway_for'){
-    state.offense.breakawaysFor++; p.BF++;
+    state.team.breakawaysFor++; p.BF++;
   }else if(type==='odd_man_rush_for'){
-    state.offense.oddManRushFor++; p.OMRF++;
+    state.team.oddManRushFor++; p.OMRF++;
   }
 }
 
@@ -1069,8 +1261,7 @@ function rebuildFromEvents(){
   per = {1:initP(),2:initP(),3:initP(),4:initP()};
   state.countsA = {shots:0, goals:0, softGoals:0, smothers:0, badRebounds:0, bigSaves:0};
   state.countsF = {shots:0, goals:0};
-  state.team = {breakawaysAgainst:0, dzTurnovers:0};
-  state.offense = {breakawaysFor:0, oddManRushFor:0};
+  state.team = {breakawaysAgainst:0, dzTurnovers:0, breakawaysFor:0, oddManRushFor:0};
 
   for(const ev of state.events){
     bump(ev.type, ev.period);
@@ -1085,6 +1276,7 @@ function scheduleGoodReboundCredit(id){
     if(ev && !ev.goodRebound){
       ev.goodRebound = true;
       save();
+      renderAll();
     }
     pendingGood.delete(id);
   }, 4000);
@@ -1103,47 +1295,54 @@ function clearGoodPendingFor(id){
   pendingGood.delete(id);
 }
 
+/* Offensive breakaway timing */
+let lastBreakawayForTap = 0;
+
 function addEvent(type, meta={}){
-  if(type === 'smother' || type === 'bad_rebound') cancelRecentGoodCredit();
-
-  const nowISO = new Date().toISOString();
-
-  if(type === 'breakaway_for'){
-    state.lastOffBreakawayAt = nowISO;
-  }
+  // cancel good-rebound auto-credit when you log smother/bad rebound (scoring integrity)
+  if(type==='smother' || type==='bad_rebound') cancelRecentGoodCredit();
 
   const ev = {
     id: ++state.lastEventId,
     type,
-    tISO: nowISO,
+    tISO:new Date().toISOString(),
     period: state.period,
     ...meta
   };
 
-  // Breakaway goal-for auto-tag (within 10 seconds of Breakaway For tap)
-  if(type === 'for_goal' && state.lastOffBreakawayAt){
-    const dt = new Date(ev.tISO).getTime() - new Date(state.lastOffBreakawayAt).getTime();
-    if(dt >= 0 && dt <= 10000){
-      ev.offensiveContext = 'Breakaway';
-      // one-shot: don’t tag multiple goals off one tap unless you want that
-      state.lastOffBreakawayAt = null;
+  // Auto-tag: breakaway goal-for if within 10s of breakaway_for tap
+  if(type==='for_goal'){
+    const now = Date.now();
+    if(lastBreakawayForTap && (now - lastBreakawayForTap) <= 10000){
+      ev.off_ctx = 'Breakaway';
+      ev.breakawayGoal = true;
     }
   }
 
   state.events.push(ev);
   bump(type, state.period);
 
+  // GA auto-cause tagging (from defensive context events in last 10s)
   if (type === 'goal' || type === 'soft_goal') tagGACause(ev);
 
   save();
   renderAll();
   vibrate();
 
+  // Pulse animation trigger
   if(type==='goal' || type==='soft_goal') triggerPulse('liveGA','bad');
   if(type==='for_goal') triggerPulse('liveGF','good');
 
   if (type === 'shot' || type === 'big_save') scheduleGoodReboundCredit(ev.id);
+
+  // GA flow: goal against prompts GA context, then on-ice, then strength
   if (type === 'goal' || type === 'soft_goal') openGAContext(ev);
+
+  // GF flow: after scorer/assist/on-ice, we prompt strength (done downstream)
+  // But if someone logs a for_goal directly (not via picker), still prompt strength:
+  if (type === 'for_goal' && meta._direct){
+    openStrengthPicker(ev, 'Situation (required)');
+  }
 
   return ev;
 }
@@ -1177,8 +1376,8 @@ function revert(ev){
   else if(ev.type==='for_goal'){ state.countsF.shots--; state.countsF.goals--; p.F_shots--; p.F_goals--; }
   else if(ev.type==='breakaway_against'){ state.team.breakawaysAgainst--; p.BA--; }
   else if(ev.type==='dz_turnover'){ state.team.dzTurnovers--; p.DZ--; }
-  else if(ev.type==='breakaway_for'){ state.offense.breakawaysFor--; p.BF--; }
-  else if(ev.type==='odd_man_rush_for'){ state.offense.oddManRushFor--; p.OMRF--; }
+  else if(ev.type==='breakaway_for'){ state.team.breakawaysFor--; p.BF--; }
+  else if(ev.type==='odd_man_rush_for'){ state.team.oddManRushFor--; p.OMRF--; }
 
   save();
 }
@@ -1236,15 +1435,13 @@ $('undoList').addEventListener('click', e => {
 $('undoClose').addEventListener('click', ()=>$('undoModal').style.display='none');
 function showToast(msg){
   const t=$('toast');
-  if(!t) return;
   t.firstChild.nodeValue = msg+' ';
   t.style.display='block';
   if(toastTimer) clearTimeout(toastTimer);
   toastTimer = setTimeout(hideToast,3500);
 }
 function hideToast(){
-  const t=$('toast');
-  if(t) t.style.display='none';
+  $('toast').style.display='none';
   if(toastTimer){clearTimeout(toastTimer);toastTimer=null;}
 }
 $('toastRestore').addEventListener('click', ()=>{
@@ -1269,16 +1466,18 @@ function labelFor(ev){
     .replace('breakaway_against','Breakaway Ag')
     .replace('dz_turnover','DZ Turnover')
     .replace('breakaway_for','Breakaway For')
-    .replace('odd_man_rush_for','Odd Man Rush')
+    .replace('odd_man_rush_for','Odd Man Rush For')
     .replace(/_/g,' ');
-  if((ev.type==='for_shot'||ev.type==='for_goal')&&ev.player&&ev.player!=='?'&&ev.player!=='Unknown') {
+
+  if(ev.type==='for_goal'){
+    const s = ev.player && ev.player!=='?' ? ev.player : 'Unknown';
+    const a = (ev.assist===null || ev.assist===undefined) ? '—' : (ev.assist==='?' ? 'Unknown' : ev.assist);
+    label = `Our Goal (#${s}) A: ${a==='—' ? '—' : '#'+a}`;
+    if(ev.breakawayGoal) label += ' [BA]';
+  }
+
+  if((ev.type==='for_shot')&&ev.player&&ev.player!=='?'&&ev.player!=='Unknown') {
     label+=` (#${ev.player})`;
-  }
-  if(ev.type==='for_goal' && ev.assist && ev.assist!=='?' && ev.assist!=='Unknown'){
-    label+=` (A#${ev.assist})`;
-  }
-  if(ev.type==='for_goal' && ev.offensiveContext){
-    label+=` [${ev.offensiveContext}]`;
   }
   return label;
 }
@@ -1299,7 +1498,8 @@ $('gaGrid').addEventListener('click', e=>{
   save();
   $('gaOverlay').style.display='none';
   renderAll();
-  openMultiPicker({title:'5 Players On Ice', max:5, event:lastGAEvent, field:'onIce', exclude:[]});
+
+  openMultiPicker({title:'5 Players On Ice (required)', max:5, event:lastGAEvent, field:'onIce', exclude:[]});
   lastGAEvent=null;
 });
 $('gaSkip').addEventListener('click', ()=>{
@@ -1307,8 +1507,11 @@ $('gaSkip').addEventListener('click', ()=>{
   if(lastGAEvent){
     lastGAEvent.needsContext = true;
     save();
-    lastGAEvent=null;
     renderAll();
+
+    // still prompt on-ice (optional) then strength (required)
+    openMultiPicker({title:'5 Players On Ice (optional)', max:5, event:lastGAEvent, field:'onIce', exclude:[]});
+    // we keep lastGAEvent for the picker chain
   }
 });
 
@@ -1341,15 +1544,15 @@ function openMultiPicker({title,max,event,field,exclude}){
   updateOnIceMeta();
 }
 function buildOnIceGrid(){
-  const roster=(state.roster||[]).map(x=>String(x).trim()).filter(Boolean);
-  const uniq=Array.from(new Set(roster))
-    .filter(n=>!multiPick.exclude.has(n))
-    .sort(smartRosterSort);
+  const roster=sortRoster((state.roster||[]).map(x=>String(x).trim()).filter(Boolean));
+  const uniq=Array.from(new Set(roster)).filter(n=>!multiPick.exclude.has(n));
   $('onIceGrid').innerHTML=uniq.length
     ? uniq.map(n=>`<div class="pickerBtn ${multiPick.selected.has(n)?'selected':''}" data-n="${n}">#${n}</div>`).join('')
     : `<div class="small" style="grid-column:1/-1;">No roster yet.</div>`;
 }
-function totalSelected(){ return multiPick.selected.size + multiPick.unknowns; }
+function totalSelected(){
+  return multiPick.selected.size + multiPick.unknowns;
+}
 function updateOnIceMeta(){
   $('onIceCount').textContent=String(totalSelected());
   $('onIceUnknownBadge').textContent=`Unknown ×${multiPick.unknowns}`;
@@ -1395,11 +1598,18 @@ $('onIceUse').addEventListener('click', ()=>{
   $('onIceModal').style.display='none';
   multiPick.eventRef=null;
   renderAll();
-  if(ev.type==='goal'||ev.type==='soft_goal'||ev.type==='for_goal') openStrengthPicker(ev, 'Situation (optional)');
+
+  // Strength required after any goal for/against (and soft goal)
+  if(ev.type==='goal'||ev.type==='soft_goal'||ev.type==='for_goal') openStrengthPicker(ev, 'Situation (required)');
 });
 $('onIceCancel').addEventListener('click', ()=>{
+  const ev = multiPick.eventRef;
   $('onIceModal').style.display='none';
   multiPick.eventRef=null;
+
+  if(ev && (ev.type==='goal'||ev.type==='soft_goal'||ev.type==='for_goal')){
+    openStrengthPicker(ev, 'Situation (required)');
+  }
 });
 
 /* Strength */
@@ -1419,26 +1629,41 @@ $('strengthModal').addEventListener('click', e=>{
   renderAll();
 });
 $('strengthSkip').addEventListener('click', ()=>{
+  // requirement: prompt exists; allow skip, but leave undefined
   $('strengthModal').style.display='none';
   strengthTarget=null;
+  renderAll();
 });
 
 /* PlusMinus / Stats / Scoring */
 function computePlusMinus(){
   const pm=new Map();
   function inc(n,d){
-    if(n && n!=='Unknown' && n!=='?') pm.set(n,(pm.get(n)||0)+d);
+    const s = String(n||'').trim();
+    if(!s || s==='Unknown' || s==='?') return;
+    pm.set(s,(pm.get(s)||0)+d);
   }
+
   for(const ev of state.events){
     if(ev.type==='for_goal'){
-      const s=new Set([ev.player, ev.assist, ...(ev.forOnIce||[])].filter(Boolean));
+      const s=new Set();
+      if(ev.player) s.add(ev.player);
+      if(ev.assist) s.add(ev.assist);
+      (ev.forOnIce||[]).forEach(x=>s.add(x));
       for(const n of s) inc(n,1);
     }
     if((ev.type==='goal'||ev.type==='soft_goal')&&ev.onIce){
       for(const n of ev.onIce) inc(n,-1);
     }
   }
-  return {pm, order:[...pm.keys()].sort(smartRosterSort)};
+  const order = sortRoster([...pm.keys()]);
+  return {pm, order};
+}
+
+function normalizeLevelKey(levelStr){
+  const s = String(levelStr||'').toUpperCase();
+  const m = s.match(/U\d{1,2}/);
+  return m ? m[0] : 'Other';
 }
 
 const LEVEL_PROFILES = {
@@ -1451,10 +1676,8 @@ const LEVEL_PROFILES = {
 };
 
 function computeGoalieScore(){
-  const C=state.countsA, shots=C.shots, ga=C.goals;
-  const levelKey = normalizeLevelKey(state.level);
-  const prof = LEVEL_PROFILES[levelKey]||LEVEL_PROFILES.Other;
-
+  const C=state.countsA, shots=C.shots, ga=C.goals, saves=Math.max(0,shots-ga);
+  const prof = LEVEL_PROFILES[normalizeLevelKey(state.level)]||LEVEL_PROFILES.Other;
   const volFactor = clamp01(shots/prof.minShots);
   const expectedGA = shots*(1-prof.goalieBaseSV);
   const perfNorm = shots===0 ? 0.5 : clamp01(0.5+(expectedGA-ga)/6);
@@ -1462,6 +1685,7 @@ function computeGoalieScore(){
 
   const softPen = Math.max(-21, -7*C.softGoals);
 
+  // Context penalty calc
   const gas = state.events.filter(e=>e.type==='goal'||e.type==='soft_goal');
   let ctxBad=0;
   for(const ev of gas){
@@ -1497,15 +1721,12 @@ function computeGoalieScore(){
 function computeTeamScore(){
   const SF=state.countsF.shots, SA=state.countsA.shots, GF=state.countsF.goals, GA=state.countsA.goals;
   const SS = (SF+SA)>0 ? SF/(SF+SA) : 0.5;
-  const levelKey = normalizeLevelKey(state.level);
-  const prof = LEVEL_PROFILES[levelKey]||LEVEL_PROFILES.Other;
-
+  const prof = LEVEL_PROFILES[normalizeLevelKey(state.level)]||LEVEL_PROFILES.Other;
   const Fin = SF>0 ? GF/SF : 0;
   const Impact = clamp01(0.5 + 4*((GF-GA)/Math.max(1,SF+SA)));
 
-  const pVals = [1,2,3,4]
-    .map(p=>per[p].F_shots+per[p].A_shots > 0 ? per[p].F_shots/(per[p].F_shots+per[p].A_shots) : null)
-    .filter(v=>v!==null);
+  // Consistency
+  const pVals = [1,2,3,4].map(p=>per[p].F_shots+per[p].A_shots > 0 ? per[p].F_shots/(per[p].F_shots+per[p].A_shots) : null).filter(v=>v!==null);
   let stab = 1;
   if(pVals.length>1){
     const mu=pVals.reduce((a,b)=>a+b,0)/pVals.length;
@@ -1517,7 +1738,6 @@ function computeTeamScore(){
         scoreFin=25*clamp01(Fin/Math.max(0.05,prof.teamFinExp)),
         scoreImp=35*Impact,
         scoreStab=15*stab;
-
   const pen = Math.min(12, 3*state.team.breakawaysAgainst) + Math.min(12, 1.5*state.team.dzTurnovers);
 
   return {
@@ -1526,6 +1746,7 @@ function computeTeamScore(){
   };
 }
 
+/* GA breakdown helper */
 function computeGABreakdown(){
   return state.events.reduce((acc,e)=>{
     if(e.type==='goal'||e.type==='soft_goal'){
@@ -1539,34 +1760,99 @@ function computeGABreakdown(){
   }, {BA:0,DZ:0,BR:0,Other:0});
 }
 
+/* Strength breakdown */
+function computeStrengthBreakdown(){
+  const out = {
+    for:{EV:0,PP:0,SH:0,UNK:0},
+    against:{EV:0,PP:0,SH:0,UNK:0}
+  };
+  for(const ev of state.events){
+    if(ev.type==='for_goal'){
+      const s = ev.strength || 'UNK';
+      out.for[s] = (out.for[s]||0)+1;
+    }
+    if(ev.type==='goal' || ev.type==='soft_goal'){
+      const s = ev.strength || 'UNK';
+      out.against[s] = (out.against[s]||0)+1;
+    }
+  }
+  return out;
+}
+
 /* ===== Live Renders ===== */
+function setRing(valEl, arcEl, sc){
+  if(!valEl || !arcEl) return;
+  valEl.textContent=sc;
+  const c=sc>=85?'#32d74b':sc>=70?'#ff9f0a':'#ff453a';
+  arcEl.style.stroke=c;
+  arcEl.style.strokeDashoffset = String(220*(1-sc/100));
+}
+
 function updateMeta(){
   const F=state.countsF, A=state.countsA;
 
   $('liveGF').textContent = F.goals;
   $('liveGA').textContent = A.goals;
 
-  // header shots under score
-  $('hdrSF').textContent = F.shots;
-  $('hdrSA').textContent = A.shots;
+  $('liveSF_sub').textContent = `SF: ${F.shots}`;
+  $('liveSA_sub').textContent = `SA: ${A.shots}`;
 
-  // Stats Strip
   const saves=Math.max(0,A.shots-A.goals);
-  $('liveSF').textContent = F.shots;
-  $('liveSA').textContent = A.shots;
-  $('savesVal').textContent = saves;
-  $('svVal').textContent = A.shots ? (saves/A.shots).toFixed(3).slice(1) : '—';
+  const svText = A.shots ? (saves/A.shots).toFixed(3).slice(1) : '—';
 
+  $('dashLine').textContent = `GF ${F.goals} • GA ${A.goals} • SF ${F.shots} • SA ${A.shots}`;
+
+  $('savesVal').textContent = saves;
+  $('svVal').textContent = `SV% ${svText}`;
+
+  $('smothersVal').textContent = state.countsA.smothers;
+  $('badRebVal').textContent = state.countsA.badRebounds;
+  $('bigSavesVal').textContent = state.countsA.bigSaves;
+  $('softVal').textContent = state.countsA.softGoals;
+
+  $('baAgVal').textContent = state.team.breakawaysAgainst;
+  $('dzVal').textContent = state.team.dzTurnovers;
+  $('baForVal').textContent = state.team.breakawaysFor;
+  $('omrForVal').textContent = state.team.oddManRushFor;
+
+  const goodReb = state.events.filter(e=>e.goodRebound).length;
+  $('goodRebVal').textContent = goodReb;
+
+  const shootPct = F.shots ? (F.goals/F.shots).toFixed(3).slice(1) : '—';
+  $('shootPctVal').textContent = shootPct;
+
+  const share = (F.shots + A.shots) ? Math.round(100 * (F.shots/(F.shots+A.shots)))+'%' : '—';
+  $('shotShareVal').textContent = share;
+
+  // rings
   const K=computeGoalieScore(), T=computeTeamScore();
-  const setRing = (valEl,arcEl,sc) => {
-    if(!valEl || !arcEl) return;
-    valEl.textContent=sc;
-    const c=sc>=85?'#32d74b':sc>=70?'#ff9f0a':'#ff453a';
-    arcEl.style.stroke=c;
-    arcEl.style.strokeDashoffset = String(220*(1-sc/100));
-  };
   setRing($('goalieScoreNum'),$('gsArc'),K.total);
   setRing($('teamScoreNum'),$('tsArc'),T.total);
+
+  // per-period cards
+  function pLine(p){
+    const v=per[p];
+    const lab = p===4?'OT':`P${p}`;
+    return `${lab} GF ${v.F_goals} • GA ${v.A_goals}`;
+  }
+  function pSub(p){
+    const v=per[p];
+    return `SF ${v.F_shots} • SA ${v.A_shots}`;
+  }
+  $('p1Line').textContent = pLine(1);
+  $('p2Line').textContent = pLine(2);
+  $('p3Line').textContent = pLine(3);
+  $('p4Line').textContent = pLine(4);
+  // reuse the ".s" line inside each tile via children[2]
+  const pTiles = [
+    {id:'p1Line', p:1},{id:'p2Line', p:2},{id:'p3Line', p:3},{id:'p4Line', p:4},
+  ];
+  for(const it of pTiles){
+    const el = $(it.id);
+    if(el && el.parentElement && el.parentElement.querySelector('.s')){
+      el.parentElement.querySelector('.s').textContent = pSub(it.p);
+    }
+  }
 
   updateDebugLines();
 }
@@ -1584,10 +1870,13 @@ function renderLog(){
     const ctx = ev.ga_ctx || '';
     const cause = ev.ga_cause || '';
     const tags = [];
-    if(cause) tags.push(cause);
-    if(ctx) tags.push(ctx);
+    if(isGA){
+      if(cause) tags.push(cause);
+      if(ctx) tags.push(ctx);
+    }
+    if(ev.type==='for_goal' && ev.off_ctx) tags.push(`OF:${ev.off_ctx}`);
     if(ev.strength) tags.push(ev.strength);
-    if(ev.offensiveContext && ev.type==='for_goal') tags.push(ev.offensiveContext);
+
     const tagText = tags.join(' • ');
     const needs = ev.needsContext && isGA;
     const meta = `P${ev.period} • ${fmtTime(ev.tISO)}`;
@@ -1602,6 +1891,8 @@ function renderLog(){
       </div>`;
   }).join('');
 }
+
+/* Handle Tag Later from log */
 $('log').addEventListener('click', e=>{
   const badge = e.target.closest('.badge-tag');
   if(!badge) return;
@@ -1612,68 +1903,110 @@ $('log').addEventListener('click', e=>{
 });
 
 /* ===== Summary Building ===== */
+function buildAllStatsHTML(){
+  const SF=state.countsF.shots, SA=state.countsA.shots, GF=state.countsF.goals, GA=state.countsA.goals;
+  const saves=Math.max(0,SA-GA);
+  const svText = SA ? (saves/SA).toFixed(3).slice(1) : '—';
+  const shootPct = SF ? (GF/SF).toFixed(3).slice(1) : '—';
+  const share = (SF+SA) ? Math.round(100*(SF/(SF+SA)))+'%' : '—';
+  const goodReb = state.events.filter(e=>e.goodRebound).length;
+
+  const rows = [
+    ['GF', GF], ['GA', GA], ['SF', SF], ['SA', SA],
+    ['Saves', saves], ['SV%', svText], ['Our Shooting%', shootPct], ['Shot Share', share],
+    ['Smothers', state.countsA.smothers], ['Bad Rebounds', state.countsA.badRebounds], ['Big Saves', state.countsA.bigSaves], ['Soft Goals', state.countsA.softGoals],
+    ['Breakaways Ag', state.team.breakawaysAgainst], ['D-Zone TO', state.team.dzTurnovers], ['Breakaways For', state.team.breakawaysFor], ['Odd Man Rush For', state.team.oddManRushFor],
+    ['Good Rebounds', goodReb]
+  ];
+
+  let html = `<table><tr><th>Stat</th><th>Value</th><th>Stat</th><th>Value</th></tr>`;
+  for(let i=0;i<rows.length;i+=2){
+    const a=rows[i], b=rows[i+1];
+    html += `<tr><td>${a[0]}</td><td>${a[1]}</td><td>${b?b[0]:''}</td><td>${b?b[1]:''}</td></tr>`;
+  }
+  html += `</table>`;
+  return html;
+}
+
 function endGame(){
   const K=computeGoalieScore(), T=computeTeamScore();
-  $('summaryTitle').textContent = `${state.opponent || 'Opponent ?'} • ${state.level || '?'} • ${state.date || (new Date().toISOString().slice(0,10))}`;
-  $('scoreBreakdown').textContent = `SV: ${K.scoreSV} | Ctx: ${K.ctxAdj} | Soft: ${K.softPenalty} | Reb: ${K.scoreRebound} | Big: ${K.scoreBig}`;
+  const date = state.date || new Date().toISOString().slice(0,10);
+
+  $('summaryTitle').textContent = `${state.opponent || 'Opponent ?'} • ${state.level || '?'} • ${date}`;
+
+  $('scoreBreakdown').textContent = `SV: ${K.scoreSV} | Ctx: ${K.ctxAdj} | Soft: ${K.softPenalty} | Reb: ${K.scoreRebound} | Big: ${K.scoreBig} | Good Reb: ${K.goodRebounds}`;
   $('teamBreakdown').textContent = `Possession: ${Math.round(T.scoreSS)} | Finish: ${Math.round(T.scoreFin)} | Result: ${Math.round(T.scoreImp)} | Consistency: ${Math.round(T.scoreStab)}`;
 
-  let html = `<table><tr><th>P</th><th>SF</th><th>SA</th><th>GF</th><th>GA</th></tr>`;
+  // Summary rings
+  setRing($('goalieScoreNumSum'),$('gsArcSum'),K.total);
+  setRing($('teamScoreNumSum'),$('tsArcSum'),T.total);
+
+  $('allStatsGrid').innerHTML = buildAllStatsHTML();
+
+  // Strength breakdown
+  const sb = computeStrengthBreakdown();
+  $('strengthBreakdown').textContent =
+    `Goals For — EV ${sb.for.EV||0}, PP ${sb.for.PP||0}, SH ${sb.for.SH||0}, Unk ${sb.for.UNK||0}. ` +
+    `Goals Against — EV ${sb.against.EV||0}, PP ${sb.against.PP||0}, SH ${sb.against.SH||0}, Unk ${sb.against.UNK||0}.`;
+
+  // Period table
+  let html = `<table><tr><th>P</th><th>SF</th><th>SA</th><th>GF</th><th>GA</th><th>BF</th><th>OMRF</th><th>BA</th><th>DZ</th></tr>`;
   for(let p=1;p<=4;p++){
     const v=per[p];
-    html+=`<tr><td>${p===4?'OT':p}</td><td>${v.F_shots}</td><td>${v.A_shots}</td><td>${v.F_goals}</td><td>${v.A_goals}</td></tr>`;
+    html+=`<tr>
+      <td>${p===4?'OT':p}</td>
+      <td>${v.F_shots}</td><td>${v.A_shots}</td><td>${v.F_goals}</td><td>${v.A_goals}</td>
+      <td>${v.BF}</td><td>${v.OMRF}</td><td>${v.BA}</td><td>${v.DZ}</td>
+    </tr>`;
   }
   html+=`</table>`;
   $('summaryTableWrap').innerHTML=html;
   $('pmTableWrap').innerHTML=makePlusMinusTable();
 
+  // GA detail summary
   const gaStats = computeGABreakdown();
   $('gaDetailWrap').innerHTML = `
     <div class="small">
       Goals Against Breakdown:
       BA: ${gaStats.BA} • DZ: ${gaStats.DZ} • BR: ${gaStats.BR} • Other: ${gaStats.Other}
     </div>
-    <div class="small" style="margin-top:6px;">
-      Offense Context:
-      Breakaways For: ${state.offense.breakawaysFor} • Odd Man Rush For: ${state.offense.oddManRushFor}
-    </div>
   `;
-
-  const SF=state.countsF.shots, SA=state.countsA.shots, GF=state.countsF.goals, GA=state.countsA.goals;
-  const saves=Math.max(0,SA-GA);
-  const svText = SA ? (saves/SA).toFixed(3).slice(1) : '—';
-  const line1 = `Level ${state.level || '?'} vs ${state.opponent || 'Unknown opponent'} on ${state.date || new Date().toISOString().slice(0,10)}.`;
-  const line2 = `Score: Us ${GF} – ${GA} Them. Shots: SF ${SF}, SA ${SA}, Saves ${saves}, SV% ${svText}.`;
-  const line3 = `Team Score: ${T.total}/100. Goalie Score: ${K.total}/100. Breakaways Against: ${state.team.breakawaysAgainst}, DZ Turnovers: ${state.team.dzTurnovers}.`;
-  const line4 = `Breakaways For: ${state.offense.breakawaysFor}, Odd Man Rush For: ${state.offense.oddManRushFor}.`;
-  $('summaryReadable').textContent = `${line1} ${line2} ${line3} ${line4}`;
 
   $('summaryPanel').classList.remove('hidden');
   window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
 
+  // Save summary row automatically on end-game
+  const SF=state.countsF.shots, SA=state.countsA.shots, GF=state.countsF.goals, GA=state.countsA.goals;
+  const saves=Math.max(0,SA-GA);
+  const svText = SA ? (saves/SA).toFixed(3).slice(1) : '—';
+  const shootPct = SF ? (GF/SF).toFixed(3).slice(1) : '—';
+  const share = (SF+SA) ? (SF/(SF+SA)) : 0.5;
+
   const gameData = {
-      Date: state.date||new Date().toISOString().slice(0,10),
-      Opponent: state.opponent,
-      Level: state.level,
-      TeamScore: T.total,
-      GoalieScore: K.total,
-      SF: state.countsF.shots,
-      SA: state.countsA.shots,
-      GF: state.countsF.goals,
-      GA: state.countsA.goals,
-      BreakawaysAgainst: state.team.breakawaysAgainst,
-      DZTurnovers: state.team.dzTurnovers,
-      BreakawaysFor: state.offense.breakawaysFor,
-      OddManRushFor: state.offense.oddManRushFor,
-      Smothers: state.countsA.smothers,
-      BadRebounds: state.countsA.badRebounds,
-      BigSaves: state.countsA.bigSaves,
-      SoftGoals: state.countsA.softGoals,
-      GA_BA: gaStats.BA,
-      GA_DZ: gaStats.DZ,
-      GA_BR: gaStats.BR,
-      GA_Other: gaStats.Other
+    Date: date,
+    Opponent: state.opponent,
+    Level: state.level,
+    TeamScore: T.total,
+    GoalieScore: K.total,
+    GF, GA, SF, SA,
+    Saves: saves,
+    SVPct: svText,
+    OurShootingPct: shootPct,
+    ShotShare: share,
+    BreakawaysAgainst: state.team.breakawaysAgainst,
+    DZTurnovers: state.team.dzTurnovers,
+    BreakawaysFor: state.team.breakawaysFor,
+    OddManRushFor: state.team.oddManRushFor,
+    Smothers: state.countsA.smothers,
+    BadRebounds: state.countsA.badRebounds,
+    BigSaves: state.countsA.bigSaves,
+    SoftGoals: state.countsA.softGoals,
+    GA_BA: gaStats.BA,
+    GA_DZ: gaStats.DZ,
+    GA_BR: gaStats.BR,
+    GA_Other: gaStats.Other
   };
+
   saveGameToAirtable(gameData);
 }
 
@@ -1701,13 +2034,19 @@ async function saveGameToAirtable(game){
   }
 }
 
+/* Full season-style save: meta + aggregates + events */
 async function saveSeasonToAirtable(){
   try{
     const K = computeGoalieScore();
     const T = computeTeamScore();
-    const SF=state.countsF.shots, SA=state.countsA.shots, GF=state.countsF.goals, GA=state.countsA.goals;
     const gaStats = computeGABreakdown();
     const date = state.date || new Date().toISOString().slice(0,10);
+
+    const SF=state.countsF.shots, SA=state.countsA.shots, GF=state.countsF.goals, GA=state.countsA.goals;
+    const saves=Math.max(0,SA-GA);
+    const svText = SA ? (saves/SA).toFixed(3).slice(1) : '—';
+    const shootPct = SF ? (GF/SF).toFixed(3).slice(1) : '—';
+    const share = (SF+SA) ? (SF/(SF+SA)) : 0.5;
 
     const row = {
       date,
@@ -1715,11 +2054,15 @@ async function saveSeasonToAirtable(){
       level: state.level || '',
       teamScore: T.total,
       goalieScore: K.total,
-      SF, SA, GF, GA,
+      GF, GA, SF, SA,
+      saves,
+      sv: svText,
+      ourShooting: shootPct,
+      shotShare: share,
       breakawaysAgainst: state.team.breakawaysAgainst,
       dzTurnovers: state.team.dzTurnovers,
-      breakawaysFor: state.offense.breakawaysFor,
-      oddManRushFor: state.offense.oddManRushFor,
+      breakawaysFor: state.team.breakawaysFor,
+      oddManRushFor: state.team.oddManRushFor,
       smothers: state.countsA.smothers,
       badRebounds: state.countsA.badRebounds,
       bigSaves: state.countsA.bigSaves,
@@ -1731,20 +2074,18 @@ async function saveSeasonToAirtable(){
     };
 
     const payload = {
+      schemaVersion: APP_VERSION,
       gameId: state.gameId,
-      startedAt: state.startedAt || new Date().toISOString(),
+      startedAt: state.startedAt,
       savedAt: new Date().toISOString(),
       meta: {
         opponent: state.opponent || '',
         level: state.level || '',
         date,
-        period: state.period,
-        version: APP_VERSION
+        period: state.period
       },
       aggregates: {
         gameRow: row,
-        goalie: K,
-        team: T,
         perPeriod: per
       },
       events: state.events
@@ -1773,119 +2114,106 @@ async function saveSeasonToAirtable(){
   }
 }
 
-/* CSV Helpers */
-function buildGameRow(K,T){
+/* CSV Helpers: game row + per-player block */
+function computePlayerStats(){
+  const stats = new Map();
+  function ensure(n){
+    const s = String(n||'').trim();
+    if(!s || s==='Unknown' || s==='?') return null;
+    if(!stats.has(s)){
+      stats.set(s,{player:s, shots:0, goals:0, assists:0, pm:0});
+    }
+    return stats.get(s);
+  }
+  for(const ev of state.events){
+    if(ev.type==='for_shot'){
+      const st = ensure(ev.player);
+      if(st) st.shots++;
+    }
+    if(ev.type==='for_goal'){
+      const stS = ensure(ev.player);
+      if(stS) stS.goals++;
+      const stA = ensure(ev.assist);
+      if(stA) stA.assists++;
+    }
+  }
+  // plus/minus
+  const {pm} = computePlusMinus();
+  for(const [k,v] of pm.entries()){
+    const st = ensure(k);
+    if(st) st.pm = v;
+  }
+  return sortRoster([...stats.keys()]).map(k=>stats.get(k));
+}
+
+function exportGameCSV(){
+  const K=computeGoalieScore(), T=computeTeamScore();
+  const date = state.date || new Date().toISOString().slice(0,10);
+
   const SF=state.countsF.shots, SA=state.countsA.shots, GF=state.countsF.goals, GA=state.countsA.goals;
   const saves=Math.max(0,SA-GA);
   const svText = SA ? (saves/SA).toFixed(3).slice(1) : '';
-  return {
-    date: state.date||new Date().toISOString().slice(0,10),
+  const shootPct = SF ? (GF/SF).toFixed(3).slice(1) : '';
+
+  const gameRow = {
+    date,
     opponent: state.opponent||'',
     level: state.level||'',
-    version: APP_VERSION,
     teamScore: T.total,
     goalieScore: K.total,
-    SF, SA, GF, GA,
+    GF, GA, SF, SA,
     saves,
     sv: svText,
+    ourShooting: shootPct,
     breakawaysAgainst: state.team.breakawaysAgainst,
     dzTurnovers: state.team.dzTurnovers,
-    breakawaysFor: state.offense.breakawaysFor,
-    oddManRushFor: state.offense.oddManRushFor,
+    breakawaysFor: state.team.breakawaysFor,
+    oddManRushFor: state.team.oddManRushFor,
     smothers: state.countsA.smothers,
     badRebounds: state.countsA.badRebounds,
     bigSaves: state.countsA.bigSaves,
     softGoals: state.countsA.softGoals
   };
-}
 
-function computePerPlayer(){
-  const map = new Map();
-  const {pm} = computePlusMinus();
-  function ensure(n){
-    const key = String(n).trim();
-    if(!key || key==='Unknown' || key==='?') return null;
-    if(!map.has(key)){
-      map.set(key, {player:key, shots:0, goals:0, assists:0, points:0, plusMinus: pm.get(key) || 0});
-    }
-    return map.get(key);
-  }
+  const players = computePlayerStats();
 
-  for(const ev of state.events){
-    if(ev.type === 'for_shot'){
-      const r = ensure(ev.player);
-      if(r) r.shots++;
-    }
-    if(ev.type === 'for_goal'){
-      const scorer = ensure(ev.player);
-      if(scorer){ scorer.shots++; scorer.goals++; }
+  const gameHeaders = Object.keys(gameRow);
+  const gameValues = gameHeaders.map(h => `"${String(gameRow[h]??'').replace(/"/g,'""')}"`);
+  let csv = 'GAME\n' + gameHeaders.join(',') + '\n' + gameValues.join(',') + '\n\n';
 
-      const assister = ensure(ev.assist);
-      if(assister) assister.assists++;
-    }
-  }
-
-  for(const r of map.values()){
-    r.plusMinus = pm.get(r.player) || 0;
-    r.points = (r.goals||0) + (r.assists||0);
-  }
-
-  return [...map.values()].sort((a,b)=>smartRosterSort(a.player,b.player));
-}
-
-function toCsvLine(obj, headers){
-  const values = headers.map(h => {
-    const v = obj[h]==null ? '' : String(obj[h]);
-    return `"${v.replace(/"/g,'""')}"`;
-  });
-  return values.join(',');
-}
-
-async function exportGameCSV(){
-  const K=computeGoalieScore(), T=computeTeamScore();
-  const row = buildGameRow(K,T);
-
-  const gameHeaders = Object.keys(row);
-  const gameCsv = [
-    'GAME',
-    gameHeaders.join(','),
-    toCsvLine(row, gameHeaders),
-    '',
-    'PLAYERS',
-    'player,shots,goals,assists,points,plusMinus'
-  ];
-
-  const players = computePerPlayer();
+  csv += 'PLAYERS\n';
+  csv += ['player','shots','goals','assists','plusMinus'].join(',') + '\n';
   for(const p of players){
-    gameCsv.push(toCsvLine(p, ['player','shots','goals','assists','points','plusMinus']));
+    csv += [`"${p.player}"`, p.shots, p.goals, p.assists, p.pm].join(',') + '\n';
   }
 
-  const csv = gameCsv.join('\n');
-  const blob = new Blob([csv], {type:'text/csv'});
+  const blob=new Blob([csv],{type:'text/csv'});
+  const fileName = `team-tracker-${date}.csv`;
 
-  const fileName = `team-tracker-${row.date || 'game'}.csv`;
-  const file = new File([blob], fileName, {type:'text/csv'});
+  // Share sheet if available, else download
+  const doDownload = ()=>{
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
 
-  try{
-    if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
-      await navigator.share({title:'Team Tracker CSV', files:[file]});
-      return;
-    }
-  }catch(_){}
-
-  const url = URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;
-  a.download = fileName;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
+  if(navigator.canShare && navigator.canShare({files:[new File([blob], fileName, {type:'text/csv'})]}) && navigator.share){
+    const f = new File([blob], fileName, {type:'text/csv'});
+    navigator.share({files:[f], title:'Team Tracker CSV'}).catch(()=>doDownload());
+  } else {
+    doDownload();
+  }
 }
 
 /* Debug placeholders */
 function updateDebugLines(){}
 
+/* Plus/minus table */
 function makePlusMinusTable(){
   const {pm, order} = computePlusMinus();
   if(!order.length) return '<div class="small" style="margin-top:4px;">No plus/minus data.</div>';
@@ -1900,37 +2228,37 @@ function makePlusMinusTable(){
 
 /* Roster Modal */
 function openRoster(){
-  $('rosterArea').value = (state.roster||[]).join('\n');
+  const area = $('rosterArea');
+  area.value = (state.roster||[]).join('\n');
   $('rosterModal').style.display='flex';
 }
 function saveRosterFromArea(){
   const raw = $('rosterArea').value.split('\n').map(x=>x.trim()).filter(x=>x.length>0);
-  state.roster = raw;
+  state.roster = sortRoster(raw);
   localStorage.setItem(ROSTER_KEY, JSON.stringify(state.roster));
   save();
   $('rosterModal').style.display='none';
 }
 function closeRoster(){ $('rosterModal').style.display='none'; }
 
-/* Player picker (scorer -> assist -> other 3 on ice) */
-let pickerTargetType = null;
-let pendingForGoal = null;
-let pickerStage = 'default';
+/* Player picker flow (supports scorer + assist) */
+let pickerFlow = {mode:null, pendingGoalEv:null};
 
-function openPicker(type,label){
-  pickerTargetType = type;
-  pickerStage = (type === 'assist') ? 'assist' : 'default';
-
+function openPicker(mode,label,{showNone=false}={}){
+  pickerFlow.mode = mode;
   $('pickerTitle').textContent = label || 'Select Player';
-  const roster=(state.roster||[]).map(x=>String(x).trim()).filter(Boolean);
-  const uniq=Array.from(new Set(roster)).sort(smartRosterSort);
+
+  $('pickerNone').style.display = showNone ? 'inline-block' : 'none';
+
+  const roster=sortRoster((state.roster||[]).map(x=>String(x).trim()).filter(Boolean));
+  const uniq=Array.from(new Set(roster));
   $('pickerGrid').innerHTML = uniq.length
     ? uniq.map(n=>`<div class="pickerBtn" data-n="${n}">#${n}</div>`).join('')
     : `<div class="small" style="grid-column:1/-1;">No roster yet. Type a number below.</div>`;
   $('pickerInput').value='';
-  $('pickerNoAssist').style.display = (pickerStage === 'assist') ? 'inline-block' : 'none';
   $('pickerModal').style.display='flex';
 }
+
 $('pickerGrid').addEventListener('click', e=>{
   const b=e.target.closest('.pickerBtn');
   if(!b)return;
@@ -1940,181 +2268,145 @@ $('pickerAdd').addEventListener('click', ()=>{
   const num = $('pickerInput').value.trim() || '?';
   applyPickerSelection(num);
 });
-$('pickerUnknown').addEventListener('click', ()=>{
-  applyPickerSelection('Unknown');
-});
-$('pickerNoAssist').addEventListener('click', ()=>{
-  if(pickerStage !== 'assist') return;
+$('pickerUnknown').addEventListener('click', ()=>applyPickerSelection('?'));
+$('pickerNone').addEventListener('click', ()=>{
+  // No Assist
   applyPickerSelection(null);
 });
 $('pickerCancel').addEventListener('click', ()=>{
   $('pickerModal').style.display='none';
-  pickerTargetType=null;
-  pickerStage='default';
-  pendingForGoal=null;
+  pickerFlow.mode=null;
 });
 
 function applyPickerSelection(num){
-  if(!pickerTargetType){
-    $('pickerModal').style.display='none';
-    return;
-  }
+  const mode = pickerFlow.mode;
+  $('pickerModal').style.display='none';
 
-  // auto-learn jersey numbers only
-  if(num !== null) maybeAddToRoster(num);
+  if(!mode) return;
 
-  if(pickerTargetType==='for_shot'){
-    addEvent('for_shot',{player: num ?? '?'});
-    $('pickerModal').style.display='none';
-    pickerTargetType=null;
-    pickerStage='default';
-    return;
-  }
+  // roster auto-grow for numeric entries (main behavior)
+  if(num!==null) ensureRosterNumber(String(num));
 
-  if(pickerTargetType==='for_goal'){
-    const ev = addEvent('for_goal',{player: num ?? '?'});
-    pendingForGoal = ev;
-
-    $('pickerModal').style.display='none';
-    pickerTargetType=null;
-
-    openPicker('assist','Assist (optional)');
-    return;
-  }
-
-  if(pickerTargetType==='assist'){
-    if(!pendingForGoal){
-      $('pickerModal').style.display='none';
-      pickerTargetType=null;
-      pickerStage='default';
-      return;
-    }
-
-    // REQUIREMENT #3: allow unknown scorer AND unknown assist.
-    // - scorer can already be 'Unknown'
-    // - assist can also be 'Unknown' via the Unknown button.
-    // - No special-case needed; just store what the user picked.
-    if(num === null){
-      pendingForGoal.assist = null;
-    }else{
-      pendingForGoal.assist = num; // can be 'Unknown'
-    }
-    save();
-
-    const scorer = pendingForGoal.player;
-    const assist = pendingForGoal.assist;
-
-    // Exclude only real roster numbers, not Unknown/? so the UI remains usable.
-    const exclude = [scorer, assist].filter(x => x && x !== 'Unknown' && x !== '?');
-
-    $('pickerModal').style.display='none';
-    pickerTargetType=null;
-    pickerStage='default';
-
-    openMultiPicker({
-      title:'Other On Ice (optional)',
-      max:3,
-      event: pendingForGoal,
-      field:'forOnIce',
-      exclude
-    });
-
-    pendingForGoal = null;
+  if(mode==='for_shot'){
+    addEvent('for_shot',{player: (num===null ? '?' : String(num))});
+    pickerFlow.mode=null;
     renderAll();
     return;
   }
 
-  $('pickerModal').style.display='none';
-  pickerTargetType=null;
-  pickerStage='default';
+  if(mode==='for_goal_scorer'){
+    // scorer can be unknown
+    const scorer = (num===null ? '?' : String(num));
+    ensureRosterNumber(scorer);
+
+    const ev = addEvent('for_goal',{player:scorer});
+    pickerFlow.pendingGoalEv = ev;
+
+    // next: assist picker (optional, can be unknown too)
+    pickerFlow.mode='for_goal_assist';
+    openPicker('for_goal_assist','Assist (optional)',{showNone:true});
+    return;
+  }
+
+  if(mode==='for_goal_assist'){
+    const ev = pickerFlow.pendingGoalEv;
+    if(!ev){ pickerFlow.mode=null; return; }
+
+    // assist can be null (no assist) or unknown '?'
+    ev.assist = (num===null ? null : String(num));
+    if(ev.assist!==null) ensureRosterNumber(ev.assist);
+
+    save();
+    renderAll();
+
+    // now on-ice (other 3, excluding scorer/assist), then strength
+    const exclude = [];
+    if(ev.player) exclude.push(String(ev.player));
+    if(ev.assist) exclude.push(String(ev.assist));
+    openMultiPicker({title:'Other 3 On Ice (optional)', max:3, event:ev, field:'forOnIce', exclude});
+    pickerFlow.mode=null;
+    pickerFlow.pendingGoalEv=null;
+    return;
+  }
+
+  pickerFlow.mode=null;
 }
 
-/* AI endpoints */
-function escapeHtml(s){
-  return String(s ?? '')
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;')
-    .replace(/'/g,'&#039;');
+/* AI calls */
+async function runAI(endpoint, payload){
+  const res = await fetch(endpoint,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(payload||{})
+  });
+  const d = await res.json();
+  if(!d || !d.success) throw new Error('AI failed');
+  return d;
 }
-function buildAIPayload(){
-  const K = computeGoalieScore();
-  const T = computeTeamScore();
-  const gameRow = buildGameRow(K,T);
-  return {
-    meta: {
-      gameId: state.gameId,
-      opponent: state.opponent || '',
-      level: state.level || '',
-      date: state.date || new Date().toISOString().slice(0,10),
-      period: state.period,
-      version: APP_VERSION
-    },
-    aggregates: { gameRow, goalie: K, team: T, perPeriod: per, gaBreakdown: computeGABreakdown() },
-    events: state.events
-  };
-}
-async function callAI(endpoint, cardId, bodyId){
-  const card = $(cardId);
-  const body = $(bodyId);
-  if(!card || !body) return;
-
-  card.style.display='block';
-  body.innerHTML = `<div class="small" style="opacity:0.8;">Loading…</div>`;
-
+async function aiPracticePlan(){
+  $('aiPracticeCard').style.display='block';
+  $('aiPracticeBody').textContent = 'Loading…';
   try{
-    const res = await fetch(endpoint, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(buildAIPayload())
-    });
-    const d = await res.json();
-    if(!res.ok || d.error){
-      throw new Error(d.error || `HTTP ${res.status}`);
-    }
-
-    const txt = d.text || d.result || d.output || JSON.stringify(d, null, 2);
-    body.innerHTML = `<div style="white-space:pre-wrap;">${escapeHtml(txt)}</div>`;
+    const d = await runAI('/api/practice-plan', {game: state});
+    $('aiPracticeBody').textContent = d.text || d.result || '—';
   }catch(e){
-    console.error(e);
-    body.innerHTML = `<div classe="small" style="color:var(--warn);">AI request failed.</div>`;
+    $('aiPracticeBody').textContent = 'Failed.';
+  }
+}
+async function aiGoalieReport(){
+  $('aiGoalieCard').style.display='block';
+  $('aiGoalieBody').textContent = 'Loading…';
+  try{
+    const d = await runAI('/api/goalie-report', {game: state});
+    $('aiGoalieBody').textContent = d.text || d.result || '—';
+  }catch(e){
+    $('aiGoalieBody').textContent = 'Failed.';
+  }
+}
+async function aiSeasonFocus(){
+  $('aiFocusCard').style.display='block';
+  $('aiFocusBody').textContent = 'Loading…';
+  try{
+    const d = await runAI('/api/season-focus', {game: state});
+    $('aiFocusBody').textContent = d.text || d.result || '—';
+  }catch(e){
+    $('aiFocusBody').textContent = 'Failed.';
   }
 }
 
 /* Init */
 (function init(){
-  // Version UI + title
-  $('versionPill').textContent = APP_VERSION;
-  document.title = `Team Tracker – iPhone (${APP_VERSION})`;
+  // Version pill
+  $('verPill').textContent = `v${APP_VERSION}`;
 
+  // Date input default AND state sync
   const today = new Date();
   $('date').valueAsDate = today;
-  const dt = $('date').value || today.toISOString().slice(0,10);
-  state.date = dt;
+  state.date = today.toISOString().slice(0,10);
 
   try{ state.roster = JSON.parse(localStorage.getItem(ROSTER_KEY))||[]; }catch(_){}
   persistStorage();
-  startAutosave();
 
   load().then(loaded=>{
     if(loaded && Array.isArray(loaded.events)){
       Object.assign(state,loaded);
-
-      if(!state.date){
-        state.date = $('date').value || new Date().toISOString().slice(0,10);
-      }else{
-        $('date').value = state.date;
-      }
-
-      $('opponent').value = state.opponent || '';
-      $('level').value = state.level || 'Other';
-
       state.events.sort((a,b)=>new Date(a.tISO)-new Date(b.tISO));
       rebuildFromEvents();
       $('resumeBanner').classList.remove('hidden');
       if(state.events.length>0) toggleSetup(false);
     }
+
+    // Ensure date always has a value
+    if(!state.date){
+      const v = $('date').value;
+      if(v) state.date = v;
+    } else {
+      $('date').value = state.date;
+    }
+
+    $('opponent').value = state.opponent || '';
+    $('level').value = state.level || $('level').value;
+
     updateMeta();
     highlightPeriod();
     if(state.events.length>0) renderAll();
@@ -2137,17 +2429,22 @@ $('btnShot').onclick=()=>addEvent('shot');
 $('btnGoal').onclick=()=>addEvent('goal');
 
 $('btnForShot').onclick=()=>openPicker('for_shot','Shooter');
-$('btnForGoal').onclick=()=>openPicker('for_goal','Scorer');
+$('btnForGoal').onclick=()=>openPicker('for_goal_scorer','Scorer');
 
 $('btnSoftGoal').onclick=()=>addEvent('soft_goal');
 $('btnBadRebound').onclick=()=>addEvent('bad_rebound');
+
 $('btnBreakaway').onclick=()=>addEvent('breakaway_against');
 $('btnDZTurnover').onclick=()=>addEvent('dz_turnover');
+
 $('btnSmother').onclick=()=>addEvent('smother');
 $('btnBigSave').onclick=()=>addEvent('big_save');
 
-// Offensive context buttons -> Airtable BreakawaysFor and OddManRushFor
-$('btnBreakawayFor').onclick=()=>addEvent('breakaway_for');
+/* Offensive context */
+$('btnBreakawayFor').onclick=()=>{
+  lastBreakawayForTap = Date.now();
+  addEvent('breakaway_for');
+};
 $('btnOddManRushFor').onclick=()=>addEvent('odd_man_rush_for');
 
 $('periodChips').addEventListener('click',e=>{
@@ -2166,20 +2463,21 @@ $('btnNextPeriod').onclick=()=>{
 };
 
 $('btnEnd').onclick=endGame;
+
 $('btnReset').onclick=()=>{
   if(!confirm('Clear game?'))return;
+
   state.events=[];
   state.opponent='';
   state.countsA={shots:0,goals:0,softGoals:0,smothers:0,badRebounds:0,bigSaves:0};
   state.countsF={shots:0,goals:0};
-  state.team={breakawaysAgainst:0,dzTurnovers:0};
-  state.offense={breakawaysFor:0,oddManRushFor:0};
-  state.period=1;
-  state.startedAt = new Date().toISOString();
-  state.gameId = Math.random().toString(36).slice(2);
-  state.lastEventId = 0;
-  state.lastOffBreakawayAt = null;
+  state.team={breakawaysAgainst:0,dzTurnovers:0,breakawaysFor:0,oddManRushFor:0};
   per={1:initP(),2:initP(),3:initP(),4:initP()};
+
+  state.gameId = Math.random().toString(36).slice(2);
+  state.startedAt = new Date().toISOString();
+  state.lastEventId = 0;
+
   save();
   toggleSetup(true);
   renderAll();
@@ -2197,9 +2495,27 @@ $('opponent').oninput=e=>{state.opponent=e.target.value;save();}
 $('level').onchange=e=>{state.level=e.target.value;save();}
 $('date').onchange=e=>{state.date=e.target.value;save();}
 
-/* Copy Summary */
+/* Copy Summary (now: compact, structured text) */
 $('btnCopySummary').addEventListener('click', ()=>{
-  const text = $('summaryReadable').textContent || '';
+  const date = state.date || new Date().toISOString().slice(0,10);
+  const SF=state.countsF.shots, SA=state.countsA.shots, GF=state.countsF.goals, GA=state.countsA.goals;
+  const saves=Math.max(0,SA-GA);
+  const svText = SA ? (saves/SA).toFixed(3).slice(1) : '—';
+  const shootPct = SF ? (GF/SF).toFixed(3).slice(1) : '—';
+  const share = (SF+SA) ? Math.round(100*(SF/(SF+SA)))+'%' : '—';
+  const K=computeGoalieScore(), T=computeTeamScore();
+
+  const lines = [
+    `${state.level||'?'} vs ${state.opponent||'Unknown'} on ${date}`,
+    `Score: Us ${GF} – ${GA} Them`,
+    `Shots: SF ${SF}, SA ${SA} | Saves ${saves} | SV% ${svText}`,
+    `Team Score: ${T.total}/100 | Goalie Score: ${K.total}/100`,
+    `Smothers ${state.countsA.smothers} | Bad Reb ${state.countsA.badRebounds} | Big Saves ${state.countsA.bigSaves} | Soft Goals ${state.countsA.softGoals}`,
+    `Shot Share ${share} | Our Shooting% ${shootPct}`,
+    `BA Ag ${state.team.breakawaysAgainst} | DZ TO ${state.team.dzTurnovers} | BA For ${state.team.breakawaysFor} | OMR For ${state.team.oddManRushFor}`
+  ];
+
+  const text = lines.join('\n');
   $('copyArea').value = text;
   $('copyModal').style.display='flex';
   if(navigator.clipboard && text){
@@ -2218,9 +2534,10 @@ $('btnExportGameCSV').addEventListener('click', exportGameCSV);
 
 /* AI / Season buttons */
 $('btnSaveSeason').addEventListener('click', saveSeasonToAirtable);
-$('btnAIPractice').addEventListener('click', ()=>callAI('/api/practice-plan','aiPracticeCard','aiPracticeBody'));
-$('btnAIGoalieReport').addEventListener('click', ()=>callAI('/api/goalie-report','aiGoalieCard','aiGoalieBody'));
-$('btnAIFocus').addEventListener('click', ()=>callAI('/api/season-focus','aiFocusCard','aiFocusBody'));
+$('btnAIPractice').addEventListener('click', aiPracticePlan);
+$('btnAIGoalieReport').addEventListener('click', aiGoalieReport);
+$('btnAIFocus').addEventListener('click', aiSeasonFocus);
+
 </script>
 </body>
 </html>

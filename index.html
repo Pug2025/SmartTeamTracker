@@ -6,23 +6,23 @@
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Team Tracker – iPhone (v5.1.0)</title>
+<title>Team Tracker – iPhone</title>
 <style>
   :root{
     /* Theme: High Contrast / Split Brain */
-    --bg:#000000; 
-    --panel:#111111; 
-    --ink:#ffffff; 
-    --muted:#888888; 
-    
+    --bg:#000000;
+    --panel:#111111;
+    --ink:#ffffff;
+    --muted:#888888;
+
     /* Zones */
     --zone-us:#0a1a2a;       /* Dark Blue background for 'Us' */
     --zone-them:#1f0a0a;     /* Dark Red background for 'Them' */
     --accent-us:#4da3ff;     /* Bright Blue */
     --accent-them:#ff453a;   /* Bright Red */
-    --good:#32d74b; 
+    --good:#32d74b;
     --warn:#ff9f0a;
-    
+
     --radius:16px;
     --header-height:100px;
   }
@@ -35,32 +35,11 @@
     padding-bottom:80px; /* Space for FAB */
   }
 
-  /* Basic utility / text classes */
-  .inlineRow{
-    display:flex;
-    align-items:center;
-    gap:8px;
-  }
-  .small{
-    font-size:12px;
-    color:var(--muted);
-  }
-  .banner{
-    font-size:12px;
-    padding:6px 10px;
-    border-radius:10px;
-    background:#1a1200;
-    border:1px solid #444;
-  }
-  .card{
-    background:#111;
-    border:1px solid #333;
-    border-radius:12px;
-    padding:10px;
-  }
-  .btn{
-    font-family:inherit;
-  }
+  .inlineRow{ display:flex; align-items:center; gap:8px; }
+  .small{ font-size:12px; color:var(--muted); }
+  .banner{ font-size:12px; padding:6px 10px; border-radius:10px; background:#1a1200; border:1px solid #444; }
+  .card{ background:#111; border:1px solid #333; border-radius:12px; padding:10px; }
+  .btn{ font-family:inherit; }
 
   /* ===== Sticky Header & Scoreboard ===== */
   .sticky-header{
@@ -73,18 +52,18 @@
     padding-bottom:10px;
   }
   .top-row{
-    display:flex; 
-    justify-content:space-between; 
+    display:flex;
+    justify-content:space-between;
     align-items:center;
     padding:8px 14px;
   }
-  .top-row h1{ 
-    font-size:18px; 
-    margin:0; 
-    font-weight:700; 
-    letter-spacing:-0.5px; 
+  .top-row h1{
+    font-size:18px;
+    margin:0;
+    font-weight:700;
+    letter-spacing:-0.5px;
   }
-  
+
   .scoreboard-row{
     display:grid;
     grid-template-columns: 1fr auto 1fr;
@@ -93,53 +72,57 @@
     gap:12px;
   }
   .score-block{
-    display:flex; 
+    display:flex;
     flex-direction:column;
     border-radius:12px;
     padding:6px 10px;
     position:relative;
   }
-  .score-block.us{ 
-    background:var(--zone-us); 
-    border:1px solid #1a3a5a; 
-    align-items:flex-end; 
+  .score-block.us{
+    background:var(--zone-us);
+    border:1px solid #1a3a5a;
+    align-items:flex-end;
   }
-  .score-block.them{ 
-    background:var(--zone-them); 
-    border:1px solid #5a1a1a; 
-    align-items:flex-start; 
+  .score-block.them{
+    background:var(--zone-them);
+    border:1px solid #5a1a1a;
+    align-items:flex-start;
   }
-  
-  .score-label{ 
-    font-size:11px; 
-    text-transform:uppercase; 
-    color:var(--muted); 
-    font-weight:700; 
-    letter-spacing:0.5px; 
+
+  .score-label{
+    font-size:11px;
+    text-transform:uppercase;
+    color:var(--muted);
+    font-weight:700;
+    letter-spacing:0.5px;
   }
-  .score-val{ 
-    font-size:32px; 
-    font-weight:800; 
-    line-height:1; 
-    margin-top:2px; 
-    transition: transform 0.1s; 
+  .score-val{
+    font-size:32px;
+    font-weight:800;
+    line-height:1;
+    margin-top:2px;
+    transition: transform 0.1s;
   }
-  
-  /* Pulse Animation for Score */
-  @keyframes pulse-green { 
-    0% {color:#fff;} 
-    50% {color:var(--good); transform:scale(1.2);} 
-    100% {color:#fff;} 
+  .shot-under{
+    font-size:11px;
+    color:#cfcfcf;
+    opacity:0.85;
+    margin-top:2px;
   }
-  @keyframes pulse-red { 
-    0% {color:#fff;} 
-    50% {color:var(--accent-them); transform:scale(1.2);} 
-    100% {color:#fff;} 
+
+  @keyframes pulse-green {
+    0% {color:#fff;}
+    50% {color:var(--good); transform:scale(1.2);}
+    100% {color:#fff;}
+  }
+  @keyframes pulse-red {
+    0% {color:#fff;}
+    50% {color:var(--accent-them); transform:scale(1.2);}
+    100% {color:#fff;}
   }
   .pulse-good { animation: pulse-green 0.4s ease-out; }
   .pulse-bad { animation: pulse-red 0.4s ease-out; }
 
-  /* Period Selector (Segmented) */
   .period-seg{
     display:flex;
     background:#1c1c1e;
@@ -166,7 +149,7 @@
     margin:0 auto;
     padding:14px;
   }
-  
+
   /* ===== Setup Panel (Collapsible) ===== */
   #setupContainer{ display:block; }
   #gameControls{ display:none; }
@@ -178,50 +161,50 @@
     margin-top:20px;
     text-align:center;
   }
-  .setup-card h2{ 
-    margin-top:0; 
-    font-size:18px; 
+  .setup-card h2{
+    margin-top:0;
+    font-size:18px;
   }
-  .input-group{ 
-    text-align:left; 
-    margin-bottom:12px; 
+  .input-group{
+    text-align:left;
+    margin-bottom:12px;
   }
-  label{ 
-    display:block; 
-    font-size:12px; 
-    color:var(--muted); 
-    margin-bottom:6px; 
+  label{
+    display:block;
+    font-size:12px;
+    color:var(--muted);
+    margin-bottom:6px;
   }
   input, select{
-    width:100%; 
+    width:100%;
     box-sizing:border-box;
-    background:#000; 
-    border:1px solid #333; 
+    background:#000;
+    border:1px solid #333;
     color:#fff;
-    padding:12px; 
-    border-radius:10px; 
-    font-size:16px; 
+    padding:12px;
+    border-radius:10px;
+    font-size:16px;
     outline:none;
   }
   .btn-start{
-    width:100%; 
-    background:var(--accent-us); 
-    color:#000; 
+    width:100%;
+    background:var(--accent-us);
+    color:#000;
     border:none;
-    padding:16px; 
-    font-size:18px; 
-    font-weight:800; 
+    padding:16px;
+    font-size:18px;
+    font-weight:800;
     border-radius:14px;
-    margin-top:10px; 
+    margin-top:10px;
     cursor:pointer;
   }
   .btn-edit-setup{
-    background:none; 
-    border:none; 
+    background:none;
+    border:none;
     color:var(--muted);
-    font-size:12px; 
-    text-decoration:underline; 
-    padding:0; 
+    font-size:12px;
+    text-decoration:underline;
+    padding:0;
     margin:0;
     cursor:pointer;
   }
@@ -234,94 +217,89 @@
     margin-top:10px;
   }
   .col-zone{
-    display:flex; 
-    flex-direction:column; 
+    display:flex;
+    flex-direction:column;
     gap:8px;
   }
-  
-  /* Button Styling */
+
   .g-btn{
     -webkit-tap-highlight-color:transparent;
-    border-radius:12px; 
+    border-radius:12px;
     border:1px solid;
-    color:#fff; 
-    font-weight:700; 
+    color:#fff;
+    font-weight:700;
     font-size:15px;
-    display:flex; 
-    align-items:center; 
-    justify-content:center; 
+    display:flex;
+    align-items:center;
+    justify-content:center;
     text-align:center;
-    cursor:pointer; 
+    cursor:pointer;
     user-select:none;
     touch-action:manipulation;
     transition:transform 0.05s, opacity 0.1s, box-shadow 0.15s;
     box-shadow:none;
   }
-  .g-btn:active{ 
-    transform:scale(0.97); 
-    opacity:0.8; 
+  .g-btn:active{
+    transform:scale(0.97);
+    opacity:0.8;
   }
   .g-btn.primary{
     box-shadow:0 4px 10px rgba(0,0,0,0.4);
   }
 
-  /* Sizes */
-  .h-lg{ 
-    height:85px; 
-    font-size:18px; 
-    font-weight:800; 
-  } /* Primary Action */
-  .h-md{ 
-    height:55px; 
-    font-size:14px; 
+  .h-lg{
+    height:85px;
+    font-size:18px;
+    font-weight:800;
   }
-  
-  /* Theme: THEM (Left/Red) */
-  .theme-them .g-btn{ 
-    background:var(--zone-them); 
-    border-color:#5a1a1a; 
-  }
-  .theme-them .g-btn.primary{ 
-    background:#3a0e0e; 
-    border-color:var(--accent-them); 
-  }
-  .theme-them .g-btn.ctx{ 
-    background:#140707; 
-    border-color:#5a1a1a; 
-    border-style:dashed; 
-    font-size:12px;
-  }
-  
-  /* Theme: US (Right/Blue) */
-  .theme-us .g-btn{ 
-    background:var(--zone-us); 
-    border-color:#1a3a5a; 
-  }
-  .theme-us .g-btn.primary{ 
-    background:#0f2b45; 
-    border-color:var(--accent-us); 
-    box-shadow:0 4px 10px rgba(0,0,0,0.4);
-  }
-  .theme-us .g-btn.positive{ 
-    border-color:var(--good); 
-    color:var(--good); 
-  } /* Smother/Saves */
-  
-  /* Grid dividers/labels */
-  .col-label{
-    font-size:10px; 
-    text-transform:uppercase; 
-    letter-spacing:1px; 
-    text-align:center; 
-    margin-bottom:4px; 
-    opacity:0.5;
-  }
-  .col-sub-label{
-    font-size:10px;
-    text-align:center;
-    opacity:0.5;
+  .h-md{
+    height:55px;
+    font-size:14px;
   }
 
+  .theme-them .g-btn{
+    background:var(--zone-them);
+    border-color:#5a1a1a;
+  }
+  .theme-them .g-btn.primary{
+    background:#3a0e0e;
+    border-color:var(--accent-them);
+  }
+  .theme-them .g-btn.ctx{
+    background:#140707;
+    border-color:#5a1a1a;
+    border-style:dashed;
+    font-size:12px;
+  }
+
+  .theme-us .g-btn{
+    background:var(--zone-us);
+    border-color:#1a3a5a;
+  }
+  .theme-us .g-btn.primary{
+    background:#0f2b45;
+    border-color:var(--accent-us);
+    box-shadow:0 4px 10px rgba(0,0,0,0.4);
+  }
+  .theme-us .g-btn.positive{
+    border-color:var(--good);
+    color:var(--good);
+  }
+  .theme-us .g-btn.ctx{
+    background:#07121a;
+    border-color:#1a3a5a;
+    border-style:dashed;
+    font-size:12px;
+  }
+
+  .col-label{
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    text-align:center;
+    margin-bottom:4px;
+    opacity:0.5;
+  }
   .def-context-label{
     font-size:10px;
     text-transform:uppercase;
@@ -330,10 +308,7 @@
     margin-top:4px;
   }
 
-  /* ===== Next Period Full-Width Bar ===== */
-  .next-period-wrap{
-    margin-top:14px;
-  }
+  .next-period-wrap{ margin-top:14px; }
   .next-period-btn{
     width:100%;
     background:#222;
@@ -342,82 +317,67 @@
     border-radius:999px;
   }
 
-  /* ===== Floating Undo (FAB) ===== */
   .fab-undo{
-    position:fixed; 
-    bottom:24px; 
+    position:fixed;
+    bottom:24px;
     right:24px;
-    width:64px; 
-    height:64px; 
+    width:64px;
+    height:64px;
     border-radius:50%;
-    background:#222; 
+    background:#222;
     border:2px solid #444;
-    color:#fff; 
-    font-size:12px; 
+    color:#fff;
+    font-size:12px;
     font-weight:700;
-    display:flex; 
-    align-items:center; 
+    display:flex;
+    align-items:center;
     justify-content:center;
     box-shadow:0 8px 24px rgba(0,0,0,0.5);
-    z-index:2000; 
+    z-index:2000;
     cursor:pointer;
   }
-  .fab-undo:active{ 
-    transform:scale(0.95); 
-    background:#333; 
+  .fab-undo:active{
+    transform:scale(0.95);
+    background:#333;
   }
 
-  /* ===== Stats & Log ===== */
   .stats-strip{
-    display:grid; 
-    grid-template-columns:repeat(4, 1fr); 
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
     gap:6px;
     margin-top:16px;
   }
   .mini-stat{
-    background:#111; 
-    border:1px solid #222; 
-    border-radius:8px; 
+    background:#111;
+    border:1px solid #222;
+    border-radius:8px;
     padding:6px;
     text-align:center;
   }
-  .mini-stat .l{ 
-    font-size:10px; 
-    color:var(--muted); 
-    display:block; 
-  }
-  .mini-stat .v{ 
-    font-size:14px; 
-    font-weight:700; 
-    color:#fff; 
-  }
+  .mini-stat .l{ font-size:10px; color:var(--muted); display:block; }
+  .mini-stat .v{ font-size:14px; font-weight:700; color:#fff; }
 
   .log-container{
     margin-top:16px;
-    background:#080808; 
-    border:1px solid #222; 
+    background:#080808;
+    border:1px solid #222;
     border-radius:12px;
-    height:140px; 
-    overflow-y:auto; 
+    height:140px;
+    overflow-y:auto;
     padding:8px;
   }
-  .log-item{ 
-    font-size:12px; 
-    padding:4px 0; 
-    border-bottom:1px dashed #222; 
-    color:#ccc; 
+  .log-item{
+    font-size:12px;
+    padding:4px 0;
+    border-bottom:1px dashed #222;
+    color:#ccc;
     display:flex;
     justify-content:space-between;
     gap:8px;
     align-items:center;
   }
-  .log-main{
-    flex:1;
-  }
-  .log-meta{
-    opacity:0.7;
-    margin-right:4px;
-  }
+  .log-main{ flex:1; }
+  .log-meta{ opacity:0.7; margin-right:4px; }
   .badge{
     display:inline-block;
     padding:2px 6px;
@@ -432,144 +392,109 @@
     cursor:pointer;
   }
 
-  /* ===== Summary Panels / Dialogs (reused) ===== */
-  .panel{ 
-    background:var(--panel); 
-    border-radius:var(--radius); 
-    padding:12px; 
-    margin-top:10px; 
+  .panel{
+    background:var(--panel);
+    border-radius:var(--radius);
+    padding:12px;
+    margin-top:10px;
     border:1px solid #333;
   }
   .hidden{ display:none!important; }
-  .modal{ 
-    position:fixed; 
-    inset:0; 
-    background:rgba(0,0,0,0.8); 
-    z-index:9999; 
-    display:none; 
-    align-items:center; 
-    justify-content:center; 
-    padding:16px; 
+  .modal{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.8);
+    z-index:9999;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:16px;
   }
-  .modal .box{ 
-    background:#111; 
-    border:1px solid #333; 
-    border-radius:12px; 
-    width:100%; 
-    max-width:400px; 
-    padding:16px; 
-  }
-  
-  /* Rings (now in summary) */
-  .scoreRing{ 
-    position:relative; 
-    width:80px; 
-    height:80px; 
-    margin:0 auto; 
-  }
-  .ringSvg{ 
-    transform:rotate(-90deg); 
-    width:100%; 
-    height:100%; 
-  }
-  .ringBg{ 
-    fill:none; 
-    stroke:#333; 
-    stroke-width:6; 
-  }
-  .ringFg{ 
-    fill:none; 
-    stroke:var(--accent-us); 
-    stroke-width:6; 
-    stroke-linecap:round; 
-    transition:stroke-dashoffset 0.5s; 
-    stroke-dasharray:220; 
-    stroke-dashoffset:220; 
-  }
-  .scoreRing .val{ 
-    position:absolute; 
-    inset:0; 
-    display:flex; 
-    align-items:center; 
-    justify-content:center; 
-    font-size:24px; 
-    font-weight:800; 
-  }
-  
-  .pill{ 
-    font-size:10px; 
-    padding:3px 8px; 
-    border-radius:10px; 
-    background:#222; 
-    border:1px solid #333; 
-    color:#888; 
-  }
-  .pill.good{ 
-    color:var(--good); 
-    border-color:var(--good); 
-  }
-  .pill.warn{ 
-    color:var(--warn); 
-    border-color:var(--warn); 
-  }
-  .pill.bad{ 
-    color:var(--accent-them); 
-    border-color:var(--accent-them); 
-  }
-  
-  .ai-actions{ 
-    display:flex; 
-    flex-wrap:wrap; 
-    gap:8px; 
-    margin-top:10px; 
-  }
-  .btn.ai{ 
-    padding:10px; 
-    background:#1a1a1a; 
-    border:1px solid #333; 
-    color:#ccc; 
-    border-radius:8px; 
-    flex:1; 
+  .modal .box{
+    background:#111;
+    border:1px solid #333;
+    border-radius:12px;
+    width:100%;
+    max-width:400px;
+    padding:16px;
   }
 
-  /* Common utils */
-  .rowbtn{ 
-    display:flex; 
-    gap:10px; 
-    margin-top:10px; 
-    justify-content:flex-end; 
+  .scoreRing{ position:relative; width:80px; height:80px; margin:0 auto; }
+  .ringSvg{ transform:rotate(-90deg); width:100%; height:100%; }
+  .ringBg{ fill:none; stroke:#333; stroke-width:6; }
+  .ringFg{
+    fill:none;
+    stroke:var(--accent-us);
+    stroke-width:6;
+    stroke-linecap:round;
+    transition:stroke-dashoffset 0.5s;
+    stroke-dasharray:220;
+    stroke-dashoffset:220;
   }
-  .btn-std{ 
-    padding:10px 16px; 
-    background:#222; 
-    border:1px solid #444; 
-    color:#fff; 
-    border-radius:8px; 
+  .scoreRing .val{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:24px;
+    font-weight:800;
+  }
+
+  .pill{
+    font-size:10px;
+    padding:3px 8px;
+    border-radius:10px;
+    background:#222;
+    border:1px solid #333;
+    color:#888;
+  }
+  .pill.good{ color:var(--good); border-color:var(--good); }
+  .pill.warn{ color:var(--warn); border-color:var(--warn); }
+  .pill.bad{ color:var(--accent-them); border-color:var(--accent-them); }
+
+  .ai-actions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:10px;
+  }
+  .btn.ai{
+    padding:10px;
+    background:#1a1a1a;
+    border:1px solid #333;
+    color:#ccc;
+    border-radius:8px;
+    flex:1;
+  }
+
+  .rowbtn{ display:flex; gap:10px; margin-top:10px; justify-content:flex-end; }
+  .btn-std{
+    padding:10px 16px;
+    background:#222;
+    border:1px solid #444;
+    color:#fff;
+    border-radius:8px;
     cursor:pointer;
   }
-  
-  /* Picker Grid */
-  .pickerGrid{ 
-    display:grid; 
-    grid-template-columns:repeat(4,1fr); 
-    gap:8px; 
-    margin-top:10px; 
-  }
-  .pickerBtn{ 
-    background:#222; 
-    border:1px solid #333; 
-    padding:12px; 
-    border-radius:8px; 
-    text-align:center; 
-    font-weight:700; 
-    cursor:pointer; 
-  }
-  .pickerBtn.selected{ 
-    background:#0f2b45; 
-    border-color:var(--accent-us); 
-  }
 
-  /* Tables in summary */
+  .pickerGrid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:8px;
+    margin-top:10px;
+  }
+  .pickerBtn{
+    background:#222;
+    border:1px solid #333;
+    padding:12px;
+    border-radius:8px;
+    text-align:center;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .pickerBtn.selected{ background:#0f2b45; border-color:var(--accent-us); }
+
   table{
     width:100%;
     border-collapse:collapse;
@@ -581,11 +506,8 @@
     padding:4px 6px;
     text-align:center;
   }
-  th{
-    background:#181818;
-  }
+  th{ background:#181818; }
 
-  /* Undo Modal */
   .undoRow{
     padding:6px 4px;
     border-bottom:1px solid #222;
@@ -593,7 +515,6 @@
     font-size:12px;
   }
 
-  /* Toast */
   .toast{
     position:fixed;
     left:50%;
@@ -611,11 +532,11 @@
 </head>
 <body>
 
-<!-- Sticky Header -->
 <header class="sticky-header">
   <div class="top-row">
     <div class="inlineRow">
       <h1>Team Tracker</h1>
+      <div class="pill" id="versionPill">v—</div>
       <div class="pill" id="cloudStatus">Cloud: —</div>
     </div>
     <div>
@@ -625,10 +546,10 @@
   </div>
 
   <div class="scoreboard-row">
-    <!-- THEM LEFT, US RIGHT -->
     <div class="score-block them">
       <span class="score-label">THEM</span>
       <span id="liveGA" class="score-val">0</span>
+      <div class="shot-under">SA <span id="hdrSA">0</span></div>
     </div>
 
     <div class="period-seg" id="periodChips">
@@ -641,13 +562,13 @@
     <div class="score-block us">
       <span class="score-label">US</span>
       <span id="liveGF" class="score-val">0</span>
+      <div class="shot-under">SF <span id="hdrSF">0</span></div>
     </div>
   </div>
 </header>
 
 <div class="wrap">
-  
-  <!-- Setup Panel (Initially Visible) -->
+
   <div id="setupContainer">
     <div class="setup-card">
       <h2>Game Setup</h2>
@@ -675,46 +596,46 @@
     </div>
   </div>
 
-  <!-- Game Controls (Initially Hidden) -->
   <div id="gameControls">
-    
+
     <div class="split-grid">
-      
-      <!-- LEFT COLUMN: THEM / BAD (Red) -->
+
+      <!-- LEFT COLUMN: THEM / DEFENSIVE -->
       <div class="col-zone theme-them">
         <div class="col-label">Them</div>
-        <!-- Primary -->
+
         <div class="g-btn primary h-lg" id="btnShot">Shot Against</div>
         <div class="g-btn primary h-lg" id="btnGoal">Goal Against</div>
-        <!-- Secondary -->
+
         <div class="g-btn h-md" id="btnSoftGoal">Soft Goal</div>
         <div class="g-btn h-md" id="btnBadRebound">Bad Rebound</div>
-        <!-- Defensive Context label -->
+
         <div class="def-context-label">Defensive Context</div>
-        <!-- Context -->
         <div class="g-btn ctx h-md" id="btnBreakaway">Breakaway Ag</div>
         <div class="g-btn ctx h-md" id="btnDZTurnover">DZ Turnover</div>
       </div>
 
-      <!-- RIGHT COLUMN: US / GOOD (Blue) -->
+      <!-- RIGHT COLUMN: US / OFFENSIVE -->
       <div class="col-zone theme-us">
         <div class="col-label">Us</div>
-        <!-- Primary -->
+
         <div class="g-btn primary h-lg" id="btnForShot">Shot For</div>
         <div class="g-btn primary h-lg" id="btnForGoal">Goal For</div>
-        <!-- Goalies -->
+
         <div class="g-btn positive h-md" id="btnSmother">Smother</div>
         <div class="g-btn positive h-md" id="btnBigSave">Big Save</div>
+
+        <div class="def-context-label">Offensive Context</div>
+        <div class="g-btn ctx h-md" id="btnOddManRushFor">Odd Man Rush</div>
+        <div class="g-btn ctx h-md" id="btnBreakawayFor">Breakaway</div>
       </div>
 
     </div>
 
-    <!-- Next Period: global full-width control -->
     <div class="next-period-wrap">
       <div class="g-btn next-period-btn" id="btnNextPeriod">Next Period</div>
     </div>
 
-    <!-- Stats Strip -->
     <div class="stats-strip">
       <div class="mini-stat"><span class="l">SF</span><span class="v" id="liveSF">0</span></div>
       <div class="mini-stat"><span class="l">SA</span><span class="v" id="liveSA">0</span></div>
@@ -722,7 +643,6 @@
       <div class="mini-stat"><span class="l">SV%</span><span class="v" id="svVal">—</span></div>
     </div>
 
-    <!-- Log -->
     <div class="log-container" id="log"></div>
 
     <div class="rowbtn" style="justify-content:center; margin-top:20px;">
@@ -730,9 +650,8 @@
       <button class="btn-std" id="btnReset">New Game</button>
     </div>
 
-  </div> <!-- End Game Controls -->
+  </div>
 
-  <!-- Summary Panel -->
   <section class="panel hidden" id="summaryPanel">
     <h2 style="margin:0 0 10px 0; font-size:16px;">Game Summary</h2>
     <div id="summaryTitle" class="small" style="margin-bottom:12px; color:#aaa;"></div>
@@ -775,7 +694,6 @@
       <button class="btn ai" id="btnAIFocus">Next Game Focus</button>
     </div>
 
-    <!-- AI Results Cards -->
     <div class="card" id="aiPracticeCard" style="margin-top:10px;display:none;">
       <h3>AI Practice Plan</h3><div class="small" id="aiPracticeBody"></div>
     </div>
@@ -794,11 +712,9 @@
 
 </div>
 
-<!-- Floating Undo Button -->
 <div id="btnUndo" class="fab-undo">UNDO</div>
 
 <!-- MODALS -->
-<!-- Roster modal -->
 <div class="modal" id="rosterModal"><div class="box">
   <div class="small" style="margin-bottom:6px;">Roster (one # per line)</div>
   <textarea id="rosterArea" style="width:100%; height:150px; background:#000; border:1px solid #333; color:#fff; padding:8px;"></textarea>
@@ -808,7 +724,6 @@
   </div>
 </div></div>
 
-<!-- Player picker -->
 <div class="modal" id="pickerModal"><div class="box">
   <div class="small" style="margin-bottom:8px;" id="pickerTitle">Select Player</div>
   <div class="pickerGrid" id="pickerGrid"></div>
@@ -825,7 +740,6 @@
   </div>
 </div></div>
 
-<!-- GA Context -->
 <div class="modal" id="gaOverlay"><div class="box">
   <div class="small" style="margin-bottom:8px;">Goal Context</div>
   <div class="pickerGrid" id="gaGrid" style="grid-template-columns:1fr 1fr;"></div>
@@ -834,7 +748,6 @@
   </div>
 </div></div>
 
-<!-- Multi Picker -->
 <div class="modal" id="onIceModal"><div class="box">
   <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
     <span class="small" id="onIceTitle">On Ice</span>
@@ -853,7 +766,6 @@
   <div class="small" id="onIceUnknownBadge" style="text-align:center; margin-top:6px; opacity:0.5;"></div>
 </div></div>
 
-<!-- Strength -->
 <div class="modal" id="strengthModal"><div class="box">
   <div class="small" style="margin-bottom:8px;" id="strengthTitle">Situation</div>
   <div class="pickerGrid" style="grid-template-columns:1fr;">
@@ -864,7 +776,6 @@
   <div class="rowbtn"><button class="btn-std" id="strengthSkip">Skip</button></div>
 </div></div>
 
-<!-- Copy -->
 <div class="modal" id="copyModal"><div class="box">
   <div class="small">Summary Text</div>
   <textarea id="copyArea" style="width:100%; height:200px; background:#000; color:#fff; margin-top:8px;"></textarea>
@@ -874,7 +785,6 @@
   </div>
 </div></div>
 
-<!-- Undo List -->
 <div class="modal" id="undoModal"><div class="box">
   <div class="small">Undo Event</div>
   <div class="undoList" id="undoList" style="max-height:250px; overflow:auto; margin-top:8px;"></div>
@@ -883,14 +793,21 @@
 
 <div class="toast" id="toast">Removed. <button id="toastRestore" style="background:none; border:none; color:var(--accent-us); font-weight:700;">Restore</button></div>
 
-<!-- Debug (Hidden by default in UI but kept for ref) -->
 <div id="debugWrap" style="display:none;">
   <div id="debugGoalieLine"></div><div id="debugTeamLine"></div>
 </div>
 
 <script>
+/*
+Version display approach:
+- Good idea to keep a SINGLE VERSION constant here and render it into the UI + document.title.
+- It still requires updating index.html to bump the version, but you only change it in one place.
+- Trying to "pull it from the file name" or other pages usually adds fragility for little gain.
+*/
+const APP_VERSION = 'v5.2.0';
+
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', ()=>navigator.serviceWorker.register('service-worker.js?v=5100'));
+  window.addEventListener('load', ()=>navigator.serviceWorker.register('service-worker.js?v=5200'));
 }
 
 /* ===== IndexedDB KV helper ===== */
@@ -932,22 +849,30 @@ const LAST_SAVED_KEY = 'team-tracker-last-saved-gameId';
 
 /* ===== State ===== */
 const state = {
-  opponent:'', 
-  level:'U11', 
-  date:null, 
+  opponent:'',
+  level:'U11',
+  date:null,
   period:1,
-  startedAt:new Date().toISOString(), 
+  startedAt:new Date().toISOString(),
   gameId:Math.random().toString(36).slice(2),
   events:[],
   countsA:{shots:0, goals:0, softGoals:0, smothers:0, badRebounds:0, bigSaves:0},
   countsF:{shots:0, goals:0},
   team:{breakawaysAgainst:0, dzTurnovers:0},
+  offense:{breakawaysFor:0, oddManRushFor:0},
   roster:[],
-  lastEventId:0
+  lastEventId:0,
+  lastOffBreakawayAt:null
 };
+
 let per = {1:initP(),2:initP(),3:initP(),4:initP()};
 function initP(){
-  return { A_shots:0, A_goals:0, A_smothers:0, A_badRebounds:0, A_bigSaves:0, F_shots:0, F_goals:0, BA:0, DZ:0 };
+  return {
+    A_shots:0, A_goals:0, A_smothers:0, A_badRebounds:0, A_bigSaves:0,
+    F_shots:0, F_goals:0,
+    BA:0, DZ:0,
+    BF:0, OMRF:0
+  };
 }
 
 /* ===== UI Logic for Start/Setup ===== */
@@ -979,9 +904,7 @@ $('btnStartGame').addEventListener('click', ()=>{
   toggleSetup(false);
   vibrate(10);
 });
-$('btnEditSetup').addEventListener('click', ()=>{
-  toggleSetup(true);
-});
+$('btnEditSetup').addEventListener('click', ()=>toggleSetup(true));
 
 /* ===== Cloud status helper ===== */
 function setCloudStatus(text, tone){
@@ -1031,7 +954,7 @@ async function load(){
   return null;
 }
 
-/* Crash-safety autosaves (restored from main behavior) */
+/* Crash-safety autosaves */
 let autosaveTimer = null;
 function startAutosave(){
   if(autosaveTimer) clearInterval(autosaveTimer);
@@ -1046,7 +969,6 @@ function startAutosave(){
 function vibrate(ms=20){ if(navigator.vibrate) navigator.vibrate(ms); }
 
 function highlightPeriod(){
-  // Update header segmented control
   const chips = $('periodChips');
   if(!chips) return;
   [...chips.children].forEach(ch=>{
@@ -1066,7 +988,7 @@ function compressUnknown(arr){
   return unknowns ? [...rest, `Unknown×${unknowns}`] : rest;
 }
 
-/* Sorting helpers (fix NaN/unstable sorts) */
+/* Sorting helpers */
 function toNumOrNaN(v){
   const s = String(v ?? '').trim();
   if(!s) return NaN;
@@ -1092,12 +1014,12 @@ function normalizeLevelKey(levelStr){
   return 'Other';
 }
 
-/* ===== Roster auto-growth (restored) ===== */
+/* ===== Roster auto-growth ===== */
 function maybeAddToRoster(num){
   const s = String(num ?? '').trim();
   if(!s) return;
   if(s === '?' || s === 'Unknown') return;
-  if(!/^\d+$/.test(s)) return; // only auto-learn real jersey numbers
+  if(!/^\d+$/.test(s)) return;
   const roster = state.roster || [];
   if(!roster.includes(s)){
     roster.push(s);
@@ -1110,6 +1032,7 @@ function maybeAddToRoster(num){
 /* ===== Event accounting ===== */
 function bump(type, period){
   const p = per[period] || per[4];
+
   if(type==='shot'){
     state.countsA.shots++; p.A_shots++;
   }else if(type==='goal'){
@@ -1135,6 +1058,10 @@ function bump(type, period){
     state.team.breakawaysAgainst++; p.BA++;
   }else if(type==='dz_turnover'){
     state.team.dzTurnovers++; p.DZ++;
+  }else if(type==='breakaway_for'){
+    state.offense.breakawaysFor++; p.BF++;
+  }else if(type==='odd_man_rush_for'){
+    state.offense.oddManRushFor++; p.OMRF++;
   }
 }
 
@@ -1143,6 +1070,8 @@ function rebuildFromEvents(){
   state.countsA = {shots:0, goals:0, softGoals:0, smothers:0, badRebounds:0, bigSaves:0};
   state.countsF = {shots:0, goals:0};
   state.team = {breakawaysAgainst:0, dzTurnovers:0};
+  state.offense = {breakawaysFor:0, oddManRushFor:0};
+
   for(const ev of state.events){
     bump(ev.type, ev.period);
   }
@@ -1175,16 +1104,32 @@ function clearGoodPendingFor(id){
 }
 
 function addEvent(type, meta={}){
-  // Restore main behavior: cancel pending "good rebound" credit when a smother or bad rebound is logged
   if(type === 'smother' || type === 'bad_rebound') cancelRecentGoodCredit();
 
-  const ev = { 
-    id: ++state.lastEventId, 
-    type, 
-    tISO:new Date().toISOString(), 
-    period: state.period, 
-    ...meta 
+  const nowISO = new Date().toISOString();
+
+  if(type === 'breakaway_for'){
+    state.lastOffBreakawayAt = nowISO;
+  }
+
+  const ev = {
+    id: ++state.lastEventId,
+    type,
+    tISO: nowISO,
+    period: state.period,
+    ...meta
   };
+
+  // Breakaway goal-for auto-tag (within 10 seconds of Breakaway For tap)
+  if(type === 'for_goal' && state.lastOffBreakawayAt){
+    const dt = new Date(ev.tISO).getTime() - new Date(state.lastOffBreakawayAt).getTime();
+    if(dt >= 0 && dt <= 10000){
+      ev.offensiveContext = 'Breakaway';
+      // one-shot: don’t tag multiple goals off one tap unless you want that
+      state.lastOffBreakawayAt = null;
+    }
+  }
+
   state.events.push(ev);
   bump(type, state.period);
 
@@ -1194,7 +1139,6 @@ function addEvent(type, meta={}){
   renderAll();
   vibrate();
 
-  // Pulse animation trigger (null-safe)
   if(type==='goal' || type==='soft_goal') triggerPulse('liveGA','bad');
   if(type==='for_goal') triggerPulse('liveGF','good');
 
@@ -1208,7 +1152,7 @@ function triggerPulse(elemId, type){
   const el = $(elemId);
   if(!el) return;
   el.classList.remove('pulse-good', 'pulse-bad');
-  void el.offsetWidth; // trigger reflow
+  void el.offsetWidth;
   el.classList.add(type==='good'?'pulse-good':'pulse-bad');
 }
 
@@ -1222,6 +1166,7 @@ function undo(){
 function revert(ev){
   clearGoodPendingFor(ev.id);
   const p = per[ev.period] || per[4];
+
   if(ev.type==='shot'){ state.countsA.shots--; p.A_shots--; }
   else if(ev.type==='goal'){ state.countsA.shots--; state.countsA.goals--; p.A_shots--; p.A_goals--; }
   else if(ev.type==='soft_goal'){ state.countsA.shots--; state.countsA.goals--; state.countsA.softGoals--; p.A_shots--; p.A_goals--; }
@@ -1232,34 +1177,37 @@ function revert(ev){
   else if(ev.type==='for_goal'){ state.countsF.shots--; state.countsF.goals--; p.F_shots--; p.F_goals--; }
   else if(ev.type==='breakaway_against'){ state.team.breakawaysAgainst--; p.BA--; }
   else if(ev.type==='dz_turnover'){ state.team.dzTurnovers--; p.DZ--; }
+  else if(ev.type==='breakaway_for'){ state.offense.breakawaysFor--; p.BF--; }
+  else if(ev.type==='odd_man_rush_for'){ state.offense.oddManRushFor--; p.OMRF--; }
+
   save();
 }
 
 /* Undo Hold Logic */
 let undoHoldTimer = null, undoHeld = false, undoPointerActive = false;
-function startUndoHold(){ 
-  if(undoPointerActive)return; 
-  undoPointerActive=true; 
-  undoHeld=false; 
-  undoHoldTimer=setTimeout(()=>{undoHeld=true;showUndoModal();},600); 
+function startUndoHold(){
+  if(undoPointerActive)return;
+  undoPointerActive=true;
+  undoHeld=false;
+  undoHoldTimer=setTimeout(()=>{undoHeld=true;showUndoModal();},600);
 }
-function finishUndo(){ 
-  if(!undoPointerActive)return; 
-  undoPointerActive=false; 
-  if(undoHoldTimer){clearTimeout(undoHoldTimer);undoHoldTimer=null;} 
-  if(!undoHeld){undo();} 
+function finishUndo(){
+  if(!undoPointerActive)return;
+  undoPointerActive=false;
+  if(undoHoldTimer){clearTimeout(undoHoldTimer);undoHoldTimer=null;}
+  if(!undoHeld){undo();}
 }
-function cancelUndoHold(){ 
-  if(!undoPointerActive)return; 
-  undoPointerActive=false; 
-  if(undoHoldTimer){clearTimeout(undoHoldTimer);undoHoldTimer=null;} 
+function cancelUndoHold(){
+  if(!undoPointerActive)return;
+  undoPointerActive=false;
+  if(undoHoldTimer){clearTimeout(undoHoldTimer);undoHoldTimer=null;}
 }
 const undoBtn = $('btnUndo');
-if(undoBtn){ 
-  undoBtn.addEventListener('pointerdown',startUndoHold); 
-  undoBtn.addEventListener('pointerup',finishUndo); 
-  undoBtn.addEventListener('pointerleave',cancelUndoHold); 
-  undoBtn.addEventListener('pointercancel',cancelUndoHold); 
+if(undoBtn){
+  undoBtn.addEventListener('pointerdown',startUndoHold);
+  undoBtn.addEventListener('pointerup',finishUndo);
+  undoBtn.addEventListener('pointerleave',cancelUndoHold);
+  undoBtn.addEventListener('pointercancel',cancelUndoHold);
 }
 
 /* Undo Modal */
@@ -1267,13 +1215,13 @@ let lastRemoved = null, toastTimer = null;
 function showUndoModal(){
   const listEl = $('undoList');
   const recent = state.events.slice(-5);
-  listEl.innerHTML = recent.length 
-    ? recent.map(ev=>`<div class="undoRow" data-id="${ev.id}">P${ev.period} • ${fmtTime(ev.tISO)} — ${labelFor(ev)}</div>`).reverse().join('') 
+  listEl.innerHTML = recent.length
+    ? recent.map(ev=>`<div class="undoRow" data-id="${ev.id}">P${ev.period} • ${fmtTime(ev.tISO)} — ${labelFor(ev)}</div>`).reverse().join('')
     : `<div class="small">No events.</div>`;
   $('undoModal').style.display = 'flex';
 }
 $('undoList').addEventListener('click', e => {
-  const row = e.target.closest('.undoRow'); 
+  const row = e.target.closest('.undoRow');
   if(!row)return;
   const id = Number(row.dataset.id);
   const idx = state.events.findIndex(ev => ev.id === id);
@@ -1287,27 +1235,27 @@ $('undoList').addEventListener('click', e => {
 });
 $('undoClose').addEventListener('click', ()=>$('undoModal').style.display='none');
 function showToast(msg){
-  const t=$('toast'); 
+  const t=$('toast');
   if(!t) return;
-  t.firstChild.nodeValue = msg+' '; 
+  t.firstChild.nodeValue = msg+' ';
   t.style.display='block';
   if(toastTimer) clearTimeout(toastTimer);
   toastTimer = setTimeout(hideToast,3500);
 }
-function hideToast(){ 
+function hideToast(){
   const t=$('toast');
-  if(t) t.style.display='none'; 
-  if(toastTimer){clearTimeout(toastTimer);toastTimer=null;} 
+  if(t) t.style.display='none';
+  if(toastTimer){clearTimeout(toastTimer);toastTimer=null;}
 }
 $('toastRestore').addEventListener('click', ()=>{
   if(!lastRemoved){ hideToast(); return; }
-  const ev = lastRemoved; 
+  const ev = lastRemoved;
   lastRemoved=null;
-  state.events.push(ev); 
+  state.events.push(ev);
   state.events.sort((a,b)=>new Date(a.tISO)-new Date(b.tISO));
-  rebuildFromEvents(); 
-  save(); 
-  renderAll(); 
+  rebuildFromEvents();
+  save();
+  renderAll();
   hideToast();
 });
 
@@ -1320,6 +1268,8 @@ function labelFor(ev){
     .replace('for_goal','Our Goal')
     .replace('breakaway_against','Breakaway Ag')
     .replace('dz_turnover','DZ Turnover')
+    .replace('breakaway_for','Breakaway For')
+    .replace('odd_man_rush_for','Odd Man Rush')
     .replace(/_/g,' ');
   if((ev.type==='for_shot'||ev.type==='for_goal')&&ev.player&&ev.player!=='?'&&ev.player!=='Unknown') {
     label+=` (#${ev.player})`;
@@ -1327,30 +1277,33 @@ function labelFor(ev){
   if(ev.type==='for_goal' && ev.assist && ev.assist!=='?' && ev.assist!=='Unknown'){
     label+=` (A#${ev.assist})`;
   }
+  if(ev.type==='for_goal' && ev.offensiveContext){
+    label+=` [${ev.offensiveContext}]`;
+  }
   return label;
 }
 
 /* GA Context */
 const GA_TAGS = ['Screen','Deflection','Cross-Crease','Weak-Side','Rush','Rebound','Other'];
 let lastGAEvent = null;
-function openGAContext(ev){ 
-  lastGAEvent=ev; 
-  $('gaGrid').innerHTML=GA_TAGS.map(t=>`<div class="pickerBtn" data-t="${t}">${t}</div>`).join(''); 
-  $('gaOverlay').style.display='flex'; 
+function openGAContext(ev){
+  lastGAEvent=ev;
+  $('gaGrid').innerHTML=GA_TAGS.map(t=>`<div class="pickerBtn" data-t="${t}">${t}</div>`).join('');
+  $('gaOverlay').style.display='flex';
 }
 $('gaGrid').addEventListener('click', e=>{
-  const chip=e.target.closest('.pickerBtn'); 
+  const chip=e.target.closest('.pickerBtn');
   if(!chip||!lastGAEvent)return;
-  lastGAEvent.ga_ctx=chip.dataset.t; 
+  lastGAEvent.ga_ctx=chip.dataset.t;
   lastGAEvent.needsContext = false;
-  save(); 
-  $('gaOverlay').style.display='none'; 
+  save();
+  $('gaOverlay').style.display='none';
   renderAll();
-  openMultiPicker({title:'5 Players On Ice', max:5, event:lastGAEvent, field:'onIce', exclude:[]}); 
+  openMultiPicker({title:'5 Players On Ice', max:5, event:lastGAEvent, field:'onIce', exclude:[]});
   lastGAEvent=null;
 });
 $('gaSkip').addEventListener('click', ()=>{
-  $('gaOverlay').style.display='none'; 
+  $('gaOverlay').style.display='none';
   if(lastGAEvent){
     lastGAEvent.needsContext = true;
     save();
@@ -1369,11 +1322,11 @@ function tagGACause(gaEv){
     if(ev.type==='dz_turnover') hasDZ=true;
     if(ev.type==='bad_rebound') hasBR=true;
   }
-  const parts=[]; 
+  const parts=[];
   if(hasBA){ parts.push('BA'); gaEv.ga_ba=true; }
   if(hasDZ){ parts.push('DZ'); gaEv.ga_dz=true; }
   if(hasBR){ parts.push('BR'); gaEv.ga_br=true; }
-  gaEv.ga_cause = parts.length ? parts.join('+') : 'other'; 
+  gaEv.ga_cause = parts.length ? parts.join('+') : 'other';
   save();
 }
 
@@ -1381,10 +1334,10 @@ function tagGACause(gaEv){
 let multiPick = {selected:new Set(), unknowns:0, max:5, exclude:new Set(), eventRef:null, field:'onIce'};
 function openMultiPicker({title,max,event,field,exclude}){
   multiPick={selected:new Set(), unknowns:0, max, exclude:new Set(exclude||[]), eventRef:event, field};
-  $('onIceTitle').textContent=title; 
-  $('onIceMax').textContent=String(max); 
+  $('onIceTitle').textContent=title;
+  $('onIceMax').textContent=String(max);
   $('onIceModal').style.display='flex';
-  buildOnIceGrid(); 
+  buildOnIceGrid();
   updateOnIceMeta();
 }
 function buildOnIceGrid(){
@@ -1396,87 +1349,85 @@ function buildOnIceGrid(){
     ? uniq.map(n=>`<div class="pickerBtn ${multiPick.selected.has(n)?'selected':''}" data-n="${n}">#${n}</div>`).join('')
     : `<div class="small" style="grid-column:1/-1;">No roster yet.</div>`;
 }
-function totalSelected(){ 
-  return multiPick.selected.size + multiPick.unknowns; 
-}
-function updateOnIceMeta(){ 
-  $('onIceCount').textContent=String(totalSelected()); 
-  $('onIceUnknownBadge').textContent=`Unknown ×${multiPick.unknowns}`; 
+function totalSelected(){ return multiPick.selected.size + multiPick.unknowns; }
+function updateOnIceMeta(){
+  $('onIceCount').textContent=String(totalSelected());
+  $('onIceUnknownBadge').textContent=`Unknown ×${multiPick.unknowns}`;
 }
 $('onIceGrid').addEventListener('click',e=>{
-  const b=e.target.closest('.pickerBtn'); 
-  if(!b)return; 
+  const b=e.target.closest('.pickerBtn');
+  if(!b)return;
   const n=b.dataset.n;
-  if(multiPick.selected.has(n)){ 
-    multiPick.selected.delete(n); 
-    b.classList.remove('selected'); 
+  if(multiPick.selected.has(n)){
+    multiPick.selected.delete(n);
+    b.classList.remove('selected');
   }
-  else{ 
-    if(totalSelected()>=multiPick.max)return; 
-    multiPick.selected.add(n); 
-    b.classList.add('selected'); 
+  else{
+    if(totalSelected()>=multiPick.max)return;
+    multiPick.selected.add(n);
+    b.classList.add('selected');
   }
   updateOnIceMeta();
 });
-$('onIceUnknownPlus').addEventListener('click', ()=>{ 
-  if(totalSelected()>=multiPick.max)return; 
-  multiPick.unknowns++; 
-  updateOnIceMeta(); 
+$('onIceUnknownPlus').addEventListener('click', ()=>{
+  if(totalSelected()>=multiPick.max)return;
+  multiPick.unknowns++;
+  updateOnIceMeta();
 });
-$('onIceUnknownMinus').addEventListener('click', ()=>{ 
-  if(multiPick.unknowns>0){multiPick.unknowns--; updateOnIceMeta();} 
+$('onIceUnknownMinus').addEventListener('click', ()=>{
+  if(multiPick.unknowns>0){multiPick.unknowns--; updateOnIceMeta();}
 });
-$('onIceClear').addEventListener('click', ()=>{ 
-  multiPick.selected.clear(); 
-  multiPick.unknowns=0; 
-  buildOnIceGrid(); 
-  updateOnIceMeta(); 
+$('onIceClear').addEventListener('click', ()=>{
+  multiPick.selected.clear();
+  multiPick.unknowns=0;
+  buildOnIceGrid();
+  updateOnIceMeta();
 });
 $('onIceUse').addEventListener('click', ()=>{
-  if(!multiPick.eventRef){ 
-    $('onIceModal').style.display='none'; 
-    return; 
+  if(!multiPick.eventRef){
+    $('onIceModal').style.display='none';
+    return;
   }
   const ev=multiPick.eventRef, arr=[...multiPick.selected];
   for(let i=0;i<multiPick.unknowns;i++) arr.push('Unknown');
-  ev[multiPick.field]=arr; 
-  save(); 
-  $('onIceModal').style.display='none'; 
-  multiPick.eventRef=null; 
+  ev[multiPick.field]=arr;
+  save();
+  $('onIceModal').style.display='none';
+  multiPick.eventRef=null;
   renderAll();
   if(ev.type==='goal'||ev.type==='soft_goal'||ev.type==='for_goal') openStrengthPicker(ev, 'Situation (optional)');
 });
-$('onIceCancel').addEventListener('click', ()=>{ 
-  $('onIceModal').style.display='none'; 
-  multiPick.eventRef=null; 
+$('onIceCancel').addEventListener('click', ()=>{
+  $('onIceModal').style.display='none';
+  multiPick.eventRef=null;
 });
 
 /* Strength */
 let strengthTarget=null;
-function openStrengthPicker(ev, label){ 
-  strengthTarget=ev; 
-  $('strengthTitle').textContent=label; 
-  $('strengthModal').style.display='flex'; 
+function openStrengthPicker(ev, label){
+  strengthTarget=ev;
+  $('strengthTitle').textContent=label;
+  $('strengthModal').style.display='flex';
 }
 $('strengthModal').addEventListener('click', e=>{
-  const b=e.target.closest('.pickerBtn'); 
+  const b=e.target.closest('.pickerBtn');
   if(!b||!strengthTarget)return;
-  strengthTarget.strength=b.dataset.strength; 
-  save(); 
-  $('strengthModal').style.display='none'; 
+  strengthTarget.strength=b.dataset.strength;
+  save();
+  $('strengthModal').style.display='none';
   strengthTarget=null;
   renderAll();
 });
-$('strengthSkip').addEventListener('click', ()=>{ 
-  $('strengthModal').style.display='none'; 
-  strengthTarget=null; 
+$('strengthSkip').addEventListener('click', ()=>{
+  $('strengthModal').style.display='none';
+  strengthTarget=null;
 });
 
 /* PlusMinus / Stats / Scoring */
 function computePlusMinus(){
   const pm=new Map();
-  function inc(n,d){ 
-    if(n && n!=='Unknown' && n!=='?') pm.set(n,(pm.get(n)||0)+d); 
+  function inc(n,d){
+    if(n && n!=='Unknown' && n!=='?') pm.set(n,(pm.get(n)||0)+d);
   }
   for(const ev of state.events){
     if(ev.type==='for_goal'){
@@ -1508,10 +1459,9 @@ function computeGoalieScore(){
   const expectedGA = shots*(1-prof.goalieBaseSV);
   const perfNorm = shots===0 ? 0.5 : clamp01(0.5+(expectedGA-ga)/6);
   let scoreSV = 75+(perfNorm-0.5)*40*volFactor;
-  
+
   const softPen = Math.max(-21, -7*C.softGoals);
-  
-  // Context penalty calc
+
   const gas = state.events.filter(e=>e.type==='goal'||e.type==='soft_goal');
   let ctxBad=0;
   for(const ev of gas){
@@ -1526,20 +1476,20 @@ function computeGoalieScore(){
     if(local>0) ctxBad+=local;
   }
   const ctxAdj = gas.length ? -Math.min(8, (ctxBad/gas.length)*3) : 0;
-  
+
   const goodRebCount = state.events.filter(e=>e.goodRebound).length;
   const rebDen = C.badRebounds + goodRebCount + C.smothers;
   const scoreReb = rebDen>0 ? 6*(1-C.badRebounds/rebDen)*volFactor : 3*volFactor;
   const scoreBig = shots>0 ? Math.min(6,1.2*C.bigSaves)*clamp01(shots/15) : 0;
-  
+
   let total = Math.round(scoreSV + softPen + ctxAdj + scoreReb + scoreBig);
   return {
-    total:Math.max(0,Math.min(100,total)), 
-    scoreSV:Math.round(scoreSV), 
-    softPenalty:Math.round(softPen), 
-    ctxAdj:Math.round(ctxAdj), 
-    scoreRebound:Math.round(scoreReb), 
-    scoreBig:Math.round(scoreBig), 
+    total:Math.max(0,Math.min(100,total)),
+    scoreSV:Math.round(scoreSV),
+    softPenalty:Math.round(softPen),
+    ctxAdj:Math.round(ctxAdj),
+    scoreRebound:Math.round(scoreReb),
+    scoreBig:Math.round(scoreBig),
     goodRebounds:goodRebCount
   };
 }
@@ -1552,31 +1502,30 @@ function computeTeamScore(){
 
   const Fin = SF>0 ? GF/SF : 0;
   const Impact = clamp01(0.5 + 4*((GF-GA)/Math.max(1,SF+SA)));
-  
-  // Consistency
+
   const pVals = [1,2,3,4]
     .map(p=>per[p].F_shots+per[p].A_shots > 0 ? per[p].F_shots/(per[p].F_shots+per[p].A_shots) : null)
     .filter(v=>v!==null);
-  let stab = 1; 
+  let stab = 1;
   if(pVals.length>1){
     const mu=pVals.reduce((a,b)=>a+b,0)/pVals.length;
     const sig=Math.sqrt(pVals.reduce((a,b)=>a+(b-mu)**2,0)/pVals.length);
     stab = clamp01(1-(sig/0.25));
   }
-  
-  const scoreSS=25*SS, 
-        scoreFin=25*clamp01(Fin/Math.max(0.05,prof.teamFinExp)), 
-        scoreImp=35*Impact, 
+
+  const scoreSS=25*SS,
+        scoreFin=25*clamp01(Fin/Math.max(0.05,prof.teamFinExp)),
+        scoreImp=35*Impact,
         scoreStab=15*stab;
+
   const pen = Math.min(12, 3*state.team.breakawaysAgainst) + Math.min(12, 1.5*state.team.dzTurnovers);
-  
+
   return {
-    total:Math.round(Math.max(0,Math.min(100, scoreSS+scoreFin+scoreImp+scoreStab-pen))), 
+    total:Math.round(Math.max(0,Math.min(100, scoreSS+scoreFin+scoreImp+scoreStab-pen))),
     scoreSS, scoreFin, scoreImp, scoreStab, SS, Fin
   };
 }
 
-/* GA breakdown helper for reuse */
 function computeGABreakdown(){
   return state.events.reduce((acc,e)=>{
     if(e.type==='goal'||e.type==='soft_goal'){
@@ -1593,28 +1542,32 @@ function computeGABreakdown(){
 /* ===== Live Renders ===== */
 function updateMeta(){
   const F=state.countsF, A=state.countsA;
+
   $('liveGF').textContent = F.goals;
   $('liveGA').textContent = A.goals;
-  
+
+  // header shots under score
+  $('hdrSF').textContent = F.shots;
+  $('hdrSA').textContent = A.shots;
+
   // Stats Strip
   const saves=Math.max(0,A.shots-A.goals);
   $('liveSF').textContent = F.shots;
   $('liveSA').textContent = A.shots;
   $('savesVal').textContent = saves;
   $('svVal').textContent = A.shots ? (saves/A.shots).toFixed(3).slice(1) : '—';
-  
-  // Rings logic
+
   const K=computeGoalieScore(), T=computeTeamScore();
   const setRing = (valEl,arcEl,sc) => {
     if(!valEl || !arcEl) return;
-    valEl.textContent=sc; 
+    valEl.textContent=sc;
     const c=sc>=85?'#32d74b':sc>=70?'#ff9f0a':'#ff453a';
-    arcEl.style.stroke=c; 
+    arcEl.style.stroke=c;
     arcEl.style.strokeDashoffset = String(220*(1-sc/100));
   };
   setRing($('goalieScoreNum'),$('gsArc'),K.total);
   setRing($('teamScoreNum'),$('tsArc'),T.total);
-  
+
   updateDebugLines();
 }
 
@@ -1634,6 +1587,7 @@ function renderLog(){
     if(cause) tags.push(cause);
     if(ctx) tags.push(ctx);
     if(ev.strength) tags.push(ev.strength);
+    if(ev.offensiveContext && ev.type==='for_goal') tags.push(ev.offensiveContext);
     const tagText = tags.join(' • ');
     const needs = ev.needsContext && isGA;
     const meta = `P${ev.period} • ${fmtTime(ev.tISO)}`;
@@ -1648,8 +1602,6 @@ function renderLog(){
       </div>`;
   }).join('');
 }
-
-/* Handle Tag Later from log */
 $('log').addEventListener('click', e=>{
   const badge = e.target.closest('.badge-tag');
   if(!badge) return;
@@ -1665,8 +1617,7 @@ function endGame(){
   $('summaryTitle').textContent = `${state.opponent || 'Opponent ?'} • ${state.level || '?'} • ${state.date || (new Date().toISOString().slice(0,10))}`;
   $('scoreBreakdown').textContent = `SV: ${K.scoreSV} | Ctx: ${K.ctxAdj} | Soft: ${K.softPenalty} | Reb: ${K.scoreRebound} | Big: ${K.scoreBig}`;
   $('teamBreakdown').textContent = `Possession: ${Math.round(T.scoreSS)} | Finish: ${Math.round(T.scoreFin)} | Result: ${Math.round(T.scoreImp)} | Consistency: ${Math.round(T.scoreStab)}`;
-  
-  // Period table
+
   let html = `<table><tr><th>P</th><th>SF</th><th>SA</th><th>GF</th><th>GA</th></tr>`;
   for(let p=1;p<=4;p++){
     const v=per[p];
@@ -1675,50 +1626,53 @@ function endGame(){
   html+=`</table>`;
   $('summaryTableWrap').innerHTML=html;
   $('pmTableWrap').innerHTML=makePlusMinusTable();
-  
-  // GA detail summary
+
   const gaStats = computeGABreakdown();
   $('gaDetailWrap').innerHTML = `
     <div class="small">
-      Goals Against Breakdown: 
+      Goals Against Breakdown:
       BA: ${gaStats.BA} • DZ: ${gaStats.DZ} • BR: ${gaStats.BR} • Other: ${gaStats.Other}
     </div>
+    <div class="small" style="margin-top:6px;">
+      Offense Context:
+      Breakaways For: ${state.offense.breakawaysFor} • Odd Man Rush For: ${state.offense.oddManRushFor}
+    </div>
   `;
-  
-  // Readable text summary
+
   const SF=state.countsF.shots, SA=state.countsA.shots, GF=state.countsF.goals, GA=state.countsA.goals;
   const saves=Math.max(0,SA-GA);
   const svText = SA ? (saves/SA).toFixed(3).slice(1) : '—';
   const line1 = `Level ${state.level || '?'} vs ${state.opponent || 'Unknown opponent'} on ${state.date || new Date().toISOString().slice(0,10)}.`;
   const line2 = `Score: Us ${GF} – ${GA} Them. Shots: SF ${SF}, SA ${SA}, Saves ${saves}, SV% ${svText}.`;
   const line3 = `Team Score: ${T.total}/100. Goalie Score: ${K.total}/100. Breakaways Against: ${state.team.breakawaysAgainst}, DZ Turnovers: ${state.team.dzTurnovers}.`;
-  $('summaryReadable').textContent = `${line1} ${line2} ${line3}`;
-  
+  const line4 = `Breakaways For: ${state.offense.breakawaysFor}, Odd Man Rush For: ${state.offense.oddManRushFor}.`;
+  $('summaryReadable').textContent = `${line1} ${line2} ${line3} ${line4}`;
+
   $('summaryPanel').classList.remove('hidden');
   window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
-  
-  // Build condensed gameData for Airtable (simple row)
-  const gaStatsSimple = computeGABreakdown();
+
   const gameData = {
-      Date: state.date||new Date().toISOString().slice(0,10), 
-      Opponent: state.opponent, 
+      Date: state.date||new Date().toISOString().slice(0,10),
+      Opponent: state.opponent,
       Level: state.level,
-      TeamScore: T.total, 
+      TeamScore: T.total,
       GoalieScore: K.total,
-      SF: state.countsF.shots, 
-      SA: state.countsA.shots, 
-      GF: state.countsF.goals, 
+      SF: state.countsF.shots,
+      SA: state.countsA.shots,
+      GF: state.countsF.goals,
       GA: state.countsA.goals,
-      BreakawaysAgainst: state.team.breakawaysAgainst, 
+      BreakawaysAgainst: state.team.breakawaysAgainst,
       DZTurnovers: state.team.dzTurnovers,
-      Smothers: state.countsA.smothers, 
-      BadRebounds: state.countsA.badRebounds, 
-      BigSaves: state.countsA.bigSaves, 
+      BreakawaysFor: state.offense.breakawaysFor,
+      OddManRushFor: state.offense.oddManRushFor,
+      Smothers: state.countsA.smothers,
+      BadRebounds: state.countsA.badRebounds,
+      BigSaves: state.countsA.bigSaves,
       SoftGoals: state.countsA.softGoals,
-      GA_BA: gaStatsSimple.BA, 
-      GA_DZ: gaStatsSimple.DZ, 
-      GA_BR: gaStatsSimple.BR, 
-      GA_Other: gaStatsSimple.Other
+      GA_BA: gaStats.BA,
+      GA_DZ: gaStats.DZ,
+      GA_BR: gaStats.BR,
+      GA_Other: gaStats.Other
   };
   saveGameToAirtable(gameData);
 }
@@ -1740,14 +1694,13 @@ async function saveGameToAirtable(game){
       setCloudStatus('Cloud: Error','bad');
       alert('Save Failed');
     }
-  }catch(e){ 
-    console.error(e); 
+  }catch(e){
+    console.error(e);
     setCloudStatus('Cloud: Error','bad');
-    alert('Error saving.'); 
+    alert('Error saving.');
   }
 }
 
-/* Full season-style save using aggregates + events for JSONDump (schema upgraded toward main) */
 async function saveSeasonToAirtable(){
   try{
     const K = computeGoalieScore();
@@ -1765,6 +1718,8 @@ async function saveSeasonToAirtable(){
       SF, SA, GF, GA,
       breakawaysAgainst: state.team.breakawaysAgainst,
       dzTurnovers: state.team.dzTurnovers,
+      breakawaysFor: state.offense.breakawaysFor,
+      oddManRushFor: state.offense.oddManRushFor,
       smothers: state.countsA.smothers,
       badRebounds: state.countsA.badRebounds,
       bigSaves: state.countsA.bigSaves,
@@ -1783,7 +1738,8 @@ async function saveSeasonToAirtable(){
         opponent: state.opponent || '',
         level: state.level || '',
         date,
-        period: state.period
+        period: state.period,
+        version: APP_VERSION
       },
       aggregates: {
         gameRow: row,
@@ -1822,10 +1778,11 @@ function buildGameRow(K,T){
   const SF=state.countsF.shots, SA=state.countsA.shots, GF=state.countsF.goals, GA=state.countsA.goals;
   const saves=Math.max(0,SA-GA);
   const svText = SA ? (saves/SA).toFixed(3).slice(1) : '';
-  return { 
+  return {
     date: state.date||new Date().toISOString().slice(0,10),
     opponent: state.opponent||'',
     level: state.level||'',
+    version: APP_VERSION,
     teamScore: T.total,
     goalieScore: K.total,
     SF, SA, GF, GA,
@@ -1833,11 +1790,13 @@ function buildGameRow(K,T){
     sv: svText,
     breakawaysAgainst: state.team.breakawaysAgainst,
     dzTurnovers: state.team.dzTurnovers,
+    breakawaysFor: state.offense.breakawaysFor,
+    oddManRushFor: state.offense.oddManRushFor,
     smothers: state.countsA.smothers,
     badRebounds: state.countsA.badRebounds,
     bigSaves: state.countsA.bigSaves,
     softGoals: state.countsA.softGoals
-  }; 
+  };
 }
 
 function computePerPlayer(){
@@ -1866,14 +1825,12 @@ function computePerPlayer(){
     }
   }
 
-  // points
   for(const r of map.values()){
     r.plusMinus = pm.get(r.player) || 0;
     r.points = (r.goals||0) + (r.assists||0);
   }
 
-  const rows = [...map.values()].sort((a,b)=>smartRosterSort(a.player,b.player));
-  return rows;
+  return [...map.values()].sort((a,b)=>smartRosterSort(a.player,b.player));
 }
 
 function toCsvLine(obj, headers){
@@ -1888,7 +1845,6 @@ async function exportGameCSV(){
   const K=computeGoalieScore(), T=computeTeamScore();
   const row = buildGameRow(K,T);
 
-  // Game section
   const gameHeaders = Object.keys(row);
   const gameCsv = [
     'GAME',
@@ -1899,7 +1855,6 @@ async function exportGameCSV(){
     'player,shots,goals,assists,points,plusMinus'
   ];
 
-  // Player section
   const players = computePerPlayer();
   for(const p of players){
     gameCsv.push(toCsvLine(p, ['player','shots','goals','assists','points','plusMinus']));
@@ -1908,7 +1863,6 @@ async function exportGameCSV(){
   const csv = gameCsv.join('\n');
   const blob = new Blob([csv], {type:'text/csv'});
 
-  // Share-sheet support (restored)
   const fileName = `team-tracker-${row.date || 'game'}.csv`;
   const file = new File([blob], fileName, {type:'text/csv'});
 
@@ -1917,9 +1871,7 @@ async function exportGameCSV(){
       await navigator.share({title:'Team Tracker CSV', files:[file]});
       return;
     }
-  }catch(_){
-    // fall through to download
-  }
+  }catch(_){}
 
   const url = URL.createObjectURL(blob);
   const a=document.createElement('a');
@@ -1932,7 +1884,7 @@ async function exportGameCSV(){
 }
 
 /* Debug placeholders */
-function updateDebugLines(){} 
+function updateDebugLines(){}
 
 function makePlusMinusTable(){
   const {pm, order} = computePlusMinus();
@@ -1948,8 +1900,7 @@ function makePlusMinusTable(){
 
 /* Roster Modal */
 function openRoster(){
-  const area = $('rosterArea');
-  area.value = (state.roster||[]).join('\n');
+  $('rosterArea').value = (state.roster||[]).join('\n');
   $('rosterModal').style.display='flex';
 }
 function saveRosterFromArea(){
@@ -1959,14 +1910,13 @@ function saveRosterFromArea(){
   save();
   $('rosterModal').style.display='none';
 }
-function closeRoster(){
-  $('rosterModal').style.display='none';
-}
+function closeRoster(){ $('rosterModal').style.display='none'; }
 
-/* Player picker (restored main-ish our-goal flow with assist + 3 on-ice) */
+/* Player picker (scorer -> assist -> other 3 on ice) */
 let pickerTargetType = null;
-let pendingForGoal = null;   // holds the for_goal event while we pick assist
-let pickerStage = 'default'; // 'default' | 'assist'
+let pendingForGoal = null;
+let pickerStage = 'default';
+
 function openPicker(type,label){
   pickerTargetType = type;
   pickerStage = (type === 'assist') ? 'assist' : 'default';
@@ -1982,7 +1932,7 @@ function openPicker(type,label){
   $('pickerModal').style.display='flex';
 }
 $('pickerGrid').addEventListener('click', e=>{
-  const b=e.target.closest('.pickerBtn'); 
+  const b=e.target.closest('.pickerBtn');
   if(!b)return;
   $('pickerInput').value = b.dataset.n;
 });
@@ -1994,7 +1944,6 @@ $('pickerUnknown').addEventListener('click', ()=>{
   applyPickerSelection('Unknown');
 });
 $('pickerNoAssist').addEventListener('click', ()=>{
-  // only meaningful in assist stage
   if(pickerStage !== 'assist') return;
   applyPickerSelection(null);
 });
@@ -2002,16 +1951,16 @@ $('pickerCancel').addEventListener('click', ()=>{
   $('pickerModal').style.display='none';
   pickerTargetType=null;
   pickerStage='default';
-  pendingForGoal=null; // cancel the chain
+  pendingForGoal=null;
 });
 
 function applyPickerSelection(num){
-  if(!pickerTargetType){ 
-    $('pickerModal').style.display='none'; 
-    return; 
+  if(!pickerTargetType){
+    $('pickerModal').style.display='none';
+    return;
   }
 
-  // scorer / shooter / assist: auto-learn jersey numbers
+  // auto-learn jersey numbers only
   if(num !== null) maybeAddToRoster(num);
 
   if(pickerTargetType==='for_shot'){
@@ -2023,21 +1972,17 @@ function applyPickerSelection(num){
   }
 
   if(pickerTargetType==='for_goal'){
-    // stage 1: scorer
     const ev = addEvent('for_goal',{player: num ?? '?'});
     pendingForGoal = ev;
 
-    // stage 2: assist (optional)
     $('pickerModal').style.display='none';
     pickerTargetType=null;
 
-    // Open assist picker
     openPicker('assist','Assist (optional)');
     return;
   }
 
   if(pickerTargetType==='assist'){
-    // stage 2: assist chosen (or none)
     if(!pendingForGoal){
       $('pickerModal').style.display='none';
       pickerTargetType=null;
@@ -2045,23 +1990,27 @@ function applyPickerSelection(num){
       return;
     }
 
+    // REQUIREMENT #3: allow unknown scorer AND unknown assist.
+    // - scorer can already be 'Unknown'
+    // - assist can also be 'Unknown' via the Unknown button.
+    // - No special-case needed; just store what the user picked.
     if(num === null){
-      // No assist
       pendingForGoal.assist = null;
     }else{
-      pendingForGoal.assist = num;
+      pendingForGoal.assist = num; // can be 'Unknown'
     }
     save();
 
     const scorer = pendingForGoal.player;
     const assist = pendingForGoal.assist;
-    const exclude = [scorer, assist].filter(x=>x && x!=='Unknown' && x!=='?');
+
+    // Exclude only real roster numbers, not Unknown/? so the UI remains usable.
+    const exclude = [scorer, assist].filter(x => x && x !== 'Unknown' && x !== '?');
 
     $('pickerModal').style.display='none';
     pickerTargetType=null;
     pickerStage='default';
 
-    // stage 3: other THREE on ice (max=3) excluding scorer/assist (restored)
     openMultiPicker({
       title:'Other On Ice (optional)',
       max:3,
@@ -2080,7 +2029,7 @@ function applyPickerSelection(num){
   pickerStage='default';
 }
 
-/* AI endpoints (restored) */
+/* AI endpoints */
 function escapeHtml(s){
   return String(s ?? '')
     .replace(/&/g,'&amp;')
@@ -2099,7 +2048,8 @@ function buildAIPayload(){
       opponent: state.opponent || '',
       level: state.level || '',
       date: state.date || new Date().toISOString().slice(0,10),
-      period: state.period
+      period: state.period,
+      version: APP_VERSION
     },
     aggregates: { gameRow, goalie: K, team: T, perPeriod: per, gaBreakdown: computeGABreakdown() },
     events: state.events
@@ -2124,18 +2074,20 @@ async function callAI(endpoint, cardId, bodyId){
       throw new Error(d.error || `HTTP ${res.status}`);
     }
 
-    // Accept either {text:"..."} or {result:"..."} or arbitrary JSON
     const txt = d.text || d.result || d.output || JSON.stringify(d, null, 2);
     body.innerHTML = `<div style="white-space:pre-wrap;">${escapeHtml(txt)}</div>`;
   }catch(e){
     console.error(e);
-    body.innerHTML = `<div class="small" style="color:var(--warn);">AI request failed.</div>`;
+    body.innerHTML = `<div classe="small" style="color:var(--warn);">AI request failed.</div>`;
   }
 }
 
 /* Init */
 (function init(){
-  // Ensure date input and state.date are consistent even if user never touches date field
+  // Version UI + title
+  $('versionPill').textContent = APP_VERSION;
+  document.title = `Team Tracker – iPhone (${APP_VERSION})`;
+
   const today = new Date();
   $('date').valueAsDate = today;
   const dt = $('date').value || today.toISOString().slice(0,10);
@@ -2147,23 +2099,21 @@ async function callAI(endpoint, cardId, bodyId){
 
   load().then(loaded=>{
     if(loaded && Array.isArray(loaded.events)){
-        Object.assign(state,loaded);
+      Object.assign(state,loaded);
 
-        // Fix date null/empty on old states
-        if(!state.date){
-          state.date = $('date').value || new Date().toISOString().slice(0,10);
-        }else{
-          $('date').value = state.date;
-        }
+      if(!state.date){
+        state.date = $('date').value || new Date().toISOString().slice(0,10);
+      }else{
+        $('date').value = state.date;
+      }
 
-        // Ensure setup inputs reflect state
-        $('opponent').value = state.opponent || '';
-        $('level').value = state.level || 'Other';
+      $('opponent').value = state.opponent || '';
+      $('level').value = state.level || 'Other';
 
-        state.events.sort((a,b)=>new Date(a.tISO)-new Date(b.tISO));
-        rebuildFromEvents();
-        $('resumeBanner').classList.remove('hidden');
-        if(state.events.length>0) toggleSetup(false); // Auto-hide setup if resuming
+      state.events.sort((a,b)=>new Date(a.tISO)-new Date(b.tISO));
+      rebuildFromEvents();
+      $('resumeBanner').classList.remove('hidden');
+      if(state.events.length>0) toggleSetup(false);
     }
     updateMeta();
     highlightPeriod();
@@ -2179,56 +2129,62 @@ function renderAll(){
 }
 
 /* Button Wiring */
-$('btnRoster').onclick=openRoster; 
-$('btnRosterSave').onclick=saveRosterFromArea; 
+$('btnRoster').onclick=openRoster;
+$('btnRosterSave').onclick=saveRosterFromArea;
 $('btnRosterClose').onclick=closeRoster;
 
-$('btnShot').onclick=()=>addEvent('shot'); 
+$('btnShot').onclick=()=>addEvent('shot');
 $('btnGoal').onclick=()=>addEvent('goal');
 
-$('btnForShot').onclick=()=>openPicker('for_shot','Shooter'); 
+$('btnForShot').onclick=()=>openPicker('for_shot','Shooter');
 $('btnForGoal').onclick=()=>openPicker('for_goal','Scorer');
 
-$('btnSoftGoal').onclick=()=>addEvent('soft_goal'); 
+$('btnSoftGoal').onclick=()=>addEvent('soft_goal');
 $('btnBadRebound').onclick=()=>addEvent('bad_rebound');
-$('btnBreakaway').onclick=()=>addEvent('breakaway_against'); 
+$('btnBreakaway').onclick=()=>addEvent('breakaway_against');
 $('btnDZTurnover').onclick=()=>addEvent('dz_turnover');
-$('btnSmother').onclick=()=>addEvent('smother'); 
+$('btnSmother').onclick=()=>addEvent('smother');
 $('btnBigSave').onclick=()=>addEvent('big_save');
 
+// Offensive context buttons -> Airtable BreakawaysFor and OddManRushFor
+$('btnBreakawayFor').onclick=()=>addEvent('breakaway_for');
+$('btnOddManRushFor').onclick=()=>addEvent('odd_man_rush_for');
+
 $('periodChips').addEventListener('click',e=>{
-    const c=e.target.closest('.p-opt'); 
-    if(!c)return;
-    state.period=Number(c.dataset.p); 
-    save(); 
-    highlightPeriod();
+  const c=e.target.closest('.p-opt');
+  if(!c)return;
+  state.period=Number(c.dataset.p);
+  save();
+  highlightPeriod();
 });
 
-$('btnNextPeriod').onclick=()=>{ 
-  state.period=Math.min(4,state.period+1); 
-  save(); 
-  highlightPeriod(); 
-  vibrate(20); 
+$('btnNextPeriod').onclick=()=>{
+  state.period=Math.min(4,state.period+1);
+  save();
+  highlightPeriod();
+  vibrate(20);
 };
 
 $('btnEnd').onclick=endGame;
 $('btnReset').onclick=()=>{
-    if(!confirm('Clear game?'))return;
-    state.events=[]; 
-    state.opponent=''; 
-    state.countsA={shots:0,goals:0,softGoals:0,smothers:0,badRebounds:0,bigSaves:0}; 
-    state.countsF={shots:0,goals:0}; 
-    state.team={breakawaysAgainst:0,dzTurnovers:0};
-    state.period=1;
-    state.startedAt = new Date().toISOString();
-    state.gameId = Math.random().toString(36).slice(2);
-    state.lastEventId = 0;
-    per={1:initP(),2:initP(),3:initP(),4:initP()};
-    save(); 
-    toggleSetup(true); 
-    renderAll(); 
-    $('summaryPanel').classList.add('hidden');
-    refreshCloudStatus();
+  if(!confirm('Clear game?'))return;
+  state.events=[];
+  state.opponent='';
+  state.countsA={shots:0,goals:0,softGoals:0,smothers:0,badRebounds:0,bigSaves:0};
+  state.countsF={shots:0,goals:0};
+  state.team={breakawaysAgainst:0,dzTurnovers:0};
+  state.offense={breakawaysFor:0,oddManRushFor:0};
+  state.period=1;
+  state.startedAt = new Date().toISOString();
+  state.gameId = Math.random().toString(36).slice(2);
+  state.lastEventId = 0;
+  state.lastOffBreakawayAt = null;
+  per={1:initP(),2:initP(),3:initP(),4:initP()};
+  save();
+  toggleSetup(true);
+  renderAll();
+  $('summaryPanel').classList.add('hidden');
+  refreshCloudStatus();
 };
 
 /* Modals close on backdrop click */
@@ -2255,9 +2211,7 @@ $('btnCopySelect').addEventListener('click', ()=>{
   area.focus();
   area.select();
 });
-$('btnCopyClose').addEventListener('click', ()=>{
-  $('copyModal').style.display='none';
-});
+$('btnCopyClose').addEventListener('click', ()=>{ $('copyModal').style.display='none'; });
 
 /* Export CSV */
 $('btnExportGameCSV').addEventListener('click', exportGameCSV);
@@ -2267,7 +2221,6 @@ $('btnSaveSeason').addEventListener('click', saveSeasonToAirtable);
 $('btnAIPractice').addEventListener('click', ()=>callAI('/api/practice-plan','aiPracticeCard','aiPracticeBody'));
 $('btnAIGoalieReport').addEventListener('click', ()=>callAI('/api/goalie-report','aiGoalieCard','aiGoalieBody'));
 $('btnAIFocus').addEventListener('click', ()=>callAI('/api/season-focus','aiFocusCard','aiFocusBody'));
-
 </script>
 </body>
 </html>

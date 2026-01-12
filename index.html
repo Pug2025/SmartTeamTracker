@@ -2019,25 +2019,22 @@ function endGame(){
   $('pmTableWrap').innerHTML=makePlusMinusTable();
 
   // GA detail summary
-  const gaStats = computeGABreakdown();
-  const gfStats = computeGFContextBreakdown();
+// GA detail summary
+const gaStats = computeGABreakdown();
 
-  // Visible, simple, "read this first" summary
-  $('goalContextSummary').textContent =
-    `Goals Against: off Breakaways ${gaStats.BA}, off DZ Turnovers ${gaStats.DZ}. ` +
-    `Goals For: off Breakaways ${gfStats.BA}, off Odd-Man Rushes ${gfStats.OMR}.`;
+$('gaDetailWrap').innerHTML = `
+  <div class="card" style="margin-top:10px;">
+    <h3 style="margin:0 0 6px 0;">Goals Against Causes</h3>
+    <table>
+      <tr><th>Cause</th><th>Count</th></tr>
+      <tr><td>Breakaway</td><td>${gaStats.BA}</td></tr>
+      <tr><td>D-Zone Turnover</td><td>${gaStats.DZ}</td></tr>
+      <tr><td>Bad Rebound</td><td>${gaStats.BR}</td></tr>
+      <tr><td>Other</td><td>${gaStats.Other}</td></tr>
+    </table>
+  </div>
+`;
 
-  // Keep the detailed GA breakdown section (still useful, but now secondary)
-  $('gaDetailWrap').innerHTML = `
-    <div class="small">
-      Goals Against Breakdown:
-      BA: ${gaStats.BA} • DZ: ${gaStats.DZ} • BR: ${gaStats.BR} • Other: ${gaStats.Other}
-    </div>
-    <div class="small" style="margin-top:6px;">
-      Goals For Breakdown:
-      BA: ${gfStats.BA} • OMR: ${gfStats.OMR} • Other: ${gfStats.Other}
-    </div>
-  `;
 
   $('summaryPanel').classList.remove('hidden');
   window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});

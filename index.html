@@ -1298,54 +1298,61 @@ function clearGoodPendingFor(id){
 /* Offensive breakaway timing */
 let lastBreakawayForTap = 0;
 
-function addEvent(type, meta={}){
-  // cancel good-rebound auto-credit when you log smother/bad rebound (scoring integrity)
-  if(type==='smother' || type==='bad_rebound') cancelRecentGoodCredit();
+function wasRecentEvent(type, seconds){
+  const now = Date.now();
+  const ms = seconds * 1000;
 
-  const ev = {
-    id: ++state.lastEventId,
-    type,
-    tISO:new Date().toISOString(),
-    period: state.period,
-    ...meta
+  for(let i = state.events.length - 1; i >= 0; i--){
+    const ev = state.events[i];
+    if(ev.type !== type) continue;
+    const t = new Date(ev.tISO).getTime();
+    return (now - t) <= ms;
+  }
+  return false;
+}
+  
+function addEvent(type, meta={}){
+  const ev = { 
+    id: ++state.lastEventId, 
+    type, 
+    tISO:new Date().toISOString(), 
+    period: state.period, 
+    ...meta 
   };
 
-  // Auto-tag: breakaway goal-for if within 10s of breakaway_for tap
-  if(type==='for_goal'){
-    const now = Date.now();
-    if(lastBreakawayForTap && (now - lastBreakawayForTap) <= 10000){
-      ev.off_ctx = 'Breakaway';
-      ev.breakawayGoal = true;
-    }
+  const isGoalAgainst = (type === 'goal' || type === 'soft_goal');
+  const isBreakawayGA = isGoalAgainst && wasRecentEvent('breakaway_against', 10);
+
+  if(isBreakawayGA){
+    ev.ga_cause = 'BA';
+    ev.ga_ba = true;
+    ev.ga_ctx = 'Breakaway';
+    ev.needsContext = false;
   }
 
   state.events.push(ev);
   bump(type, state.period);
 
-  // GA auto-cause tagging (from defensive context events in last 10s)
-  if (type === 'goal' || type === 'soft_goal') tagGACause(ev);
+  if(isGoalAgainst && !isBreakawayGA){
+    tagGACause(ev);
+  }
 
   save();
   renderAll();
   vibrate();
 
-  // Pulse animation trigger
   if(type==='goal' || type==='soft_goal') triggerPulse('liveGA','bad');
   if(type==='for_goal') triggerPulse('liveGF','good');
 
   if (type === 'shot' || type === 'big_save') scheduleGoodReboundCredit(ev.id);
 
-  // GA flow: goal against prompts GA context, then on-ice, then strength
-  if (type === 'goal' || type === 'soft_goal') openGAContext(ev);
-
-  // GF flow: after scorer/assist/on-ice, we prompt strength (done downstream)
-  // But if someone logs a for_goal directly (not via picker), still prompt strength:
-  if (type === 'for_goal' && meta._direct){
-    openStrengthPicker(ev, 'Situation (required)');
+  if(isGoalAgainst && !isBreakawayGA){
+    openGAContext(ev);
   }
 
   return ev;
 }
+
 
 function triggerPulse(elemId, type){
   const el = $(elemId);

@@ -1,5 +1,5 @@
 // api/save-game/index.js
-// Version: v5.0.0 – keep in sync with app version
+// Version: v5.1.0 – keep in sync with app version
 
 // 1. CONFIGURATION: The strict Allowlist matches your Airtable Schema exactly.
 const AIRTABLE_ALLOWED_FIELDS = [
@@ -14,6 +14,8 @@ const AIRTABLE_ALLOWED_FIELDS = [
   "GA",
   "BreakawaysAgainst",
   "DZTurnovers",
+  "BreakawaysFor",
+  "OddManRushFor",
   "Smothers",
   "BadRebounds",
   "BigSaves",
@@ -93,6 +95,8 @@ export default async function handler(req, res) {
         GA: row.GA,
         BreakawaysAgainst: row.breakawaysAgainst,
         DZTurnovers: row.dzTurnovers,
+        BreakawaysFor: row.breakawaysFor,
+        OddManRushFor: row.oddManRushFor,
         Smothers: row.smothers,
         BadRebounds: row.badRebounds,
         BigSaves: row.bigSaves,

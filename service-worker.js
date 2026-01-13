@@ -1,42 +1,43 @@
 // -----------------------------
 // Team Tracker - Service Worker
-// Version: v5.0.0
+// Version: v5.1.0
 // -----------------------------
 
-const CACHE_VERSION = 'team-tracker-cache-v5.0.0';
+const CACHE_VERSION = "team-tracker-cache-v5.1.0";
 const CACHE_NAME = CACHE_VERSION;
 
 const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/service-worker.js',
-  '/favicon.ico',
-  '/icon-192.png',
-  '/icon-512.png'
+  "/",
+  "/index.html",
+  "/manifest.json",
+  "/service-worker.js",
+  "/favicon.ico",
+  "/icon-192.png",
+  "/icon-512.png"
 ];
 
 // Install - pre-cache core shell
-self.addEventListener('install', event => {
+self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(ASSETS_TO_CACHE))
-      .catch(err => {
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => cache.addAll(ASSETS_TO_CACHE))
+      .catch((err) => {
         // swallow errors so install does not blow up on one bad asset
-        console.error('[SW] Install cache error:', err);
+        console.error("[SW] Install cache error:", err);
       })
   );
   self.skipWaiting();
 });
 
 // Activate - clear old caches
-self.addEventListener('activate', event => {
+self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then(keys =>
+    caches.keys().then((keys) =>
       Promise.all(
         keys
-          .filter(key => key.startsWith('team-tracker-cache-') && key !== CACHE_NAME)
-          .map(key => caches.delete(key))
+          .filter((key) => key.startsWith("team-tracker-cache-") && key !== CACHE_NAME)
+          .map((key) => caches.delete(key))
       )
     )
   );
@@ -44,27 +45,31 @@ self.addEventListener('activate', event => {
 });
 
 // Fetch handler
-self.addEventListener('fetch', event => {
+self.addEventListener("fetch", (event) => {
   const { request } = event;
 
   // Do not try to cache non-GET or API POST calls
-  if (request.method !== 'GET') {
-    return;
-  }
+  if (request.method !== "GET") return;
 
   const url = new URL(request.url);
 
+  // Never cache API calls (keeps behavior clean, avoids weird stale JSON)
+  if (url.pathname.startsWith("/api/")) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
   // Network-first for navigations (HTML pages)
-  if (request.mode === 'navigate' || request.destination === 'document') {
+  if (request.mode === "navigate" || request.destination === "document") {
     event.respondWith(
       fetch(request)
-        .then(response => {
+        .then((response) => {
           const copy = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
           return response;
         })
         .catch(() =>
-          caches.match(request).then(cached => cached || caches.match('/index.html'))
+          caches.match(request).then((cached) => cached || caches.match("/index.html"))
         )
     );
     return;
@@ -72,20 +77,20 @@ self.addEventListener('fetch', event => {
 
   // Cache-first for static assets
   event.respondWith(
-    caches.match(request).then(cached => {
+    caches.match(request).then((cached) => {
       if (cached) return cached;
 
       return fetch(request)
-        .then(response => {
+        .then((response) => {
           // Only cache successful same-origin responses
           if (
             response &&
             response.status === 200 &&
-            response.type === 'basic' &&
+            response.type === "basic" &&
             url.origin === self.location.origin
           ) {
             const copy = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
           }
           return response;
         })

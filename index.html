@@ -1167,10 +1167,36 @@ function refreshCloudStatus(){
     if(last && last === state.gameId){
       setCloudStatus('Cloud: Saved','good');
     } else {
-      setCloudStatus('Cloud: —');
+      // default to connectivity status (set by ping)
+      // no-op here; pingCloud will set it
+    }
+  }catch(_){}
+}
+
+/* Make cloud pill useful: ping /api/ping to show online/offline */
+let lastCloudPingAt = 0;
+async function pingCloud(){
+  // If a "Saved" for this game is showing, keep it (don’t overwrite with OK).
+  const el = $('cloudStatus');
+  if(el && /Cloud:\s*Saved/i.test(el.textContent)) return;
+
+  try{
+    setCloudStatus('Cloud: Checking…','warn');
+    const ctrl = new AbortController();
+    const to = setTimeout(()=>ctrl.abort(), 2500);
+
+    const res = await fetch('/api/ping', { cache:'no-store', signal: ctrl.signal });
+    clearTimeout(to);
+
+    if(res.ok){
+      setCloudStatus('Cloud: OK','good');
+    } else {
+      setCloudStatus('Cloud: Offline','bad');
     }
   }catch(_){
-    setCloudStatus('Cloud: —');
+    setCloudStatus('Cloud: Offline','bad');
+  } finally {
+    lastCloudPingAt = Date.now();
   }
 }
 
@@ -1207,6 +1233,15 @@ window.addEventListener('pagehide', ()=>save());
 document.addEventListener('visibilitychange', ()=>{
   if(document.visibilityState === 'hidden') save();
 });
+
+/* Periodic cloud ping (lightweight) */
+setInterval(()=>{
+  // ping more often during a live game; otherwise just leave whatever state is shown
+  const live = (state.events && state.events.length>0) || ($('gameControls') && $('gameControls').style.display==='block');
+  if(!live) return;
+  if(Date.now() - lastCloudPingAt < 30000) return;
+  pingCloud();
+}, 5000);
 
 /* ===== Helpers ===== */
 function vibrate(ms=20){ if(navigator.vibrate) navigator.vibrate(ms); }
@@ -1361,11 +1396,18 @@ function addEvent(type, meta={}){
   if(isGoalAgainst){
     tagGACause(ev);
 
-    // Only skip the pop-up if it's a PURE breakaway goal (no DZ/BR also flagged)
+    // auto-context shortcuts:
+    // - Pure breakaway goal: auto-set Breakaway and skip modal
+    // - Pure rebound goal (bad rebound within 5s, no BA/DZ): auto-set Rebound and skip modal
     const pureBreakaway = !!ev.ga_ba && !ev.ga_dz && !ev.ga_br;
+    const pureRebound = !!ev.ga_br && !ev.ga_ba && !ev.ga_dz;
 
     if(pureBreakaway){
       ev.ga_ctx = 'Breakaway';
+      ev.needsContext = false;
+      save();
+    } else if(pureRebound){
+      ev.ga_ctx = 'Rebound';
       ev.needsContext = false;
       save();
     } else {
@@ -1559,16 +1601,30 @@ $('gaSkip').addEventListener('click', ()=>{
   }
 });
 
+/* IMPORTANT CHANGE: BR (bad rebound -> goal) is 5s window; BA/DZ remain 10s */
 function tagGACause(gaEv){
-  const tGA = new Date(gaEv.tISO).getTime(), lookback = tGA - 10000;
+  const tGA = new Date(gaEv.tISO).getTime();
+  const lookback10 = tGA - 10000;
+  const lookback5  = tGA - 5000;
+
   let hasBA=false, hasDZ=false, hasBR=false;
+
   for(const ev of state.events){
     const t = new Date(ev.tISO).getTime();
-    if(t<lookback || t>tGA) continue;
-    if(ev.type==='breakaway_against') hasBA=true;
-    if(ev.type==='dz_turnover') hasDZ=true;
-    if(ev.type==='bad_rebound') hasBR=true;
+    if(t > tGA) continue;
+
+    // BA/DZ: 10 seconds
+    if(t >= lookback10){
+      if(ev.type==='breakaway_against') hasBA=true;
+      if(ev.type==='dz_turnover') hasDZ=true;
+    }
+
+    // BR: 5 seconds
+    if(t >= lookback5){
+      if(ev.type==='bad_rebound') hasBR=true;
+    }
   }
+
   const parts=[];
   if(hasBA){ parts.push('BA'); gaEv.ga_ba=true; }
   if(hasDZ){ parts.push('DZ'); gaEv.ga_dz=true; }
@@ -1993,12 +2049,16 @@ function buildAllStatsHTML(){
   const share = (SF+SA) ? Math.round(100*(SF/(SF+SA)))+'%' : '—';
   const goodReb = state.events.filter(e=>e.goodRebound).length;
 
+  // NEW: include "Goals Against off Bad Rebounds" (and the rest of the GA cause breakdown)
+  const gaStats = computeGABreakdown();
+
   const rows = [
     ['GF', GF], ['GA', GA], ['SF', SF], ['SA', SA],
     ['Saves', saves], ['SV%', svText], ['Our Shooting%', shootPct], ['Shot Share', share],
     ['Smothers', state.countsA.smothers], ['Bad Rebounds', state.countsA.badRebounds], ['Big Saves', state.countsA.bigSaves], ['Soft Goals', state.countsA.softGoals],
     ['Breakaways Ag', state.team.breakawaysAgainst], ['D-Zone TO', state.team.dzTurnovers], ['Breakaways For', state.team.breakawaysFor], ['Odd Man Rush For', state.team.oddManRushFor],
-    ['Good Rebounds', goodReb]
+    ['Good Rebounds', goodReb],
+    ['GA off BA', gaStats.BA], ['GA off DZ', gaStats.DZ], ['GA off Bad Reb', gaStats.BR], ['GA Other', gaStats.Other]
   ];
 
   let html = `<table><tr><th>Stat</th><th>Value</th><th>Stat</th><th>Value</th></tr>`;
@@ -2348,10 +2408,12 @@ function openPicker(mode,label,{showNone=false}={}){
   $('pickerModal').style.display='flex';
 }
 
+/* IMPORTANT CHANGE:
+   If you tap a roster number, it is immediately applied (no "Use" required). */
 $('pickerGrid').addEventListener('click', e=>{
   const b=e.target.closest('.pickerBtn');
   if(!b)return;
-  $('pickerInput').value = b.dataset.n;
+  applyPickerSelection(b.dataset.n);
 });
 $('pickerAdd').addEventListener('click', ()=>{
   const num = $('pickerInput').value.trim() || '?';
@@ -2476,6 +2538,9 @@ async function aiSeasonFocus(){
   try{ state.roster = JSON.parse(localStorage.getItem(ROSTER_KEY))||[]; }catch(_){}
   persistStorage();
 
+  // cloud ping (useful status)
+  pingCloud();
+
   load().then(loaded=>{
     if(loaded && Array.isArray(loaded.events)){
       Object.assign(state,loaded);
@@ -2500,6 +2565,12 @@ async function aiSeasonFocus(){
     highlightPeriod();
     if(state.events.length>0) renderAll();
     refreshCloudStatus();
+
+    // If not saved, show cloud OK/offline (don’t leave it stuck on "—")
+    const last = localStorage.getItem(LAST_SAVED_KEY);
+    if(!last || last !== state.gameId){
+      pingCloud();
+    }
   });
 })();
 
@@ -2571,7 +2642,10 @@ $('btnReset').onclick=()=>{
   toggleSetup(true);
   renderAll();
   $('summaryPanel').classList.add('hidden');
-  refreshCloudStatus();
+
+  // reset cloud pill to connectivity
+  try{ localStorage.removeItem(LAST_SAVED_KEY); }catch(_){}
+  pingCloud();
 };
 
 /* Modals close on backdrop click */
@@ -2593,6 +2667,7 @@ $('btnCopySummary').addEventListener('click', ()=>{
   const shootPct = SF ? (GF/SF).toFixed(3).slice(1) : '—';
   const share = (SF+SA) ? Math.round(100*(SF/(SF+SA)))+'%' : '—';
   const K=computeGoalieScore(), T=computeTeamScore();
+  const gaStats = computeGABreakdown();
 
   const lines = [
     `${state.level||'?'} vs ${state.opponent||'Unknown'} on ${date}`,
@@ -2601,7 +2676,8 @@ $('btnCopySummary').addEventListener('click', ()=>{
     `Team Score: ${T.total}/100 | Goalie Score: ${K.total}/100`,
     `Smothers ${state.countsA.smothers} | Bad Reb ${state.countsA.badRebounds} | Big Saves ${state.countsA.bigSaves} | Soft Goals ${state.countsA.softGoals}`,
     `Shot Share ${share} | Our Shooting% ${shootPct}`,
-    `BA Ag ${state.team.breakawaysAgainst} | DZ TO ${state.team.dzTurnovers} | BA For ${state.team.breakawaysFor} | OMR For ${state.team.oddManRushFor}`
+    `BA Ag ${state.team.breakawaysAgainst} | DZ TO ${state.team.dzTurnovers} | BA For ${state.team.breakawaysFor} | OMR For ${state.team.oddManRushFor}`,
+    `GA off Bad Reb ${gaStats.BR} | GA off BA ${gaStats.BA} | GA off DZ ${gaStats.DZ} | GA Other ${gaStats.Other}`
   ];
 
   const text = lines.join('\n');

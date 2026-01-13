@@ -24,7 +24,7 @@ const AIRTABLE_ALLOWED_FIELDS = [
   "GA_DZ",
   "GA_BR",
   "GA_Other",
-  // Optional: only keep this if you actually create a LONG TEXT field called JSONDump
+  // Optional: only keep this if you actually have a LONG TEXT field called JSONDump
   "JSONDump"
 ];
 
@@ -69,6 +69,11 @@ export default async function handler(req, res) {
     if (payload.game && typeof payload.game === "object") {
       saveType = "Simple";
       candidateData = { ...payload.game };
+
+      // Optional: dump full payload for debugging / recovery
+      if (AIRTABLE_ALLOWED_FIELDS.includes("JSONDump")) {
+        candidateData.JSONDump = JSON.stringify(payload);
+      }
     }
 
     // --- SCENARIO 2: Season Save ---
@@ -93,16 +98,18 @@ export default async function handler(req, res) {
         SA: row.SA,
         GF: row.GF,
         GA: row.GA,
+
         BreakawaysAgainst: row.breakawaysAgainst,
         DZTurnovers: row.dzTurnovers,
         BreakawaysFor: row.breakawaysFor,
         OddManRushFor: row.oddManRushFor,
+
         Smothers: row.smothers,
         BadRebounds: row.badRebounds,
         BigSaves: row.bigSaves,
         SoftGoals: row.softGoals,
 
-        // CSV → Airtable mapping
+        // Season payload mapping (your row uses these keys)
         GA_BA: row.GA_off_BA,
         GA_DZ: row.GA_off_DZ,
         GA_BR: row.GA_off_BR,
@@ -128,10 +135,7 @@ export default async function handler(req, res) {
       }
     });
 
-    console.log(
-      "DEBUG: Final fields going to Airtable:",
-      JSON.stringify(finalFields, null, 2)
-    );
+    console.log("DEBUG: Final fields going to Airtable:", JSON.stringify(finalFields, null, 2));
 
     if (Object.keys(finalFields).length === 0) {
       console.warn("DEBUG: No allowed Airtable fields present in candidateData.");
@@ -165,10 +169,7 @@ export default async function handler(req, res) {
       typecast: true // Let Airtable coerce types where possible
     };
 
-    console.log(
-      "DEBUG: Sending payload to Airtable:",
-      JSON.stringify(airtablePayload, null, 2)
-    );
+    console.log("DEBUG: Sending payload to Airtable:", JSON.stringify(airtablePayload, null, 2));
 
     const response = await fetch(airtableUrl, {
       method: "POST",
@@ -180,11 +181,7 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
-    console.log(
-      "DEBUG: Airtable status / response:",
-      response.status,
-      JSON.stringify(data, null, 2)
-    );
+    console.log("DEBUG: Airtable status / response:", response.status, JSON.stringify(data, null, 2));
 
     if (!response.ok) {
       console.error("DEBUG: Airtable Error:", JSON.stringify(data));
@@ -200,8 +197,6 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true, id: recordId });
   } catch (error) {
     console.error("DEBUG: Server Exception:", error);
-    return res
-      .status(500)
-      .json({ error: "Internal Server Error", message: error.message });
+    return res.status(500).json({ error: "Internal Server Error", message: error.message });
   }
 }

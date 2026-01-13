@@ -1,8 +1,10 @@
 {
+  "id": "/",
   "name": "Team Tracker",
-  "short_name": "TeamTracker",
+  "short_name": "Team Tracker",
   "description": "iPhone-optimized rink-side tracker for team and goalie performance.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#000000",

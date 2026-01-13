@@ -1339,20 +1339,24 @@ function addEvent(type, meta={}){
   }
 
   const isGoalAgainst = (type === 'goal' || type === 'soft_goal');
-  const isBreakawayGA = isGoalAgainst && wasRecentEvent('breakaway_against', 10);
-
-  if(isBreakawayGA){
-    ev.ga_cause = 'BA';
-    ev.ga_ba = true;
-    ev.ga_ctx = 'Breakaway';
-    ev.needsContext = false;
-  }
 
   state.events.push(ev);
   bump(type, state.period);
 
-  if(isGoalAgainst && !isBreakawayGA){
+  // Always tag GA causes first (BA/DZ/BR can all apply)
+  if(isGoalAgainst){
     tagGACause(ev);
+
+    // Only skip the pop-up if it's a PURE breakaway goal (no DZ/BR also flagged)
+    const pureBreakaway = !!ev.ga_ba && !ev.ga_dz && !ev.ga_br;
+
+    if(pureBreakaway){
+      ev.ga_ctx = 'Breakaway';
+      ev.needsContext = false;
+      save();
+    } else {
+      openGAContext(ev);
+    }
   }
 
   save();
@@ -1364,11 +1368,8 @@ function addEvent(type, meta={}){
 
   if (type === 'shot' || type === 'big_save') scheduleGoodReboundCredit(ev.id);
 
-  if(isGoalAgainst && !isBreakawayGA){
-    openGAContext(ev);
-  }
-
   return ev;
+
 }
 
 
@@ -1511,10 +1512,16 @@ function labelFor(ev){
 const GA_TAGS = ['Screen','Deflection','Cross-Crease','Weak-Side','Rush','Rebound','Other'];
 let lastGAEvent = null;
 function openGAContext(ev){
-  lastGAEvent=ev;
-  $('gaGrid').innerHTML=GA_TAGS.map(t=>`<div class="pickerBtn" data-t="${t}">${t}</div>`).join('');
-  $('gaOverlay').style.display='flex';
+  lastGAEvent = ev;
+
+  // if we’re opening the modal, we’re actively tagging now
+  lastGAEvent.needsContext = false;
+  save();
+
+  $('gaGrid').innerHTML = GA_TAGS.map(t=>`<div class="pickerBtn" data-t="${t}">${t}</div>`).join('');
+  $('gaOverlay').style.display = 'flex';
 }
+
 $('gaGrid').addEventListener('click', e=>{
   const chip=e.target.closest('.pickerBtn');
   if(!chip||!lastGAEvent)return;
@@ -1954,6 +1961,11 @@ $('log').addEventListener('click', e=>{
   const id = Number(badge.dataset.id);
   const ev = state.events.find(x=>x.id===id);
   if(!ev) return;
+
+  // user is tagging now, so stop showing "Tag" immediately
+  ev.needsContext = false;
+  save();
+
   openGAContext(ev);
 });
 

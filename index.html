@@ -933,7 +933,6 @@
     <div id="gaDetailWrap" style="margin-top:15px;"></div>
 
     <div class="ai-actions">
-      <button class="btn ai" id="btnSaveSeason">Save to Season</button>
       <button class="btn ai" id="btnAIPractice">Practice Plan</button>
       <button class="btn ai" id="btnAIGoalieReport">Goalie Report</button>
       <button class="btn ai" id="btnAIFocus">Next Game Focus</button>
@@ -2229,86 +2228,6 @@ async function saveGameToAirtable(game){
   }
 }
 
-/* Full season-style save: meta + aggregates + events */
-async function saveSeasonToAirtable(){
-  try{
-    const K = computeGoalieScore();
-    const T = computeTeamScore();
-    const gaStats = computeGABreakdown();
-    const date = state.date || new Date().toISOString().slice(0,10);
-
-    const SF=state.countsF.shots, SA=state.countsA.shots, GF=state.countsF.goals, GA=state.countsA.goals;
-    const saves=Math.max(0,SA-GA);
-    const svText = SA ? (saves/SA).toFixed(3).slice(1) : '—';
-    const shootPct = SF ? (GF/SF).toFixed(3).slice(1) : '—';
-    const share = (SF+SA) ? (SF/(SF+SA)) : 0.5;
-
-    const row = {
-      date,
-      opponent: state.opponent || '',
-      level: state.level || '',
-      teamScore: T.total,
-      goalieScore: K.total,
-      GF, GA, SF, SA,
-      saves,
-      sv: svText,
-      ourShooting: shootPct,
-      shotShare: share,
-      breakawaysAgainst: state.team.breakawaysAgainst,
-      dzTurnovers: state.team.dzTurnovers,
-      breakawaysFor: state.team.breakawaysFor,
-      oddManRushFor: state.team.oddManRushFor,
-      smothers: state.countsA.smothers,
-      badRebounds: state.countsA.badRebounds,
-      bigSaves: state.countsA.bigSaves,
-      softGoals: state.countsA.softGoals,
-      GA_off_BA: gaStats.BA,
-      GA_off_DZ: gaStats.DZ,
-      GA_off_BR: gaStats.BR,
-      GA_other: gaStats.Other
-    };
-
-    const payload = {
-      schemaVersion: APP_VERSION,
-      gameId: state.gameId,
-      startedAt: state.startedAt,
-      savedAt: new Date().toISOString(),
-      meta: {
-        opponent: state.opponent || '',
-        level: state.level || '',
-        date,
-        period: state.period
-      },
-      aggregates: {
-        gameRow: row,
-        perPeriod: per
-      },
-      events: state.events
-    };
-
-    setCloudStatus('Cloud: Saving…','warn');
-    const res = await fetch('/api/save-game',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(payload)
-    });
-    const d = await res.json();
-    if(d.success){
-      localStorage.setItem(LAST_SAVED_KEY, state.gameId);
-      setCloudStatus('Cloud: Saved','good');
-      alert('Season saved to Airtable!');
-    }else{
-      console.error('Season save error', d);
-      setCloudStatus('Cloud: Error','bad');
-      alert('Season save failed');
-    }
-  }catch(e){
-    console.error(e);
-    setCloudStatus('Cloud: Error','bad');
-    alert('Error saving season.');
-  }
-}
-
 /* CSV Helpers: game row + per-player block */
 function computePlayerStats(){
   const stats = new Map();
@@ -2744,7 +2663,6 @@ $('btnCopyClose').addEventListener('click', ()=>{ $('copyModal').style.display='
 $('btnExportGameCSV').addEventListener('click', exportGameCSV);
 
 /* AI / Season buttons */
-$('btnSaveSeason').addEventListener('click', saveSeasonToAirtable);
 $('btnAIPractice').addEventListener('click', aiPracticePlan);
 $('btnAIGoalieReport').addEventListener('click', aiGoalieReport);
 $('btnAIFocus').addEventListener('click', aiSeasonFocus);

@@ -431,6 +431,27 @@
     color:var(--muted);
     font-weight:700;
   }
+
+    /* Period tiles: tighter + clearer hierarchy than KPI tiles */
+  .periodGrid .dashTile{
+    min-height:60px;
+    padding:10px 12px;
+  }
+  .periodGrid .dashTile .k{
+    font-size:11px;
+    opacity:0.85;
+  }
+  .periodGrid .dashTile .v{
+    font-size:22px;
+    font-weight:900;
+    letter-spacing:-0.3px;
+    line-height:1.05;
+  }
+  .periodGrid .dashTile .s{
+    font-size:11px;
+    opacity:0.85;
+  }
+
   .dashWide{
     grid-column:1/-1;
     display:flex;
@@ -836,7 +857,7 @@
 
       <div class="card" style="margin-top:10px;">
         <div class="small" style="margin-bottom:8px;">By Period</div>
-        <div class="dashGrid" style="grid-template-columns:repeat(2,1fr);">
+        <div class="dashGrid periodGrid" style="grid-template-columns:repeat(2,1fr);">
           <div class="dashTile"><div class="k">P1</div><div class="v" id="p1Line">—</div><div class="s">—</div></div>
           <div class="dashTile"><div class="k">P2</div><div class="v" id="p2Line">—</div><div class="s">—</div></div>
           <div class="dashTile"><div class="k">P3</div><div class="v" id="p3Line">—</div><div class="s">—</div></div>
@@ -889,10 +910,6 @@
     </div>
 
         <!-- Always-visible: quick, readable context breakdown -->
-    <div class="card" style="margin-top:10px;">
-      <h3 style="margin:0 0 6px 0;">Goal Context</h3>
-      <div class="small" id="goalContextSummary"></div>
-    </div>
 
     <!-- Scoring audit (expandable): strength + goalie + team -->
     <details class="card" style="margin-top:10px;">
@@ -1892,19 +1909,34 @@ function updateMeta(){
   setRing($('teamScoreNum'),$('tsArc'),T.total);
 
   // per-period cards
+  // per-period cards (clean: header already says P1/P2/P3/OT)
   function pLine(p){
-    const v=per[p];
-    const lab = p===4?'OT':`P${p}`;
-    return `${lab} GF ${v.F_goals} • GA ${v.A_goals}`;
+    const v = per[p];
+    // Big line: just the score for that period (GF–GA)
+    return `${v.F_goals}–${v.A_goals}`;
   }
   function pSub(p){
-    const v=per[p];
+    const v = per[p];
+    // Small line: shots
     return `SF ${v.F_shots} • SA ${v.A_shots}`;
   }
+
   $('p1Line').textContent = pLine(1);
   $('p2Line').textContent = pLine(2);
   $('p3Line').textContent = pLine(3);
   $('p4Line').textContent = pLine(4);
+
+  // Put the shots line into the .s text inside each tile
+  const pTiles = [
+    {id:'p1Line', p:1},{id:'p2Line', p:2},{id:'p3Line', p:3},{id:'p4Line', p:4},
+  ];
+  for(const it of pTiles){
+    const el = $(it.id);
+    if(el && el.parentElement && el.parentElement.querySelector('.s')){
+      el.parentElement.querySelector('.s').textContent = pSub(it.p);
+    }
+  }
+
   // reuse the ".s" line inside each tile via children[2]
   const pTiles = [
     {id:'p1Line', p:1},{id:'p2Line', p:2},{id:'p3Line', p:3},{id:'p4Line', p:4},

@@ -1005,6 +1005,11 @@
     <span class="small"><span id="onIceCount">0</span>/<span id="onIceMax">5</span></span>
   </div>
   <div class="pickerGrid" id="onIceGrid"></div>
+    <div style="display:flex; gap:8px; margin-top:12px;">
+    <input id="onIceInput" placeholder="#" type="tel" style="flex:1;">
+    <button class="btn-std" id="onIceAdd">Use</button>
+  </div>
+
   <div class="rowbtn" style="justify-content:space-between; margin-top:12px;">
     <button class="btn-std" id="onIceUnknownPlus">Unk +</button>
     <button class="btn-std" id="onIceUnknownMinus">Unk -</button>
@@ -1686,6 +1691,47 @@ $('onIceClear').addEventListener('click', ()=>{
   buildOnIceGrid();
   updateOnIceMeta();
 });
+  // Allow typing a number into the on-ice picker (adds to roster + selects it)
+$('onIceAdd').addEventListener('click', () => {
+  const input = $('onIceInput');
+  if (!input) return;
+
+  const raw = (input.value || '').trim();
+  if (!raw) return;
+
+  // Only allow digits for roster numbers
+  if (!/^\d+$/.test(raw)) {
+    input.value = '';
+    return;
+  }
+
+  // Respect max selection count
+  if (totalSelected() >= multiPick.max) {
+    input.value = '';
+    return;
+  }
+
+  // Add to roster (and persist) if new
+  ensureRosterNumber(raw);
+
+  // Select it in this modal
+  multiPick.selected.add(String(raw));
+
+  // Rebuild grid so the new number appears (and shows selected state)
+  buildOnIceGrid();
+  updateOnIceMeta();
+
+  input.value = '';
+});
+
+// Pressing Enter on the keyboard should also "Use"
+$('onIceInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    $('onIceAdd').click();
+  }
+});
+
 $('onIceUse').addEventListener('click', ()=>{
   if(!multiPick.eventRef){
     $('onIceModal').style.display='none';

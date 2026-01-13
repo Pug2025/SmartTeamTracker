@@ -939,6 +939,7 @@
       <button class="btn ai" id="btnAIFocus">Next Game Focus</button>
     </div>
 
+    <!-- AI Results Cards -->
     <div class="card" id="aiPracticeCard" style="margin-top:10px;display:none;">
       <h3 style="margin:0 0 6px 0;">AI Practice Plan</h3><div class="small" id="aiPracticeBody"></div>
     </div>
@@ -957,9 +958,11 @@
 
 </div>
 
+<!-- Floating Undo Button -->
 <div id="btnUndo" class="fab-undo">UNDO</div>
 
 <!-- MODALS -->
+<!-- Roster modal -->
 <div class="modal" id="rosterModal"><div class="box">
   <div class="small" style="margin-bottom:6px;">Roster (one # per line)</div>
   <textarea id="rosterArea" style="width:100%; height:150px; background:#000; border:1px solid #333; color:#fff; padding:8px;"></textarea>
@@ -969,6 +972,7 @@
   </div>
 </div></div>
 
+<!-- Player picker -->
 <div class="modal" id="pickerModal"><div class="box">
   <div class="small" style="margin-bottom:8px;" id="pickerTitle">Select Player</div>
   <div class="pickerGrid" id="pickerGrid"></div>
@@ -985,6 +989,7 @@
   </div>
 </div></div>
 
+<!-- GA Context -->
 <div class="modal" id="gaOverlay"><div class="box">
   <div class="small" style="margin-bottom:8px;">Goal Against Context</div>
   <div class="pickerGrid" id="gaGrid" style="grid-template-columns:1fr 1fr;"></div>
@@ -993,6 +998,7 @@
   </div>
 </div></div>
 
+<!-- Multi Picker -->
 <div class="modal" id="onIceModal"><div class="box">
   <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
     <span class="small" id="onIceTitle">On Ice</span>
@@ -1011,6 +1017,7 @@
   <div class="small" id="onIceUnknownBadge" style="text-align:center; margin-top:6px; opacity:0.5;"></div>
 </div></div>
 
+<!-- Strength -->
 <div class="modal" id="strengthModal"><div class="box">
   <div class="small" style="margin-bottom:8px;" id="strengthTitle">Situation</div>
   <div class="pickerGrid" style="grid-template-columns:1fr;">
@@ -1021,6 +1028,7 @@
   <div class="rowbtn"><button class="btn-std" id="strengthSkip">Skip</button></div>
 </div></div>
 
+<!-- Copy -->
 <div class="modal" id="copyModal"><div class="box">
   <div class="small">Summary Text</div>
   <textarea id="copyArea" style="width:100%; height:200px; background:#000; color:#fff; margin-top:8px;"></textarea>
@@ -1030,6 +1038,7 @@
   </div>
 </div></div>
 
+<!-- Undo List -->
 <div class="modal" id="undoModal"><div class="box">
   <div class="small">Undo Event</div>
   <div class="undoList" id="undoList" style="max-height:250px; overflow:auto; margin-top:8px;"></div>
@@ -1038,6 +1047,7 @@
 
 <div class="toast" id="toast">Removed. <button id="toastRestore" style="background:none; border:none; color:var(--accent-us); font-weight:700;">Restore</button></div>
 
+<!-- Debug (Hidden by default in UI but kept for ref) -->
 <div id="debugWrap" style="display:none;">
   <div id="debugGoalieLine"></div><div id="debugTeamLine"></div>
 </div>
@@ -1133,6 +1143,7 @@ function toggleSetup(showSetup){
   }
 }
 $('btnStartGame').addEventListener('click', ()=>{
+  // Ensure state has the displayed date even if user never touched the field
   if(!state.date){
     const v = $('date').value;
     if(v) state.date = v;
@@ -1190,6 +1201,7 @@ async function load(){
   return null;
 }
 
+/* Autosave & lifecycle saves (crash safety) */
 setInterval(()=>save(), 4000);
 window.addEventListener('pagehide', ()=>save());
 document.addEventListener('visibilitychange', ()=>{
@@ -1213,6 +1225,7 @@ function fmtTime(iso){
 function clamp01(x){ return Math.max(0, Math.min(1, x)); }
 function isNumStr(x){ return typeof x==='string' && /^\d+$/.test(x.trim()); }
 function sortRoster(arr){
+  // numeric first, then alpha; stable-ish
   return [...arr].sort((a,b)=>{
     const an = isNumStr(String(a)) ? Number(a) : null;
     const bn = isNumStr(String(b)) ? Number(b) : null;
@@ -1308,7 +1321,21 @@ function clearGoodPendingFor(id){
   pendingGood.delete(id);
 }
 
+/* Offensive breakaway timing */
 let lastBreakawayForTap = 0;
+
+function wasRecentEvent(type, seconds){
+  const now = Date.now();
+  const ms = seconds * 1000;
+
+  for(let i = state.events.length - 1; i >= 0; i--){
+    const ev = state.events[i];
+    if(ev.type !== type) continue;
+    const t = new Date(ev.tISO).getTime();
+    return (now - t) <= ms;
+  }
+  return false;
+}
 
 function addEvent(type, meta={}){
   const ev = {
@@ -1319,6 +1346,8 @@ function addEvent(type, meta={}){
     ...meta
   };
 
+  // If a follow-up outcome happens, cancel the pending "good rebound" credit
+  // (shot → smother means no rebound; shot → bad rebound means rebound was bad; goal ends the sequence)
   if(type === 'smother' || type === 'bad_rebound' || type === 'goal' || type === 'soft_goal'){
     cancelRecentGoodCredit();
   }
@@ -1328,8 +1357,11 @@ function addEvent(type, meta={}){
   state.events.push(ev);
   bump(type, state.period);
 
+  // Always tag GA causes first (BA/DZ/BR can all apply)
   if(isGoalAgainst){
     tagGACause(ev);
+
+    // Only skip the pop-up if it's a PURE breakaway goal (no DZ/BR also flagged)
     const pureBreakaway = !!ev.ga_ba && !ev.ga_dz && !ev.ga_br;
 
     if(pureBreakaway){
@@ -1494,6 +1526,7 @@ let lastGAEvent = null;
 function openGAContext(ev){
   lastGAEvent = ev;
 
+  // if we’re opening the modal, we’re actively tagging now
   lastGAEvent.needsContext = false;
   save();
 
@@ -1520,7 +1553,9 @@ $('gaSkip').addEventListener('click', ()=>{
     save();
     renderAll();
 
+    // still prompt on-ice (optional) then strength (required)
     openMultiPicker({title:'5 Players On Ice (optional)', max:5, event:lastGAEvent, field:'onIce', exclude:[]});
+    // we keep lastGAEvent for the picker chain
   }
 });
 
@@ -1608,6 +1643,7 @@ $('onIceUse').addEventListener('click', ()=>{
   multiPick.eventRef=null;
   renderAll();
 
+  // Strength required after any goal for/against (and soft goal)
   if(ev.type==='goal'||ev.type==='soft_goal'||ev.type==='for_goal') openStrengthPicker(ev, 'Situation (required)');
 });
 $('onIceCancel').addEventListener('click', ()=>{
@@ -1637,6 +1673,7 @@ $('strengthModal').addEventListener('click', e=>{
   renderAll();
 });
 $('strengthSkip').addEventListener('click', ()=>{
+  // requirement: prompt exists; allow skip, but leave undefined
   $('strengthModal').style.display='none';
   strengthTarget=null;
   renderAll();
@@ -1683,7 +1720,7 @@ const LEVEL_PROFILES = {
 };
 
 function computeGoalieScore(){
-  const C=state.countsA, shots=C.shots, ga=C.goals;
+  const C=state.countsA, shots=C.shots, ga=C.goals, saves=Math.max(0,shots-ga);
   const prof = LEVEL_PROFILES[normalizeLevelKey(state.level)]||LEVEL_PROFILES.Other;
   const volFactor = clamp01(shots/prof.minShots);
   const expectedGA = shots*(1-prof.goalieBaseSV);
@@ -1692,6 +1729,7 @@ function computeGoalieScore(){
 
   const softPen = Math.max(-21, -7*C.softGoals);
 
+  // Context penalty calc
   const gas = state.events.filter(e=>e.type==='goal'||e.type==='soft_goal');
   let ctxBad=0;
   for(const ev of gas){
@@ -1731,6 +1769,7 @@ function computeTeamScore(){
   const Fin = SF>0 ? GF/SF : 0;
   const Impact = clamp01(0.5 + 4*((GF-GA)/Math.max(1,SF+SA)));
 
+  // Consistency
   const pVals = [1,2,3,4].map(p=>per[p].F_shots+per[p].A_shots > 0 ? per[p].F_shots/(per[p].F_shots+per[p].A_shots) : null).filter(v=>v!==null);
   let stab = 1;
   if(pVals.length>1){
@@ -1763,6 +1802,36 @@ function computeGABreakdown(){
     }
     return acc;
   }, {BA:0,DZ:0,BR:0,Other:0});
+}
+
+function computeGFContextBreakdown(){
+  // Count Goals For that happened within 10s of an offensive context event.
+  // Priority: Breakaway > Odd-Man Rush. (If both happened, we count it as Breakaway.)
+  return state.events.reduce((acc, e, idx) => {
+    if(e.type !== 'for_goal') return acc;
+
+    const tGoal = new Date(e.tISO).getTime();
+    const lookback = tGoal - 10000;
+
+    let hasBA = false;
+    let hasOMR = false;
+
+    // Walk backward from the goal to find recent context events fast
+    for(let i = idx - 1; i >= 0; i--){
+      const prior = state.events[i];
+      const t = new Date(prior.tISO).getTime();
+      if(t < lookback) break;
+
+      if(prior.type === 'breakaway_for') hasBA = true;
+      if(prior.type === 'odd_man_rush_for') hasOMR = true;
+    }
+
+    if(hasBA) acc.BA++;
+    else if(hasOMR) acc.OMR++;
+    else acc.Other++;
+
+    return acc;
+  }, {BA:0, OMR:0, Other:0});
 }
 
 /* Strength breakdown */
@@ -1829,17 +1898,20 @@ function updateMeta(){
   const share = (F.shots + A.shots) ? Math.round(100 * (F.shots/(F.shots+A.shots)))+'%' : '—';
   $('shotShareVal').textContent = share;
 
+  // rings
   const K=computeGoalieScore(), T=computeTeamScore();
   setRing($('goalieScoreNum'),$('gsArc'),K.total);
   setRing($('teamScoreNum'),$('tsArc'),T.total);
 
-  // per-period cards
+  // per-period cards (clean: header already says P1/P2/P3/OT)
   function pLine(p){
     const v = per[p];
+    // Big line: just the score for that period (GF–GA)
     return `${v.F_goals}–${v.A_goals}`;
   }
   function pSub(p){
     const v = per[p];
+    // Small line: shots
     return `SF ${v.F_shots} • SA ${v.A_shots}`;
   }
 
@@ -1848,7 +1920,7 @@ function updateMeta(){
   $('p3Line').textContent = pLine(3);
   $('p4Line').textContent = pLine(4);
 
-  // Put the shots line into the .s text inside each tile
+  // Put the shots line into the .s text inside each tile (ONLY ONCE)
   const pTiles = [
     {id:'p1Line', p:1},{id:'p2Line', p:2},{id:'p3Line', p:3},{id:'p4Line', p:4},
   ];
@@ -1905,6 +1977,7 @@ $('log').addEventListener('click', e=>{
   const ev = state.events.find(x=>x.id===id);
   if(!ev) return;
 
+  // user is tagging now, so stop showing "Tag" immediately
   ev.needsContext = false;
   save();
 
@@ -1935,6 +2008,295 @@ function buildAllStatsHTML(){
   }
   html += `</table>`;
   return html;
+}
+
+function endGame(){
+  const K=computeGoalieScore(), T=computeTeamScore();
+  const date = state.date || new Date().toISOString().slice(0,10);
+
+  $('summaryTitle').textContent = `${state.opponent || 'Opponent ?'} • ${state.level || '?'} • ${date}`;
+
+  $('scoreBreakdown').textContent = `SV: ${K.scoreSV} | Ctx: ${K.ctxAdj} | Soft: ${K.softPenalty} | Reb: ${K.scoreRebound} | Big: ${K.scoreBig} | Good Reb: ${K.goodRebounds}`;
+  $('teamBreakdown').textContent = `Possession: ${Math.round(T.scoreSS)} | Finish: ${Math.round(T.scoreFin)} | Result: ${Math.round(T.scoreImp)} | Consistency: ${Math.round(T.scoreStab)}`;
+
+  // Summary rings
+  setRing($('goalieScoreNumSum'),$('gsArcSum'),K.total);
+  setRing($('teamScoreNumSum'),$('tsArcSum'),T.total);
+
+  $('allStatsGrid').innerHTML = buildAllStatsHTML();
+
+  // Strength breakdown
+  const sb = computeStrengthBreakdown();
+  $('strengthBreakdown').textContent =
+    `Goals For — EV ${sb.for.EV||0}, PP ${sb.for.PP||0}, SH ${sb.for.SH||0}, Unk ${sb.for.UNK||0}. ` +
+    `Goals Against — EV ${sb.against.EV||0}, PP ${sb.against.PP||0}, SH ${sb.against.SH||0}, Unk ${sb.against.UNK||0}.`;
+
+  // Period table
+  let html = `<table><tr><th>P</th><th>SF</th><th>SA</th><th>GF</th><th>GA</th><th>BF</th><th>OMRF</th><th>BA</th><th>DZ</th></tr>`;
+  for(let p=1;p<=4;p++){
+    const v=per[p];
+    html+=`<tr>
+      <td>${p===4?'OT':p}</td>
+      <td>${v.F_shots}</td><td>${v.A_shots}</td><td>${v.F_goals}</td><td>${v.A_goals}</td>
+      <td>${v.BF}</td><td>${v.OMRF}</td><td>${v.BA}</td><td>${v.DZ}</td>
+    </tr>`;
+  }
+  html+=`</table>`;
+  $('summaryTableWrap').innerHTML=html;
+  $('pmTableWrap').innerHTML=makePlusMinusTable();
+
+  // GA detail summary
+  const gaStats = computeGABreakdown();
+
+  $('gaDetailWrap').innerHTML = `
+    <div class="card" style="margin-top:10px;">
+      <h3 style="margin:0 0 6px 0;">Goals Against Causes</h3>
+      <table>
+        <tr><th>Cause</th><th>Count</th></tr>
+        <tr><td>Breakaway</td><td>${gaStats.BA}</td></tr>
+        <tr><td>D-Zone Turnover</td><td>${gaStats.DZ}</td></tr>
+        <tr><td>Bad Rebound</td><td>${gaStats.BR}</td></tr>
+        <tr><td>Other</td><td>${gaStats.Other}</td></tr>
+      </table>
+    </div>
+  `;
+
+  $('summaryPanel').classList.remove('hidden');
+  window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+
+  // Save summary row automatically on end-game
+  const SF=state.countsF.shots, SA=state.countsA.shots, GF=state.countsF.goals, GA=state.countsA.goals;
+  const saves=Math.max(0,SA-GA);
+  const svText = SA ? (saves/SA).toFixed(3).slice(1) : '—';
+  const shootPct = SF ? (GF/SF).toFixed(3).slice(1) : '—';
+  const share = (SF+SA) ? (SF/(SF+SA)) : 0.5;
+
+  const gameData = {
+    Date: date,
+    Opponent: state.opponent,
+    Level: state.level,
+    TeamScore: T.total,
+    GoalieScore: K.total,
+    GF, GA, SF, SA,
+    Saves: saves,
+    SVPct: svText,
+    OurShootingPct: shootPct,
+    ShotShare: share,
+    BreakawaysAgainst: state.team.breakawaysAgainst,
+    DZTurnovers: state.team.dzTurnovers,
+    BreakawaysFor: state.team.breakawaysFor,
+    OddManRushFor: state.team.oddManRushFor,
+    Smothers: state.countsA.smothers,
+    BadRebounds: state.countsA.badRebounds,
+    BigSaves: state.countsA.bigSaves,
+    SoftGoals: state.countsA.softGoals,
+    GA_BA: gaStats.BA,
+    GA_DZ: gaStats.DZ,
+    GA_BR: gaStats.BR,
+    GA_Other: gaStats.Other
+  };
+
+  saveGameToAirtable(gameData);
+}
+
+async function saveGameToAirtable(game){
+  try{
+    setCloudStatus('Cloud: Saving…','warn');
+    const res = await fetch('/api/save-game',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({game})
+    });
+    const d=await res.json();
+    if(d.success){
+      localStorage.setItem(LAST_SAVED_KEY, state.gameId);
+      setCloudStatus('Cloud: Saved','good');
+      alert('Saved to Airtable!');
+    }else{
+      setCloudStatus('Cloud: Error','bad');
+      alert('Save Failed');
+    }
+  }catch(e){
+    console.error(e);
+    setCloudStatus('Cloud: Error','bad');
+    alert('Error saving.');
+  }
+}
+
+/* Full season-style save: meta + aggregates + events */
+async function saveSeasonToAirtable(){
+  try{
+    const K = computeGoalieScore();
+    const T = computeTeamScore();
+    const gaStats = computeGABreakdown();
+    const date = state.date || new Date().toISOString().slice(0,10);
+
+    const SF=state.countsF.shots, SA=state.countsA.shots, GF=state.countsF.goals, GA=state.countsA.goals;
+    const saves=Math.max(0,SA-GA);
+    const svText = SA ? (saves/SA).toFixed(3).slice(1) : '—';
+    const shootPct = SF ? (GF/SF).toFixed(3).slice(1) : '—';
+    const share = (SF+SA) ? (SF/(SF+SA)) : 0.5;
+
+    const row = {
+      date,
+      opponent: state.opponent || '',
+      level: state.level || '',
+      teamScore: T.total,
+      goalieScore: K.total,
+      GF, GA, SF, SA,
+      saves,
+      sv: svText,
+      ourShooting: shootPct,
+      shotShare: share,
+      breakawaysAgainst: state.team.breakawaysAgainst,
+      dzTurnovers: state.team.dzTurnovers,
+      breakawaysFor: state.team.breakawaysFor,
+      oddManRushFor: state.team.oddManRushFor,
+      smothers: state.countsA.smothers,
+      badRebounds: state.countsA.badRebounds,
+      bigSaves: state.countsA.bigSaves,
+      softGoals: state.countsA.softGoals,
+      GA_off_BA: gaStats.BA,
+      GA_off_DZ: gaStats.DZ,
+      GA_off_BR: gaStats.BR,
+      GA_other: gaStats.Other
+    };
+
+    const payload = {
+      schemaVersion: APP_VERSION,
+      gameId: state.gameId,
+      startedAt: state.startedAt,
+      savedAt: new Date().toISOString(),
+      meta: {
+        opponent: state.opponent || '',
+        level: state.level || '',
+        date,
+        period: state.period
+      },
+      aggregates: {
+        gameRow: row,
+        perPeriod: per
+      },
+      events: state.events
+    };
+
+    setCloudStatus('Cloud: Saving…','warn');
+    const res = await fetch('/api/save-game',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    const d = await res.json();
+    if(d.success){
+      localStorage.setItem(LAST_SAVED_KEY, state.gameId);
+      setCloudStatus('Cloud: Saved','good');
+      alert('Season saved to Airtable!');
+    }else{
+      console.error('Season save error', d);
+      setCloudStatus('Cloud: Error','bad');
+      alert('Season save failed');
+    }
+  }catch(e){
+    console.error(e);
+    setCloudStatus('Cloud: Error','bad');
+    alert('Error saving season.');
+  }
+}
+
+/* CSV Helpers: game row + per-player block */
+function computePlayerStats(){
+  const stats = new Map();
+  function ensure(n){
+    const s = String(n||'').trim();
+    if(!s || s==='Unknown' || s==='?') return null;
+    if(!stats.has(s)){
+      stats.set(s,{player:s, shots:0, goals:0, assists:0, pm:0});
+    }
+    return stats.get(s);
+  }
+  for(const ev of state.events){
+    if(ev.type==='for_shot'){
+      const st = ensure(ev.player);
+      if(st) st.shots++;
+    }
+    if(ev.type==='for_goal'){
+      const stS = ensure(ev.player);
+      if(stS) stS.goals++;
+      const stA = ensure(ev.assist);
+      if(stA) stA.assists++;
+    }
+  }
+  // plus/minus
+  const {pm} = computePlusMinus();
+  for(const [k,v] of pm.entries()){
+    const st = ensure(k);
+    if(st) st.pm = v;
+  }
+  return sortRoster([...stats.keys()]).map(k=>stats.get(k));
+}
+
+function exportGameCSV(){
+  const K=computeGoalieScore(), T=computeTeamScore();
+  const date = state.date || new Date().toISOString().slice(0,10);
+
+  const SF=state.countsF.shots, SA=state.countsA.shots, GF=state.countsF.goals, GA=state.countsA.goals;
+  const saves=Math.max(0,SA-GA);
+  const svText = SA ? (saves/SA).toFixed(3).slice(1) : '';
+  const shootPct = SF ? (GF/SF).toFixed(3).slice(1) : '';
+
+  const gameRow = {
+    date,
+    opponent: state.opponent||'',
+    level: state.level||'',
+    teamScore: T.total,
+    goalieScore: K.total,
+    GF, GA, SF, SA,
+    saves,
+    sv: svText,
+    ourShooting: shootPct,
+    breakawaysAgainst: state.team.breakawaysAgainst,
+    dzTurnovers: state.team.dzTurnovers,
+    breakawaysFor: state.team.breakawaysFor,
+    oddManRushFor: state.team.oddManRushFor,
+    smothers: state.countsA.smothers,
+    badRebounds: state.countsA.badRebounds,
+    bigSaves: state.countsA.bigSaves,
+    softGoals: state.countsA.softGoals
+  };
+
+  const players = computePlayerStats();
+
+  const gameHeaders = Object.keys(gameRow);
+  const gameValues = gameHeaders.map(h => `"${String(gameRow[h]??'').replace(/"/g,'""')}"`);
+  let csv = 'GAME\n' + gameHeaders.join(',') + '\n' + gameValues.join(',') + '\n\n';
+
+  csv += 'PLAYERS\n';
+  csv += ['player','shots','goals','assists','plusMinus'].join(',') + '\n';
+  for(const p of players){
+    csv += [`"${p.player}"`, p.shots, p.goals, p.assists, p.pm].join(',') + '\n';
+  }
+
+  const blob=new Blob([csv],{type:'text/csv'});
+  const fileName = `team-tracker-${date}.csv`;
+
+  // Share sheet if available, else download
+  const doDownload = ()=>{
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  if(navigator.canShare && navigator.canShare({files:[new File([blob], fileName, {type:'text/csv'})]}) && navigator.share){
+    const f = new File([blob], fileName, {type:'text/csv'});
+    navigator.share({files:[f], title:'Team Tracker CSV'}).catch(()=>doDownload());
+  } else {
+    doDownload();
+  }
 }
 
 /* Debug placeholders */
@@ -1997,6 +2359,7 @@ $('pickerAdd').addEventListener('click', ()=>{
 });
 $('pickerUnknown').addEventListener('click', ()=>applyPickerSelection('?'));
 $('pickerNone').addEventListener('click', ()=>{
+  // No Assist
   applyPickerSelection(null);
 });
 $('pickerCancel').addEventListener('click', ()=>{
@@ -2010,6 +2373,7 @@ function applyPickerSelection(num){
 
   if(!mode) return;
 
+  // roster auto-grow for numeric entries (main behavior)
   if(num!==null) ensureRosterNumber(String(num));
 
   if(mode==='for_shot'){
@@ -2020,12 +2384,14 @@ function applyPickerSelection(num){
   }
 
   if(mode==='for_goal_scorer'){
+    // scorer can be unknown
     const scorer = (num===null ? '?' : String(num));
     ensureRosterNumber(scorer);
 
     const ev = addEvent('for_goal',{player:scorer});
     pickerFlow.pendingGoalEv = ev;
 
+    // next: assist picker (optional, can be unknown too)
     pickerFlow.mode='for_goal_assist';
     openPicker('for_goal_assist','Assist (optional)',{showNone:true});
     return;
@@ -2035,12 +2401,14 @@ function applyPickerSelection(num){
     const ev = pickerFlow.pendingGoalEv;
     if(!ev){ pickerFlow.mode=null; return; }
 
+    // assist can be null (no assist) or unknown '?'
     ev.assist = (num===null ? null : String(num));
     if(ev.assist!==null) ensureRosterNumber(ev.assist);
 
     save();
     renderAll();
 
+    // now on-ice (other 3, excluding scorer/assist), then strength
     const exclude = [];
     if(ev.player) exclude.push(String(ev.player));
     if(ev.assist) exclude.push(String(ev.assist));
@@ -2053,10 +2421,54 @@ function applyPickerSelection(num){
   pickerFlow.mode=null;
 }
 
+/* AI calls */
+async function runAI(endpoint, payload){
+  const res = await fetch(endpoint,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(payload||{})
+  });
+  const d = await res.json();
+  if(!d || !d.success) throw new Error('AI failed');
+  return d;
+}
+async function aiPracticePlan(){
+  $('aiPracticeCard').style.display='block';
+  $('aiPracticeBody').textContent = 'Loading…';
+  try{
+    const d = await runAI('/api/practice-plan', {game: state});
+    $('aiPracticeBody').textContent = d.text || d.result || '—';
+  }catch(e){
+    $('aiPracticeBody').textContent = 'Failed.';
+  }
+}
+async function aiGoalieReport(){
+  $('aiGoalieCard').style.display='block';
+  $('aiGoalieBody').textContent = 'Loading…';
+  try{
+    const d = await runAI('/api/goalie-report', {game: state});
+    $('aiGoalieBody').textContent = d.text || d.result || '—';
+  }catch(e){
+    $('aiGoalieBody').textContent = 'Failed.';
+  }
+}
+async function aiSeasonFocus(){
+  $('aiFocusCard').style.display='block';
+  $('aiFocusBody').textContent = 'Loading…';
+  try{
+    const d = await runAI('/api/season-focus', {game: state});
+    $('aiFocusBody').textContent = d.text || d.result || '—';
+  }catch(e){
+    $('aiFocusBody').textContent = 'Failed.';
+  }
+}
+
 /* Init */
 (function init(){
+  // Version pill
   $('verPill').textContent = `v${APP_VERSION}`;
 
+  // Date input default AND state sync
   const today = new Date();
   $('date').valueAsDate = today;
   state.date = today.toISOString().slice(0,10);
@@ -2073,6 +2485,7 @@ function applyPickerSelection(num){
       if(state.events.length>0) toggleSetup(false);
     }
 
+    // Ensure date always has a value
     if(!state.date){
       const v = $('date').value;
       if(v) state.date = v;
@@ -2116,6 +2529,7 @@ $('btnDZTurnover').onclick=()=>addEvent('dz_turnover');
 $('btnSmother').onclick=()=>addEvent('smother');
 $('btnBigSave').onclick=()=>addEvent('big_save');
 
+/* Offensive context */
 $('btnBreakawayFor').onclick=()=>{
   lastBreakawayForTap = Date.now();
   addEvent('breakaway_for');
@@ -2137,7 +2551,7 @@ $('btnNextPeriod').onclick=()=>{
   vibrate(20);
 };
 
-$('btnEnd').onclick=()=>alert('End Game is wired, but your Airtable/API code is omitted in this trimmed fix block.');
+$('btnEnd').onclick=endGame;
 
 $('btnReset').onclick=()=>{
   if(!confirm('Clear game?'))return;
@@ -2160,13 +2574,58 @@ $('btnReset').onclick=()=>{
   refreshCloudStatus();
 };
 
+/* Modals close on backdrop click */
 document.querySelectorAll('.modal').forEach(m=>
   m.addEventListener('click',e=>{if(e.target===m)m.style.display='none';})
 );
 
+/* Inputs */
 $('opponent').oninput=e=>{state.opponent=e.target.value;save();}
 $('level').onchange=e=>{state.level=e.target.value;save();}
 $('date').onchange=e=>{state.date=e.target.value;save();}
+
+/* Copy Summary (now: compact, structured text) */
+$('btnCopySummary').addEventListener('click', ()=>{
+  const date = state.date || new Date().toISOString().slice(0,10);
+  const SF=state.countsF.shots, SA=state.countsA.shots, GF=state.countsF.goals, GA=state.countsA.goals;
+  const saves=Math.max(0,SA-GA);
+  const svText = SA ? (saves/SA).toFixed(3).slice(1) : '—';
+  const shootPct = SF ? (GF/SF).toFixed(3).slice(1) : '—';
+  const share = (SF+SA) ? Math.round(100*(SF/(SF+SA)))+'%' : '—';
+  const K=computeGoalieScore(), T=computeTeamScore();
+
+  const lines = [
+    `${state.level||'?'} vs ${state.opponent||'Unknown'} on ${date}`,
+    `Score: Us ${GF} – ${GA} Them`,
+    `Shots: SF ${SF}, SA ${SA} | Saves ${saves} | SV% ${svText}`,
+    `Team Score: ${T.total}/100 | Goalie Score: ${K.total}/100`,
+    `Smothers ${state.countsA.smothers} | Bad Reb ${state.countsA.badRebounds} | Big Saves ${state.countsA.bigSaves} | Soft Goals ${state.countsA.softGoals}`,
+    `Shot Share ${share} | Our Shooting% ${shootPct}`,
+    `BA Ag ${state.team.breakawaysAgainst} | DZ TO ${state.team.dzTurnovers} | BA For ${state.team.breakawaysFor} | OMR For ${state.team.oddManRushFor}`
+  ];
+
+  const text = lines.join('\n');
+  $('copyArea').value = text;
+  $('copyModal').style.display='flex';
+  if(navigator.clipboard && text){
+    navigator.clipboard.writeText(text).catch(()=>{});
+  }
+});
+$('btnCopySelect').addEventListener('click', ()=>{
+  const area = $('copyArea');
+  area.focus();
+  area.select();
+});
+$('btnCopyClose').addEventListener('click', ()=>{ $('copyModal').style.display='none'; });
+
+/* Export CSV */
+$('btnExportGameCSV').addEventListener('click', exportGameCSV);
+
+/* AI / Season buttons */
+$('btnSaveSeason').addEventListener('click', saveSeasonToAirtable);
+$('btnAIPractice').addEventListener('click', aiPracticePlan);
+$('btnAIGoalieReport').addEventListener('click', aiGoalieReport);
+$('btnAIFocus').addEventListener('click', aiSeasonFocus);
 
 </script>
 </body>

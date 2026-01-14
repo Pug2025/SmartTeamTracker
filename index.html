@@ -1983,28 +1983,91 @@ function computeGoalieScore(){
 
   const prof = LEVEL_PROFILES[normalizeLevelKey(state.level)] || LEVEL_PROFILES.Other;
 
-  // Volume factor: confidence increases as shots approach typical minimum for the level
-  const vol = clamp01(shots / prof.minShots);
+  // Volume factor (don’t over-credit tiny sample sizes)
+  const volFactor = clamp01(shots / prof.minShots);
 
-  // Bayesian SV% (stabilizes small samples)
-  const priorShots = Math.max(8, Math.round(prof.minShots * 0.60));
-  const postSV = bayesRate(saves, shots, prof.goalieBaseSV, priorShots);
-  const svDelta = postSV - prof.goalieBaseSV;
+  // Expected goals against at this level
+  const expectedGA = shots * (1 - prof.goalieBaseSV);
 
-  // Shot-stopping score (dominant term)
-  let scoreSV = 55 + vol * (20 + 260 * svDelta);
-  scoreSV = clamp(scoreSV, 35, 92);
+  // Main performance: how far above/below expected GA
+  // Scale uses 6-goal band to map into 0..1, then into a 0..~90-ish score space.
+  const perfNorm = (shots === 0) ? 0.5 : clamp01(0.5 + (expectedGA - ga) / 6);
+  let scoreSV = 70 + (perfNorm - 0.5) * 50 * volFactor;   // roughly 45..95 depending on performance+volume
 
-  // Context / difficulty adjustment using GA metadata
+  // Soft goals: real penalty
+  const softPen = Math.max(-24, -8 * C.softGoals);
+
+  // Context blame: only penalize goals that weren’t “high difficulty” situations
+  // (You already tag GA with BA/DZ/BR causes and ga_ctx when available.)
   const gas = state.events.filter(e => e.type === 'goal' || e.type === 'soft_goal');
-  let weightedGA = 0;
-  for(const ev of gas) weightedGA += gaBlameWeight(ev);
+  let ctxBad = 0;
+  for(const ev of gas){
+    const cause = ev.ga_cause || '';
+    const ctx   = ev.ga_ctx || '';
 
-  let ctxAdj = 0;
-  if(ga > 0){
-    const ctxIndex = (ga - weightedGA) / ga; // positive = harder-than-average goals
-    ctxAdj = clamp(10 * ctxIndex, -8, +6);
+    // If it’s a breakaway, screen/deflection/cross-crease, or while shorthanded, reduce blame
+    const hardGoal =
+      cause.includes('BA') ||
+      /Screen|Deflection|Cross-Crease/.test(ctx) ||
+      (ev.strength === 'SH');
+
+    if(!hardGoal){
+      ctxBad += 1.0;
+
+      // Rebound goals are slightly more on goalie *if* tagged
+      if(cause.includes('BR') || /Rebound/.test(ctx)) ctxBad += 0.5;
+
+      // Soft goal adds blame too
+      if(ev.type === 'soft_goal') ctxBad += 0.5;
+
+      // Power-play goals against are “less blame” than EV goals against
+      if(ev.strength === 'PP') ctxBad -= 0.5;
+    }
   }
+  const ctxAdj = gas.length ? -Math.min(8, (ctxBad / gas.length) * 3) : 0;
+
+  // Rebound control (FIX):
+  // Treat auto "goodRebound" as *UNRESOLVED* shots, not a positive stat.
+  // Only smothers and bad rebounds should drive rebound quality.
+  const unresolvedShots = state.events.filter(e => e.goodRebound).length; // kept for display/audit
+  const sm = C.smothers;
+  const br = C.badRebounds;
+
+  const denom = sm + br;
+  // If you tracked nothing, give a small neutral score that scales with volume.
+  // If you did track, reward smothers, punish bad rebounds.
+  let scoreReb = 0;
+  if(denom === 0){
+    scoreReb = 2 * volFactor; // neutral baseline, not a reward
+  } else {
+    const smShare = sm / denom;           // 0..1
+    const brShare = br / denom;           // 0..1
+    scoreReb = (6 * smShare - 6 * brShare) * volFactor; // -6..+6 scaled
+    // clamp into 0..6 so rebound control can’t dominate the score
+    scoreReb = Math.max(0, Math.min(6, scoreReb));
+  }
+
+  // Big saves (FIX): cap small and only start to matter with real volume
+  const bigVol = clamp01(shots / 20);
+  const scoreBig = Math.min(4, 0.6 * C.bigSaves) * bigVol; // max 4
+
+  // Raw total
+  let total = Math.round(scoreSV + softPen + ctxAdj + scoreReb + scoreBig);
+
+  // GA ceiling (FIX): no “100 with goals against”
+  // This guarantees GA matters even if bonuses are maxed.
+  const maxCap = Math.max(0, Math.min(100, 100 - 3 * ga - 2 * C.softGoals));
+  total = Math.min(total, maxCap);
+
+  total = Math.max(0, Math.min(100, total));
+
+  return {
+    total,
+    scoreSV: Math.round(scoreSV),
+    softPenalty: Math.round(softPen),
+    ctxAdj: Math.round(ctxAdj),
+    scoreRebound: Math.round(scoreReb),
+    scoreBig: Math
 
   // Soft goals penalty (separate)
   const softPenRaw = -12 * C.softGoals;
@@ -2273,15 +2336,21 @@ function updateMeta(){
   const share = (F.shots + A.shots) ? Math.round(100 * (F.shots/(F.shots+A.shots)))+'%' : '—';
   $('shotShareVal').textContent = share;
 
-  // rings: show "—" until we have at least one event
-  if(state.events && state.events.length > 0){
-    const K = computeGoalieScore(), T = computeTeamScore();
-    setRing($('goalieScoreNum'), $('gsArc'), K.total);
-    setRing($('teamScoreNum'), $('tsArc'), T.total);
-  } else {
-    setRing($('goalieScoreNum'), $('gsArc'), null);
-    setRing($('teamScoreNum'), $('tsArc'), null);
-  }
+// rings
+if(state.events.length === 0){
+  // start-of-game display
+  $('goalieScoreNum').textContent = '—';
+  $('teamScoreNum').textContent = '—';
+  $('gsArc').style.stroke = '#333';
+  $('tsArc').style.stroke = '#333';
+  $('gsArc').style.strokeDashoffset = '220';
+  $('tsArc').style.strokeDashoffset = '220';
+} else {
+  const K = computeGoalieScore(), T = computeTeamScore();
+  setRing($('goalieScoreNum'),$('gsArc'),K.total);
+  setRing($('teamScoreNum'),$('tsArc'),T.total);
+}
+
 
   // per-period cards (clean: header already says P1/P2/P3/OT)
   function pLine(p){

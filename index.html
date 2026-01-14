@@ -1147,14 +1147,18 @@ function toggleSetup(showSetup){
   }
 }
 $('btnStartGame').addEventListener('click', ()=>{
-  // Ensure state has the displayed date even if user never touched the field
-  if(!state.date){
-    const v = $('date').value;
-    if(v) state.date = v;
-  }
+  // Always pull current setup values (prevents stale state issues)
+  state.opponent = ($('opponent').value || '').trim();
+  state.level = $('level').value || 'U11';
+
+  const v = $('date').value;
+  state.date = v ? v : new Date().toISOString().slice(0,10);
+
+  save();
   toggleSetup(false);
   vibrate(10);
 });
+
 $('btnEditSetup').addEventListener('click', ()=>{ toggleSetup(true); });
 
 /* ===== Cloud status helper ===== */
@@ -2723,10 +2727,12 @@ async function aiSeasonFocus(){
   // Version pill
   $('verPill').textContent = `v${APP_VERSION}`;
 
-  // Date input default AND state sync
-  const today = new Date();
-  $('date').valueAsDate = today;
-  state.date = today.toISOString().slice(0,10);
+  // Date input default (iOS-safe: set string, not valueAsDate)
+  const todayStr = new Date().toISOString().slice(0,10);
+  $('date').value = todayStr;
+
+  // Keep state date aligned initially
+  state.date = todayStr;
 
   try{ state.roster = JSON.parse(localStorage.getItem(ROSTER_KEY))||[]; }catch(_){}
   persistStorage();
@@ -2736,43 +2742,41 @@ async function aiSeasonFocus(){
 
   load().then(loaded=>{
     if(loaded && Array.isArray(loaded.events)){
-      Object.assign(state,loaded);
+      Object.assign(state, loaded);
       state.events.sort((a,b)=>new Date(a.tISO)-new Date(b.tISO));
       rebuildFromEvents();
-
-// Only show the banner if we actually resumed a game with events
-if(state.events.length > 0){
-  $('resumeBanner').classList.remove('hidden');
-  toggleSetup(false);
-} else {
-  $('resumeBanner').classList.add('hidden');
-
-  // NEW: if there are no events, don't pre-fill setup with stale opponent
-  state.opponent = '';
-  // (optional) also reset level/date if you want a completely clean setup:
-  // state.level = $('level').value || 'U11';
-  // state.date = new Date().toISOString().slice(0,10);
-
-  save();
-}
-
-    // Ensure date always has a value
-    if(!state.date){
-      const v = $('date').value;
-      if(v) state.date = v;
-    } else {
-      $('date').value = state.date;
     }
 
-    $('opponent').value = state.opponent || '';
+    // Decide whether this is a real resume
+    const hasEvents = Array.isArray(state.events) && state.events.length > 0;
+
+    if(hasEvents){
+      $('resumeBanner').classList.remove('hidden');
+      toggleSetup(false);
+    } else {
+      $('resumeBanner').classList.add('hidden');
+      // Clear ONLY the setup field display so it doesn't show stale opponent
+      $('opponent').value = '';
+    }
+
+    // Ensure date always has a value (and keep input in sync)
+    if(!state.date){
+      state.date = $('date').value || todayStr;
+    }
+    $('date').value = state.date;
+
+    // Sync setup inputs from state (except opponent when not resuming)
+    if(hasEvents){
+      $('opponent').value = state.opponent || '';
+    }
     $('level').value = state.level || $('level').value;
 
     updateMeta();
     highlightPeriod();
-    if(state.events.length>0) renderAll();
+    renderAll();
     refreshCloudStatus();
 
-    // If not saved, show cloud OK/offline (don’t leave it stuck on "—")
+    // If not saved, show cloud OK/offline
     const last = localStorage.getItem(LAST_SAVED_KEY);
     if(!last || last !== state.gameId){
       pingCloud();

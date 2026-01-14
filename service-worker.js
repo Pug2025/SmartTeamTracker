@@ -22,23 +22,22 @@ self.addEventListener("install", (event) => {
     caches
       .open(CACHE_NAME)
       .then(async (cache) => {
-  await Promise.all(
-    ASSETS_TO_CACHE.map(async (url) => {
-      try {
-        const res = await fetch(url, { cache: "no-store" });
-        if (res.ok) await cache.put(url, res);
-      } catch (e) {
-        console.warn("[SW] Skipped caching:", url, e);
-      }
-    })
-  );
-})
-
+        await Promise.all(
+          ASSETS_TO_CACHE.map(async (url) => {
+            try {
+              const res = await fetch(url, { cache: "no-store" });
+              if (res.ok) await cache.put(url, res.clone());
+            } catch (e) {
+              console.warn("[SW] Skipped caching:", url, e);
+            }
+          })
+        );
+      })
       .catch((err) => {
-        // swallow errors so install does not blow up on one bad asset
         console.error("[SW] Install cache error:", err);
       })
   );
+
   self.skipWaiting();
 });
 

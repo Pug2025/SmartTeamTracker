@@ -2222,9 +2222,18 @@ function computeStrengthBreakdown(){
 /* ===== Live Renders ===== */
 function setRing(valEl, arcEl, sc){
   if(!valEl || !arcEl) return;
-  valEl.textContent=sc;
-  const c=sc>=85?'#32d74b':sc>=70?'#ff9f0a':'#ff453a';
-  arcEl.style.stroke=c;
+
+  // Show placeholder when score is null/undefined
+  if(sc === null || sc === undefined || sc === '—'){
+    valEl.textContent = '—';
+    arcEl.style.stroke = '#333';
+    arcEl.style.strokeDashoffset = '220'; // empty ring
+    return;
+  }
+
+  valEl.textContent = sc;
+  const c = sc>=85 ? '#32d74b' : sc>=70 ? '#ff9f0a' : '#ff453a';
+  arcEl.style.stroke = c;
   arcEl.style.strokeDashoffset = String(220*(1-sc/100));
 }
 
@@ -2264,10 +2273,15 @@ function updateMeta(){
   const share = (F.shots + A.shots) ? Math.round(100 * (F.shots/(F.shots+A.shots)))+'%' : '—';
   $('shotShareVal').textContent = share;
 
-  // rings
-  const K=computeGoalieScore(), T=computeTeamScore();
-  setRing($('goalieScoreNum'),$('gsArc'),K.total);
-  setRing($('teamScoreNum'),$('tsArc'),T.total);
+  // rings: show "—" until we have at least one event
+  if(state.events && state.events.length > 0){
+    const K = computeGoalieScore(), T = computeTeamScore();
+    setRing($('goalieScoreNum'), $('gsArc'), K.total);
+    setRing($('teamScoreNum'), $('tsArc'), T.total);
+  } else {
+    setRing($('goalieScoreNum'), $('gsArc'), null);
+    setRing($('teamScoreNum'), $('tsArc'), null);
+  }
 
   // per-period cards (clean: header already says P1/P2/P3/OT)
   function pLine(p){

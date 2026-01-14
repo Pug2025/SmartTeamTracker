@@ -1,103 +1,100 @@
 // -----------------------------
-// SmartTeamTracker – Service Worker
-// Version: v4.0.0
+// Team Tracker - Service Worker
+// Version: v5.1.0
 // -----------------------------
 
-const CACHE_VERSION = 'smart-team-tracker-v4.0.0';
-const CACHE_NAME = `smart-team-tracker-cache-${CACHE_VERSION}`;
+const CACHE_VERSION = "team-tracker-cache-v5.1.0";
+const CACHE_NAME = CACHE_VERSION;
 
 const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/favicon.ico'
-  // Add icon files here if/when you have them:
-  // '/icon-192.png',
-  // '/icon-512.png',
-  // '/apple-touch-icon.png'
+  "/",
+  "/index.html",
+  "/manifest.json",
+  "/service-worker.js",
+  "/favicon.ico",
+  "/icon-192.png",
+  "/icon-512.png"
 ];
 
-// Install: pre-cache core assets
-self.addEventListener('install', event => {
+// Install - pre-cache core shell
+self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS_TO_CACHE))
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => cache.addAll(ASSETS_TO_CACHE))
+      .catch((err) => {
+        // swallow errors so install does not blow up on one bad asset
+        console.error("[SW] Install cache error:", err);
+      })
   );
   self.skipWaiting();
 });
 
-// Activate: clean up old caches
-self.addEventListener('activate', event => {
+// Activate - clear old caches
+self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then(keys =>
+    caches.keys().then((keys) =>
       Promise.all(
         keys
-          .filter(key => key.startsWith('smart-team-tracker-cache-') && key !== CACHE_NAME)
-          .map(key => caches.delete(key))
+          .filter((key) => key.startsWith("team-tracker-cache-") && key !== CACHE_NAME)
+          .map((key) => caches.delete(key))
       )
     )
   );
   self.clients.claim();
 });
 
-// Fetch: cache-first app shell, then network
-self.addEventListener('fetch', event => {
+// Fetch handler
+self.addEventListener("fetch", (event) => {
   const { request } = event;
 
-  // Only handle GET
-  if (request.method !== 'GET') return;
+  // Do not try to cache non-GET or API POST calls
+  if (request.method !== "GET") return;
 
-  // Navigation requests → always fall back to index.html (SPA routing safe)
-  if (request.mode === 'navigate') {
+  const url = new URL(request.url);
+
+  // Never cache API calls (keeps behavior clean, avoids weird stale JSON)
+  if (url.pathname.startsWith("/api/")) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
+  // Network-first for navigations (HTML pages)
+  if (request.mode === "navigate" || request.destination === "document") {
     event.respondWith(
       fetch(request)
-        .then(response => {
-          // If online nav works, still cache index.html for offline
-          cacheIndexHtml();
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
           return response;
         })
         .catch(() =>
-          caches.match('/index.html').then(cached => cached || Response.error())
+          caches.match(request).then((cached) => cached || caches.match("/index.html"))
         )
     );
     return;
   }
 
-  // Static assets: cache-first, then network
+  // Cache-first for static assets
   event.respondWith(
-    caches.match(request).then(cached => {
+    caches.match(request).then((cached) => {
       if (cached) return cached;
 
       return fetch(request)
-        .then(response => {
-          // Only cache successful, basic/opaque responses
+        .then((response) => {
+          // Only cache successful same-origin responses
           if (
-            !response ||
-            response.status !== 200 ||
-            (response.type !== 'basic' && response.type !== 'opaque')
+            response &&
+            response.status === 200 &&
+            response.type === "basic" &&
+            url.origin === self.location.origin
           ) {
-            return response;
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
           }
-
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then(cache => {
-            cache.put(request, responseToCache);
-          });
-
           return response;
         })
-        .catch(() => {
-          // For non-nav requests, just fail quietly if offline
-          return cached || Response.error();
-        });
+        .catch(() => cached); // fallback to cache if network fails
     })
   );
 });
-
-// Helper: ensure index.html is cached
-function cacheIndexHtml() {
-  caches.open(CACHE_NAME).then(cache => {
-    cache.match('/index.html').then(hit => {
-      if (!hit) cache.add('/index.html');
-    });
-  });
-}

@@ -21,7 +21,19 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(CACHE_NAME)
-      .then((cache) => cache.addAll(ASSETS_TO_CACHE))
+      .then(async (cache) => {
+  await Promise.all(
+    ASSETS_TO_CACHE.map(async (url) => {
+      try {
+        const res = await fetch(url, { cache: "no-store" });
+        if (res.ok) await cache.put(url, res);
+      } catch (e) {
+        console.warn("[SW] Skipped caching:", url, e);
+      }
+    })
+  );
+})
+
       .catch((err) => {
         // swallow errors so install does not blow up on one bad asset
         console.error("[SW] Install cache error:", err);

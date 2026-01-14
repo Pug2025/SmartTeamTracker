@@ -1990,22 +1990,20 @@ function computeGoalieScore(){
   const expectedGA = shots * (1 - prof.goalieBaseSV);
 
   // Main performance: how far above/below expected GA
-  // Scale uses 6-goal band to map into 0..1, then into a 0..~90-ish score space.
   const perfNorm = (shots === 0) ? 0.5 : clamp01(0.5 + (expectedGA - ga) / 6);
-  let scoreSV = 70 + (perfNorm - 0.5) * 50 * volFactor;   // roughly 45..95 depending on performance+volume
+  let scoreSV = 70 + (perfNorm - 0.5) * 50 * volFactor;   // ~45..95 depending on performance+volume
 
   // Soft goals: real penalty
   const softPen = Math.max(-24, -8 * C.softGoals);
 
   // Context blame: only penalize goals that weren’t “high difficulty” situations
-  // (You already tag GA with BA/DZ/BR causes and ga_ctx when available.)
   const gas = state.events.filter(e => e.type === 'goal' || e.type === 'soft_goal');
   let ctxBad = 0;
+
   for(const ev of gas){
     const cause = ev.ga_cause || '';
     const ctx   = ev.ga_ctx || '';
 
-    // If it’s a breakaway, screen/deflection/cross-crease, or while shorthanded, reduce blame
     const hardGoal =
       cause.includes('BA') ||
       /Screen|Deflection|Cross-Crease/.test(ctx) ||
@@ -2014,48 +2012,44 @@ function computeGoalieScore(){
     if(!hardGoal){
       ctxBad += 1.0;
 
-      // Rebound goals are slightly more on goalie *if* tagged
+      // Rebound goals slightly more blame (if tagged)
       if(cause.includes('BR') || /Rebound/.test(ctx)) ctxBad += 0.5;
 
       // Soft goal adds blame too
       if(ev.type === 'soft_goal') ctxBad += 0.5;
 
-      // Power-play goals against are “less blame” than EV goals against
+      // PP GA slightly less blame than EV GA
       if(ev.strength === 'PP') ctxBad -= 0.5;
     }
   }
+
   const ctxAdj = gas.length ? -Math.min(8, (ctxBad / gas.length) * 3) : 0;
 
-  // Rebound control (FIX):
-  // Treat auto "goodRebound" as *UNRESOLVED* shots, not a positive stat.
-  // Only smothers and bad rebounds should drive rebound quality.
-  const unresolvedShots = state.events.filter(e => e.goodRebound).length; // kept for display/audit
+  // Rebound control:
+  // "goodRebound" is UNRESOLVED, not positive. Only smothers vs bad rebounds matter.
+  const goodRebCount = state.events.filter(e => e.goodRebound).length; // for audit display only
   const sm = C.smothers;
   const br = C.badRebounds;
 
   const denom = sm + br;
-  // If you tracked nothing, give a small neutral score that scales with volume.
-  // If you did track, reward smothers, punish bad rebounds.
   let scoreReb = 0;
+
   if(denom === 0){
-    scoreReb = 2 * volFactor; // neutral baseline, not a reward
+    scoreReb = 2 * volFactor; // neutral baseline
   } else {
-    const smShare = sm / denom;           // 0..1
-    const brShare = br / denom;           // 0..1
+    const smShare = sm / denom;
+    const brShare = br / denom;
     scoreReb = (6 * smShare - 6 * brShare) * volFactor; // -6..+6 scaled
-    // clamp into 0..6 so rebound control can’t dominate the score
-    scoreReb = Math.max(0, Math.min(6, scoreReb));
+    scoreReb = Math.max(0, Math.min(6, scoreReb));      // clamp so it can’t dominate
   }
 
-  // Big saves (FIX): cap small and only start to matter with real volume
+  // Big saves: small cap, only matters with real volume
   const bigVol = clamp01(shots / 20);
   const scoreBig = Math.min(4, 0.6 * C.bigSaves) * bigVol; // max 4
 
-  // Raw total
   let total = Math.round(scoreSV + softPen + ctxAdj + scoreReb + scoreBig);
 
-  // GA ceiling (FIX): no “100 with goals against”
-  // This guarantees GA matters even if bonuses are maxed.
+  // Ceiling: no 100 when GA exists
   const maxCap = Math.max(0, Math.min(100, 100 - 3 * ga - 2 * C.softGoals));
   total = Math.min(total, maxCap);
 
@@ -2065,33 +2059,6 @@ function computeGoalieScore(){
     total,
     scoreSV: Math.round(scoreSV),
     softPenalty: Math.round(softPen),
-    ctxAdj: Math.round(ctxAdj),
-    scoreRebound: Math.round(scoreReb),
-    scoreBig: Math
-
-  // Soft goals penalty (separate)
-  const softPenRaw = -12 * C.softGoals;
-  const softPenalty = clamp(softPenRaw * (0.6 + 0.4*vol), -36, 0);
-
-  // Rebound control uses: smothers, bad rebounds, good rebounds (auto)
-  const goodRebCount = state.events.filter(e => e.goodRebound).length;
-  const rebOpp = C.smothers + C.badRebounds + goodRebCount;
-  const rebSuccess = C.smothers + goodRebCount;
-
-  const rebRate = rebOpp > 0 ? bayesRate(rebSuccess, rebOpp, 0.72, 6) : 0.72;
-  const scoreReb = clamp((rebRate - 0.55) * 22, 0, 10) * vol;
-
-  // Big saves reward (capped)
-  const bigRate = shots > 0 ? (C.bigSaves / shots) : 0;
-  const scoreBig = clamp(120 * bigRate, 0, 8) * clamp01(shots / 15);
-
-  let total = Math.round(scoreSV + ctxAdj + scoreReb + scoreBig + softPenalty);
-  total = clamp(total, 0, 100);
-
-  return {
-    total,
-    scoreSV: Math.round(scoreSV),
-    softPenalty: Math.round(softPenalty),
     ctxAdj: Math.round(ctxAdj),
     scoreRebound: Math.round(scoreReb),
     scoreBig: Math.round(scoreBig),

@@ -2740,14 +2740,21 @@ async function aiSeasonFocus(){
       state.events.sort((a,b)=>new Date(a.tISO)-new Date(b.tISO));
       rebuildFromEvents();
 
-      // Only show the banner if we actually resumed a game with events
-      if(state.events.length > 0){
-        $('resumeBanner').classList.remove('hidden');
-        toggleSetup(false);
-      } else {
-        $('resumeBanner').classList.add('hidden');
-      }
-    }
+// Only show the banner if we actually resumed a game with events
+if(state.events.length > 0){
+  $('resumeBanner').classList.remove('hidden');
+  toggleSetup(false);
+} else {
+  $('resumeBanner').classList.add('hidden');
+
+  // NEW: if there are no events, don't pre-fill setup with stale opponent
+  state.opponent = '';
+  // (optional) also reset level/date if you want a completely clean setup:
+  // state.level = $('level').value || 'U11';
+  // state.date = new Date().toISOString().slice(0,10);
+
+  save();
+}
 
     // Ensure date always has a value
     if(!state.date){

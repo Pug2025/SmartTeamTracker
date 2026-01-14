@@ -2358,17 +2358,21 @@ function closeRoster(){ $('rosterModal').style.display='none'; }
 /* Player picker flow (supports scorer + assist) */
 let pickerFlow = {mode:null, pendingGoalEv:null};
 
-function openPicker(mode,label,{showNone=false}={}){
+function openPicker(mode, label, { showNone=false, exclude=[] } = {}){
   pickerFlow.mode = mode;
   $('pickerTitle').textContent = label || 'Select Player';
 
   $('pickerNone').style.display = showNone ? 'inline-block' : 'none';
 
-  const roster=sortRoster((state.roster||[]).map(x=>String(x).trim()).filter(Boolean));
-  const uniq=Array.from(new Set(roster));
+  const excludeSet = new Set((exclude || []).map(x => String(x).trim()).filter(Boolean));
+
+  const roster = sortRoster((state.roster || []).map(x => String(x).trim()).filter(Boolean));
+  const uniq = Array.from(new Set(roster)).filter(n => !excludeSet.has(String(n)));
+
   $('pickerGrid').innerHTML = uniq.length
     ? uniq.map(n=>`<div class="pickerBtn" data-n="${n}">#${n}</div>`).join('')
     : `<div class="small" style="grid-column:1/-1;">No roster yet. Type a number below.</div>`;
+
   $('pickerInput').value='';
   $('pickerModal').style.display='flex';
 }
@@ -2420,7 +2424,7 @@ function applyPickerSelection(num){
 
     // next: assist picker (optional, can be unknown too)
     pickerFlow.mode='for_goal_assist';
-    openPicker('for_goal_assist','Assist (optional)',{showNone:true});
+    openPicker('for_goal_assist','Assist (optional)',{showNone:true, exclude:[scorer]});
     return;
   }
 

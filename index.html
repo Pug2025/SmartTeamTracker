@@ -1392,9 +1392,15 @@ function addEvent(type, meta={}){
   }
 
   const isGoalAgainst = (type === 'goal' || type === 'soft_goal');
+  const isGoalFor = (type === 'for_goal');
 
   state.events.push(ev);
   bump(type, state.period);
+
+  // Tag Goals For context (Breakaway / Odd Man Rush / Other)
+  if(isGoalFor){
+    tagGFCause(ev);
+  }
 
   // Always tag GA causes first (BA/DZ/BR can all apply)
   if(isGoalAgainst){
@@ -1557,7 +1563,9 @@ function labelFor(ev){
     const s = ev.player && ev.player!=='?' ? ev.player : 'Unknown';
     const a = (ev.assist===null || ev.assist===undefined) ? '—' : (ev.assist==='?' ? 'Unknown' : ev.assist);
     label = `Our Goal (#${s}) A: ${a==='—' ? '—' : '#'+a}`;
-    if(ev.breakawayGoal) label += ' [BA]';
+
+    if(ev.off_ctx === 'Breakaway') label += ' [BA]';
+    else if(ev.off_ctx === 'Odd Man Rush') label += ' [OMR]';
   }
 
   if((ev.type==='for_shot')&&ev.player&&ev.player!=='?'&&ev.player!=='Unknown') {
@@ -1657,6 +1665,47 @@ function tagGACause(gaEv){
   if(gaEv.ga_br) parts.push('BR');
 
   gaEv.ga_cause = parts.length ? parts.join('+') : 'other';
+  save();
+}
+
+  /* Goals For context tagging (10s window, no bleed across Goals For) */
+function tagGFCause(gfEv){
+  const tGF = new Date(gfEv.tISO).getTime();
+
+  // 10s window for offensive context
+  let windowStart = tGF - 10000;
+
+  // Prevent bleed across Goals For:
+  // only allow context events after the previous for_goal
+  for(let i = state.events.length - 1; i >= 0; i--){
+    const ev = state.events[i];
+    if(ev === gfEv) continue;
+
+    const t = new Date(ev.tISO).getTime();
+    if(t >= tGF) continue;
+
+    if(ev.type === 'for_goal'){
+      windowStart = Math.max(windowStart, t + 1);
+      break;
+    }
+  }
+
+  let hasBA = false;
+  let hasOMR = false;
+
+  for(const ev of state.events){
+    const t = new Date(ev.tISO).getTime();
+    if(t < windowStart || t > tGF) continue;
+
+    if(ev.type === 'breakaway_for') hasBA = true;
+    if(ev.type === 'odd_man_rush_for') hasOMR = true;
+  }
+
+  // Priority: Breakaway > Odd Man Rush > Other
+  if(hasBA) gfEv.off_ctx = 'Breakaway';
+  else if(hasOMR) gfEv.off_ctx = 'Odd Man Rush';
+  else gfEv.off_ctx = 'Other';
+
   save();
 }
 
@@ -1929,22 +1978,36 @@ function computeGABreakdown(){
 }
 
 function computeGFContextBreakdown(){
-  // Count Goals For that happened within 10s of an offensive context event.
-  // Priority: Breakaway > Odd-Man Rush. (If both happened, we count it as Breakaway.)
-  return state.events.reduce((acc, e, idx) => {
-    if(e.type !== 'for_goal') return acc;
+  const acc = {BA:0, OMR:0, Other:0};
 
+  for(let i = 0; i < state.events.length; i++){
+    const e = state.events[i];
+    if(e.type !== 'for_goal') continue;
+
+    // If already tagged, trust it
+    if(e.off_ctx === 'Breakaway') { acc.BA++; continue; }
+    if(e.off_ctx === 'Odd Man Rush') { acc.OMR++; continue; }
+    if(e.off_ctx === 'Other') { acc.Other++; continue; }
+
+    // Otherwise compute with no bleed across previous for_goal
     const tGoal = new Date(e.tISO).getTime();
-    const lookback = tGoal - 10000;
+    let windowStart = tGoal - 10000;
 
-    let hasBA = false;
-    let hasOMR = false;
-
-    // Walk backward from the goal to find recent context events fast
-    for(let i = idx - 1; i >= 0; i--){
-      const prior = state.events[i];
+    for(let j = i - 1; j >= 0; j--){
+      const prior = state.events[j];
       const t = new Date(prior.tISO).getTime();
-      if(t < lookback) break;
+      if(t >= tGoal) continue;
+      if(prior.type === 'for_goal'){
+        windowStart = Math.max(windowStart, t + 1);
+        break;
+      }
+    }
+
+    let hasBA = false, hasOMR = false;
+    for(let j = i - 1; j >= 0; j--){
+      const prior = state.events[j];
+      const t = new Date(prior.tISO).getTime();
+      if(t < windowStart) break;
 
       if(prior.type === 'breakaway_for') hasBA = true;
       if(prior.type === 'odd_man_rush_for') hasOMR = true;
@@ -1953,9 +2016,9 @@ function computeGFContextBreakdown(){
     if(hasBA) acc.BA++;
     else if(hasOMR) acc.OMR++;
     else acc.Other++;
+  }
 
-    return acc;
-  }, {BA:0, OMR:0, Other:0});
+  return acc;
 }
 
 /* Strength breakdown */
@@ -2117,8 +2180,11 @@ function buildAllStatsHTML(){
   const share = (SF+SA) ? Math.round(100*(SF/(SF+SA)))+'%' : '—';
   const goodReb = state.events.filter(e=>e.goodRebound).length;
 
-  // NEW: include "Goals Against off Bad Rebounds" (and the rest of the GA cause breakdown)
+  // GA cause breakdown
   const gaStats = computeGABreakdown();
+
+  // GF context breakdown
+  const gfCtx = computeGFContextBreakdown();
 
   const rows = [
     ['GF', GF], ['GA', GA], ['SF', SF], ['SA', SA],
@@ -2126,7 +2192,11 @@ function buildAllStatsHTML(){
     ['Smothers', state.countsA.smothers], ['Bad Rebounds', state.countsA.badRebounds], ['Big Saves', state.countsA.bigSaves], ['Soft Goals', state.countsA.softGoals],
     ['Breakaways Ag', state.team.breakawaysAgainst], ['D-Zone TO', state.team.dzTurnovers], ['Breakaways For', state.team.breakawaysFor], ['Odd Man Rush For', state.team.oddManRushFor],
     ['Good Rebounds', goodReb],
+
+    ['GF off BA', gfCtx.BA], ['GF off OMR', gfCtx.OMR], ['GF Other', gfCtx.Other],
+
     ['GA off BA', gaStats.BA], ['GA off DZ', gaStats.DZ], ['GA off Bad Reb', gaStats.BR], ['GA Other', gaStats.Other]
+
   ];
 
   let html = `<table><tr><th>Stat</th><th>Value</th><th>Stat</th><th>Value</th></tr>`;
@@ -2173,10 +2243,21 @@ function endGame(){
   $('summaryTableWrap').innerHTML=html;
   $('pmTableWrap').innerHTML=makePlusMinusTable();
 
-  // GA detail summary
+  // GF + GA summaries
+  const gfCtx = computeGFContextBreakdown();
   const gaStats = computeGABreakdown();
 
   $('gaDetailWrap').innerHTML = `
+    <div class="card" style="margin-top:10px;">
+      <h3 style="margin:0 0 6px 0;">Goals For Context</h3>
+      <table>
+        <tr><th>Context</th><th>Count</th></tr>
+        <tr><td>Breakaway</td><td>${gfCtx.BA}</td></tr>
+        <tr><td>Odd Man Rush</td><td>${gfCtx.OMR}</td></tr>
+        <tr><td>Other</td><td>${gfCtx.Other}</td></tr>
+      </table>
+    </div>
+
     <div class="card" style="margin-top:10px;">
       <h3 style="margin:0 0 6px 0;">Goals Against Causes</h3>
       <table>
@@ -2668,6 +2749,7 @@ $('btnCopySummary').addEventListener('click', ()=>{
   const shootPct = SF ? (GF/SF).toFixed(3).slice(1) : '—';
   const share = (SF+SA) ? Math.round(100*(SF/(SF+SA)))+'%' : '—';
   const K=computeGoalieScore(), T=computeTeamScore();
+  const gfCtx = computeGFContextBreakdown();
   const gaStats = computeGABreakdown();
 
   const lines = [
@@ -2678,7 +2760,9 @@ $('btnCopySummary').addEventListener('click', ()=>{
     `Smothers ${state.countsA.smothers} | Bad Reb ${state.countsA.badRebounds} | Big Saves ${state.countsA.bigSaves} | Soft Goals ${state.countsA.softGoals}`,
     `Shot Share ${share} | Our Shooting% ${shootPct}`,
     `BA Ag ${state.team.breakawaysAgainst} | DZ TO ${state.team.dzTurnovers} | BA For ${state.team.breakawaysFor} | OMR For ${state.team.oddManRushFor}`,
+    `GF off BA ${gfCtx.BA} | GF off OMR ${gfCtx.OMR} | GF Other ${gfCtx.Other}`,
     `GA off Bad Reb ${gaStats.BR} | GA off BA ${gaStats.BA} | GA off DZ ${gaStats.DZ} | GA Other ${gaStats.Other}`
+
   ];
 
   const text = lines.join('\n');

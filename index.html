@@ -1334,8 +1334,16 @@ function rebuildFromEvents(){
 }
 
 const pendingGood = new Map();
+
+/* Only allow ONE pending "good rebound" credit at a time.
+   This prevents older timers from firing after a later outcome (goal/smother/bad rebound). */
 function scheduleGoodReboundCredit(id){
-  if(pendingGood.has(id)) clearTimeout(pendingGood.get(id));
+  // Clear any existing pending credits first
+  for(const [pid, to] of pendingGood.entries()){
+    clearTimeout(to);
+    pendingGood.delete(pid);
+  }
+
   const to = setTimeout(()=>{
     const ev = state.events.find(e=>e.id===id);
     if(ev && !ev.goodRebound){
@@ -1345,15 +1353,21 @@ function scheduleGoodReboundCredit(id){
     }
     pendingGood.delete(id);
   }, 4000);
+
   pendingGood.set(id, to);
 }
+
+/* Cancel ALL pending credits (not just the most recent).
+   Called when an outcome happens (smother/bad rebound/goal). */
 function cancelRecentGoodCredit(){
-  const ids = [...pendingGood.keys()];
-  if(!ids.length) return;
-  const lastId = ids[ids.length-1];
-  clearTimeout(pendingGood.get(lastId));
-  pendingGood.delete(lastId);
+  if(!pendingGood.size) return;
+  for(const [pid, to] of pendingGood.entries()){
+    clearTimeout(to);
+    pendingGood.delete(pid);
+  }
 }
+
+/* If the specific event is pending, clear it. */
 function clearGoodPendingFor(id){
   if(!pendingGood.has(id)) return;
   clearTimeout(pendingGood.get(id));
@@ -1957,9 +1971,11 @@ function computeGoalieScore() {
         ev.strength === 'SH';
 
       // Soft goals (more blame): explicit soft goal or bad rebound cause
-      const isSoft =
-        ev.type === 'soft_goal' ||
-        cause.includes('Bad Rebound');
+const isSoft =
+  ev.type === 'soft_goal' ||
+  !!ev.ga_br ||                 // explicit flag on the goal event
+  cause.includes('BR');          // ga_cause is "BR" or contains it (e.g., "BA+BR")
+
 
       if (isSoft) {
         wGoal = 2.5;

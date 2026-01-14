@@ -2534,13 +2534,19 @@ async function aiSeasonFocus(){
   pingCloud();
 
   load().then(loaded=>{
-    if(loaded && Array.isArray(loaded.events)){
-      Object.assign(state,loaded);
-      state.events.sort((a,b)=>new Date(a.tISO)-new Date(b.tISO));
-      rebuildFromEvents();
-      $('resumeBanner').classList.remove('hidden');
-      if(state.events.length>0) toggleSetup(false);
-    }
+if(loaded && Array.isArray(loaded.events)){
+  Object.assign(state,loaded);
+  state.events.sort((a,b)=>new Date(a.tISO)-new Date(b.tISO));
+  rebuildFromEvents();
+
+  // Only show the banner if we actually resumed a game with events
+  if(state.events.length > 0){
+    $('resumeBanner').classList.remove('hidden');
+    toggleSetup(false);
+  } else {
+    $('resumeBanner').classList.add('hidden');
+  }
+}
 
     // Ensure date always has a value
     if(!state.date){
@@ -2618,6 +2624,9 @@ $('btnEnd').onclick=endGame;
 
 $('btnReset').onclick=()=>{
   if(!confirm('Clear game?'))return;
+
+  // Hide "Resumed saved game" banner when starting a truly new game
+  $('resumeBanner').classList.add('hidden');
 
   state.events=[];
   state.opponent='';

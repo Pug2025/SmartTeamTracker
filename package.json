@@ -1,0 +1,9 @@
+{
+  "name": "smartteamtracker",
+  "version": "5.1.1",
+  "private": true,
+  "type": "commonjs",
+  "dependencies": {
+    "openai": "^6.16.0"
+  }
+}

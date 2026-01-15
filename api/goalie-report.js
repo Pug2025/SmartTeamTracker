@@ -1,51 +1,73 @@
-const OpenAI = require("openai");
+async function readJson(req) {
+  if (req.body && typeof req.body === "object") return req.body;
+  let raw = "";
+  await new Promise((resolve) => {
+    req.on("data", (c) => (raw += c));
+    req.on("end", resolve);
+  });
+  if (!raw) return {};
+  try { return JSON.parse(raw); } catch { return {}; }
+}
 
-module.exports = async (req, res) => {
+function safeNum(x) {
+  const n = Number(x);
+  return Number.isFinite(n) ? n : null;
+}
+
+function basicGoalieLine(game) {
+  const sa = safeNum(game.SA ?? game.sa ?? game.shotsAgainst ?? game.themShots);
+  const ga = safeNum(game.GA ?? game.ga ?? game.goalsAgainst ?? game.themGoals);
+  const saves = (sa !== null && ga !== null) ? Math.max(0, sa - ga) : null;
+  const svPct = (sa && saves !== null) ? (saves / sa) : null;
+
+  return { sa, ga, saves, svPct };
+}
+
+module.exports = async function handler(req, res) {
   try {
     if (req.method !== "POST") {
-      return res.status(405).json({ success: false, error: "Method not allowed" });
+      res.status(405).json({ success: false, error: "POST only" });
+      return;
     }
 
-    // If the env var isn't set in Vercel, fail with a clear message.
-    if (!process.env.OPENAI_API_KEY) {
-      return res.status(500).json({ success: false, error: "Missing OPENAI_API_KEY in Vercel env vars" });
-    }
-
-    const body = req.body || {};
-    const game = body.game;         // full collected game object
-    const derived = body.derived || {}; // optional computed summaries
+    const body = await readJson(req);
+    const game = body.game || null;
 
     if (!game) {
-      return res.status(400).json({ success: false, error: "Missing body.game" });
+      res.status(400).json({ success: false, error: "Send { game: {...} }" });
+      return;
     }
 
+    const line = basicGoalieLine(game);
+
+    const { default: OpenAI } = await import("openai");
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const model = process.env.OPENAI_MODEL || "gpt-5.2";
 
-    // GPT-5.2 is the flagship. Swap to "gpt-5-mini" if you want cheaper/faster.
-    const model = "gpt-5.2";
+    const system = [
+      "You write a concise goalie performance report.",
+      "Use the provided stats only; do not invent details.",
+      "Structure: (1) stat line, (2) what went well, (3) what hurt, (4) 3 focus points for next week."
+    ].join(" ");
 
-    const response = await client.responses.create({
+    const user = {
+      instruction: "Generate the Goalie Report.",
+      game,
+      computed: line
+    };
+
+    const resp = await client.responses.create({
       model,
-      reasoning: { effort: "low" },
       input: [
-        {
-          role: "developer",
-          content:
-            "You are a youth hockey goalie coach. Be practical and specific. " +
-            "Use the provided stats as truth. Output plain text with short headings and bullets."
-        },
-        {
-          role: "user",
-          content:
-            "Create a goalie report based on this game.\n\n" +
-            "FULL COLLECTED GAME OBJECT:\n" + JSON.stringify(game) + "\n\n" +
-            "DERIVED BREAKDOWNS (computed by the app):\n" + JSON.stringify(derived)
-        }
+        { role: "system", content: system },
+        { role: "user", content: JSON.stringify(user) }
       ]
     });
 
-    return res.status(200).json({ success: true, text: response.output_text || "" });
+    const text = (resp.output_text && resp.output_text.trim()) || "";
+    res.status(200).json({ success: true, text });
   } catch (err) {
-    return res.status(500).json({ success: false, error: "Server error" });
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message || "Server error" });
   }
 };

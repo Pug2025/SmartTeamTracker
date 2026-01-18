@@ -2710,14 +2710,26 @@ function applyPickerSelection(num){
     save();
     renderAll();
 
-    // now on-ice (other 3, excluding scorer/assist), then strength
-    const exclude = [];
-    if(ev.player) exclude.push(String(ev.player));
-    if(ev.assist) exclude.push(String(ev.assist));
-    openMultiPicker({title:'Other 3 On Ice (optional)', max:3, event:ev, field:'forOnIce', exclude});
-    pickerFlow.mode=null;
-    pickerFlow.pendingGoalEv=null;
-    return;
+// now on-ice (exclude only KNOWN scorer/assist), then strength
+// Rule: allow selection up to (5 - knownSkatersCount)
+// - scorer known + assist unknown -> max 4
+// - scorer unknown + assist unknown -> max 5
+// - scorer known + no assist -> max 4
+const known = [];
+
+if(ev.player && ev.player !== '?' && ev.player !== 'Unknown') known.push(String(ev.player));
+if(ev.assist && ev.assist !== '?' && ev.assist !== 'Unknown') known.push(String(ev.assist));
+
+const exclude = [...new Set(known)];
+const max = Math.max(0, 5 - exclude.length);
+const title = `Other ${max} On Ice (optional)`;
+
+openMultiPicker({ title, max, event: ev, field: 'forOnIce', exclude });
+
+pickerFlow.mode=null;
+pickerFlow.pendingGoalEv=null;
+return;
+
   }
 
   pickerFlow.mode=null;

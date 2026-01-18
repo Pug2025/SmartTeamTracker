@@ -2557,13 +2557,56 @@ function updateDebugLines(){}
 
 /* Plus/minus table */
 function makePlusMinusTable(){
-  const {pm, order} = computePlusMinus();
-  if(!order.length) return '<div class="small" style="margin-top:4px;">No plus/minus data.</div>';
-  let html = '<table><tr><th>#</th><th>+/-</th></tr>';
-  for(const n of order){
-    const val = pm.get(n);
-    html += `<tr><td>${n}</td><td>${val>0?'+':''}${val}</td></tr>`;
+  // Build a complete list from the roster (so players with 0 stats still show)
+  const roster = sortRoster((state.roster || []).map(x => String(x).trim()).filter(Boolean));
+
+  // Start everyone at 0
+  const map = new Map();
+  for(const n of roster){
+    map.set(n, { player: n, shots: 0, goals: 0, assists: 0, pm: 0 });
   }
+
+  // Overlay actual stats (shots/goals/assists/pm) from game events
+  const stats = computePlayerStats(); // returns [{player, shots, goals, assists, pm}, ...]
+  for(const p of stats){
+    const key = String(p.player).trim();
+    if(!key) continue;
+
+    // If a player wasn't in roster for some reason, still include them
+    if(!map.has(key)){
+      map.set(key, { player: key, shots: 0, goals: 0, assists: 0, pm: 0 });
+    }
+
+    map.set(key, {
+      player: key,
+      shots: Number(p.shots || 0),
+      goals: Number(p.goals || 0),
+      assists: Number(p.assists || 0),
+      pm: Number(p.pm || 0)
+    });
+  }
+
+  const order = sortRoster([...map.keys()]);
+  if(!order.length){
+    return '<div class="small" style="margin-top:4px;">No player data.</div>';
+  }
+
+  // IMPORTANT: column order is Shots / Goals / Assists / +/-
+  let html = '<table><tr><th>#</th><th>S</th><th>G</th><th>A</th><th>+/-</th></tr>';
+
+  for(const n of order){
+    const p = map.get(n);
+    const pm = Number(p.pm || 0);
+
+    html += `<tr>
+      <td>${p.player}</td>
+      <td>${p.shots}</td>
+      <td>${p.goals}</td>
+      <td>${p.assists}</td>
+      <td>${pm > 0 ? '+' : ''}${pm}</td>
+    </tr>`;
+  }
+
   html += '</table>';
   return html;
 }

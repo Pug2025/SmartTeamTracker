@@ -1100,6 +1100,7 @@ const $ = id => document.getElementById(id);
 const SAVE_KEY = 'team-tracker-state';
 const ROSTER_KEY = 'team-tracker-roster';
 const LAST_SAVED_KEY = 'team-tracker-last-saved-gameId';
+const MAX_PERIOD = 4;
 
 function getLocalTodayYMD(){
   const d = new Date();
@@ -1107,6 +1108,17 @@ function getLocalTodayYMD(){
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
+}
+function isLocalYMD(v){
+  return typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
+}
+function sanitizeDateInput(v){
+  return isLocalYMD(v) ? v : getLocalTodayYMD();
+}
+function sanitizePeriod(v){
+  const n = Number(v);
+  if(!Number.isInteger(n)) return 1;
+  return Math.min(MAX_PERIOD, Math.max(1, n));
 }
 
 /* ===== State ===== */
@@ -1159,10 +1171,11 @@ $('btnStartGame').addEventListener('click', ()=>{
   state.opponent = ($('opponent').value || '').trim();
   state.level = $('level').value || 'U11';
 
-  const v = $('date').value;
-  state.date = v ? v : new Date().toISOString().slice(0,10);
+  state.date = sanitizeDateInput($('date').value);
+  $('date').value = state.date;
 
   save();
+  validateState('start game');
   toggleSetup(false);
   vibrate(10);
 });
@@ -1345,6 +1358,78 @@ function rebuildFromEvents(){
   }
 }
 
+function validateState(source='unknown'){
+  const issues = [];
+  if(!Number.isInteger(state.period) || state.period < 1 || state.period > MAX_PERIOD){
+    issues.push(`period out of range: ${state.period}`);
+  }
+  if(!isLocalYMD(state.date)){
+    issues.push(`invalid date format: ${state.date}`);
+  }
+
+  const nonNeg = [
+    ['countsA.shots', state.countsA.shots],
+    ['countsA.goals', state.countsA.goals],
+    ['countsF.shots', state.countsF.shots],
+    ['countsF.goals', state.countsF.goals],
+    ['team.breakawaysAgainst', state.team.breakawaysAgainst],
+    ['team.dzTurnovers', state.team.dzTurnovers],
+    ['team.breakawaysFor', state.team.breakawaysFor],
+    ['team.oddManRushFor', state.team.oddManRushFor]
+  ];
+  for(const [k,v] of nonNeg){
+    if(typeof v !== 'number' || v < 0){
+      issues.push(`${k} is negative/invalid: ${v}`);
+    }
+  }
+  if(state.countsA.goals > state.countsA.shots){
+    issues.push(`goals against exceeds shots against (${state.countsA.goals} > ${state.countsA.shots})`);
+  }
+
+  const expectedPer = {1:initP(),2:initP(),3:initP(),4:initP()};
+  const expectedA = {shots:0, goals:0, softGoals:0, smothers:0, badRebounds:0, bigSaves:0};
+  const expectedF = {shots:0, goals:0};
+  const expectedTeam = {breakawaysAgainst:0, dzTurnovers:0, breakawaysFor:0, oddManRushFor:0};
+  for(const ev of state.events){
+    const p = expectedPer[sanitizePeriod(ev.period)] || expectedPer[4];
+    if(ev.type==='shot'){ expectedA.shots++; p.A_shots++; }
+    else if(ev.type==='goal'){ expectedA.shots++; expectedA.goals++; p.A_shots++; p.A_goals++; }
+    else if(ev.type==='soft_goal'){ expectedA.shots++; expectedA.goals++; expectedA.softGoals++; p.A_shots++; p.A_goals++; }
+    else if(ev.type==='smother'){ expectedA.smothers++; p.A_smothers++; }
+    else if(ev.type==='bad_rebound'){ expectedA.shots++; expectedA.badRebounds++; p.A_shots++; p.A_badRebounds++; }
+    else if(ev.type==='big_save'){ expectedA.bigSaves++; expectedA.shots++; p.A_bigSaves++; p.A_shots++; }
+    else if(ev.type==='for_shot'){ expectedF.shots++; p.F_shots++; }
+    else if(ev.type==='for_goal'){ expectedF.shots++; expectedF.goals++; p.F_shots++; p.F_goals++; }
+    else if(ev.type==='breakaway_against'){ expectedTeam.breakawaysAgainst++; p.BA++; }
+    else if(ev.type==='dz_turnover'){ expectedTeam.dzTurnovers++; p.DZ++; }
+    else if(ev.type==='breakaway_for'){ expectedTeam.breakawaysFor++; p.BF++; }
+    else if(ev.type==='odd_man_rush_for'){ expectedTeam.oddManRushFor++; p.OMRF++; }
+  }
+
+  if(JSON.stringify(expectedA) !== JSON.stringify(state.countsA)) issues.push('countsA mismatch vs event log');
+  if(JSON.stringify(expectedF) !== JSON.stringify(state.countsF)) issues.push('countsF mismatch vs event log');
+  if(JSON.stringify(expectedTeam) !== JSON.stringify(state.team)) issues.push('team totals mismatch vs event log');
+  if(JSON.stringify(expectedPer) !== JSON.stringify(per)) issues.push('period totals mismatch vs event log');
+
+  const saves = state.countsA.shots - state.countsA.goals;
+  if(saves < 0) issues.push(`negative saves computed (${saves})`);
+  const sv = state.countsA.shots ? (saves/state.countsA.shots) : 0;
+  if(!Number.isFinite(sv)) issues.push('save percentage is not finite');
+
+  if(issues.length){
+    console.error('[validateState] invariant violations after', source, issues, {
+      period: state.period,
+      date: state.date,
+      countsA: state.countsA,
+      countsF: state.countsF,
+      team: state.team,
+      per,
+      events: state.events
+    });
+  }
+  return issues.length === 0;
+}
+
 const pendingGood = new Map();
 
 /* Only allow ONE pending "good rebound" credit at a time.
@@ -1407,7 +1492,7 @@ function addEvent(type, meta={}){
     id: ++state.lastEventId,
     type,
     tISO:new Date().toISOString(),
-    period: state.period,
+    period: sanitizePeriod(state.period),
     ...meta
   };
 
@@ -1452,6 +1537,7 @@ function addEvent(type, meta={}){
   }
 
   save();
+  validateState(`addEvent:${type}`);
   renderAll();
   vibrate();
 
@@ -1475,6 +1561,7 @@ function undo(){
   const ev = state.events.pop();
   if(!ev) return;
   revert(ev);
+  validateState('undo');
   renderAll();
   vibrate(15);
 }
@@ -1496,6 +1583,7 @@ function revert(ev){
   else if(ev.type==='odd_man_rush_for'){ state.team.oddManRushFor--; p.OMRF--; }
 
   save();
+  validateState(`revert:${ev.type}`);
 }
 
 /* Undo Hold Logic */
@@ -1568,6 +1656,7 @@ $('toastRestore').addEventListener('click', ()=>{
   state.events.sort((a,b)=>new Date(a.tISO)-new Date(b.tISO));
   rebuildFromEvents();
   save();
+  validateState('toast restore');
   renderAll();
   hideToast();
 });
@@ -2335,7 +2424,7 @@ function buildAllStatsHTML(){
 
 function endGame(){
   const K=computeGoalieScore(), T=computeTeamScore();
-  const date = state.date || new Date().toISOString().slice(0,10);
+  const date = state.date || getLocalTodayYMD();
 
   $('summaryTitle').textContent = `${state.opponent || 'Opponent ?'} • ${state.level || '?'} • ${date}`;
 
@@ -2498,7 +2587,7 @@ function computePlayerStats(){
 
 function exportGameCSV(){
   const K=computeGoalieScore(), T=computeTeamScore();
-  const date = state.date || new Date().toISOString().slice(0,10);
+  const date = state.date || getLocalTodayYMD();
 
   const SF=state.countsF.shots, SA=state.countsA.shots, GF=state.countsF.goals, GA=state.countsA.goals;
   const saves=Math.max(0,SA-GA);
@@ -2806,7 +2895,10 @@ async function aiSeasonFocus(){
   load().then(loaded=>{
     if(loaded && Array.isArray(loaded.events)){
       Object.assign(state, loaded);
+      state.period = sanitizePeriod(state.period);
+      state.date = sanitizeDateInput(state.date);
       state.events.sort((a,b)=>new Date(a.tISO)-new Date(b.tISO));
+      state.events.forEach(ev=>{ ev.period = sanitizePeriod(ev.period); });
       rebuildFromEvents();
     }
 
@@ -2826,6 +2918,7 @@ async function aiSeasonFocus(){
     if(!state.date){
       state.date = $('date').value || todayStr;
     }
+    state.date = sanitizeDateInput(state.date);
     $('date').value = state.date;
 
     // Sync setup inputs from state (except opponent when not resuming)
@@ -2837,6 +2930,7 @@ async function aiSeasonFocus(){
     updateMeta();
     highlightPeriod();
     renderAll();
+    validateState('init load');
     refreshCloudStatus();
 
     // If not saved, show cloud OK/offline
@@ -2883,14 +2977,16 @@ $('btnOddManRushFor').onclick=()=>addEvent('odd_man_rush_for');
 $('periodChips').addEventListener('click',e=>{
   const c=e.target.closest('.p-opt');
   if(!c)return;
-  state.period=Number(c.dataset.p);
+  state.period=sanitizePeriod(c.dataset.p);
   save();
+  validateState('period chip change');
   highlightPeriod();
 });
 
 $('btnNextPeriod').onclick=()=>{
-  state.period=Math.min(4,state.period+1);
+  state.period=sanitizePeriod(Math.min(MAX_PERIOD, Number(state.period) + 1));
   save();
+  validateState('next period');
   highlightPeriod();
   vibrate(20);
 };
@@ -2904,6 +3000,8 @@ $('btnReset').onclick=()=>{
   $('resumeBanner').classList.add('hidden');
 
   state.events=[];
+  cancelRecentGoodCredit();
+  lastRemoved = null;
   state.date = getLocalTodayYMD();
   $('date').value = state.date;
   state.period = 1;
@@ -2919,6 +3017,7 @@ $('btnReset').onclick=()=>{
   state.lastEventId = 0;
 
   save();
+  validateState('new game reset');
   toggleSetup(true);
   highlightPeriod();
   renderAll();
@@ -2937,11 +3036,11 @@ document.querySelectorAll('.modal').forEach(m=>
 /* Inputs */
 $('opponent').oninput=e=>{state.opponent=e.target.value;save();}
 $('level').onchange=e=>{state.level=e.target.value;save();}
-$('date').onchange=e=>{state.date=e.target.value;save();}
+$('date').onchange=e=>{state.date=sanitizeDateInput(e.target.value);$('date').value=state.date;save();validateState('date change');}
 
 /* Copy Summary (now: compact, structured text) */
 $('btnCopySummary').addEventListener('click', ()=>{
-  const date = state.date || new Date().toISOString().slice(0,10);
+  const date = state.date || getLocalTodayYMD();
   const SF=state.countsF.shots, SA=state.countsA.shots, GF=state.countsF.goals, GA=state.countsA.goals;
   const saves=Math.max(0,SA-GA);
   const svText = SA ? (saves/SA).toFixed(3).slice(1) : '—';

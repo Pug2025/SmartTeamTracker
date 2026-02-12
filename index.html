@@ -1101,6 +1101,14 @@ const SAVE_KEY = 'team-tracker-state';
 const ROSTER_KEY = 'team-tracker-roster';
 const LAST_SAVED_KEY = 'team-tracker-last-saved-gameId';
 
+function getLocalTodayYMD(){
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 /* ===== State ===== */
 const state = {
   opponent:'',
@@ -2783,7 +2791,7 @@ async function aiSeasonFocus(){
   $('verPill').textContent = `v${APP_VERSION}`;
 
   // Date input default (iOS-safe: set string, not valueAsDate)
-  const todayStr = new Date().toISOString().slice(0,10);
+  const todayStr = getLocalTodayYMD();
   $('date').value = todayStr;
 
   // Keep state date aligned initially
@@ -2896,6 +2904,9 @@ $('btnReset').onclick=()=>{
   $('resumeBanner').classList.add('hidden');
 
   state.events=[];
+  state.date = getLocalTodayYMD();
+  $('date').value = state.date;
+  state.period = 1;
   state.opponent='';
   $('opponent').value = '';
   state.countsA={shots:0,goals:0,softGoals:0,smothers:0,badRebounds:0,bigSaves:0};
@@ -2909,6 +2920,7 @@ $('btnReset').onclick=()=>{
 
   save();
   toggleSetup(true);
+  highlightPeriod();
   renderAll();
   $('summaryPanel').classList.add('hidden');
 

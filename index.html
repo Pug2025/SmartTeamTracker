@@ -2256,14 +2256,25 @@ const LEVEL_PROFILES = {
 
 /* ===== SCORING ENGINE (UPDATED per Gemini 3 critique) ===== */
 
-/* Helper: Logistic Function (S-Curve)
-   Maps a value to a 0-100 scale based on a midpoint (expected) and spread.
-   If actual == expected, score is 50 (true midpoint).
+/* Helper: Grade-Curve Scoring Function
+   Maps a value to a 0-100 scale using a school-grade philosophy:
+   - Meeting expectations (z=0) = 72 (C+ baseline)
+   - Above expected → rises toward 100 (A+ ceiling)
+   - Below expected → drops steeply toward 0 (F floor)
+   Asymmetric: doing well is rewarded generously, doing poorly is punished fairly.
 */
 function getSigmoidScore(actual, expected, spread) {
   const z = (actual - expected) / (spread || 1);
-  const score = 100 / (1 + Math.exp(-z * 1.2));
-  return Math.round(Math.max(0, Math.min(100, score)));
+  // Asymmetric curve: baseline at 72, ceiling ~98, floor ~5
+  // Upside: +3 spread units → ~96 (A+)
+  // Downside: -3 spread units → ~15 (F)
+  if (z >= 0) {
+    // Above expected: 72 → 98 (generous upside)
+    return Math.round(Math.min(100, 72 + 26 * (1 - Math.exp(-z * 0.8))));
+  } else {
+    // Below expected: 72 → 0 (steeper punishment)
+    return Math.round(Math.max(0, 72 * Math.exp(z * 0.55)));
+  }
 }
 
 function computeGoalieScore() {
@@ -3202,16 +3213,41 @@ $('btnRoster').onclick=openRoster;
 $('btnRosterSave').onclick=saveRosterFromArea;
 $('btnRosterClose').onclick=closeRoster;
 
-/* High Danger modal logic */
+/* High Danger modal logic — auto-dismisses after 2s (defaults to No) */
 let dangerTarget = null;
+let dangerAutoTimer = null;
 function openDangerPrompt(ev) {
   dangerTarget = ev;
   $('dangerTitle').textContent = 'High Danger Chance?';
   $('dangerModal').style.display = 'flex';
+  // Auto-dismiss after 2s if user doesn't tap
+  if (dangerAutoTimer) clearTimeout(dangerAutoTimer);
+  dangerAutoTimer = setTimeout(() => {
+    if (dangerTarget) {
+      dangerTarget.highDanger = false;
+      save();
+      $('dangerModal').style.display = 'none';
+      dangerTarget = null;
+    }
+    dangerAutoTimer = null;
+  }, 2000);
+}
+function closeDangerModal() {
+  if (dangerAutoTimer) { clearTimeout(dangerAutoTimer); dangerAutoTimer = null; }
+  $('dangerModal').style.display = 'none';
+  dangerTarget = null;
 }
 $('dangerModal').addEventListener('click', e => {
   const b = e.target.closest('.pickerBtn');
-  if (!b || !dangerTarget) return;
+  if (!b || !dangerTarget) {
+    // Backdrop click — dismiss as No
+    if (e.target === $('dangerModal')) {
+      if (dangerTarget) { dangerTarget.highDanger = false; save(); }
+      closeDangerModal();
+    }
+    return;
+  }
+  if (dangerAutoTimer) { clearTimeout(dangerAutoTimer); dangerAutoTimer = null; }
   dangerTarget.highDanger = (b.dataset.danger === 'yes');
   save();
   $('dangerModal').style.display = 'none';

@@ -1176,11 +1176,6 @@
   </div>
 </div></div>
 
-<!-- Debug (Hidden by default in UI but kept for ref) -->
-<div id="debugWrap" style="display:none;">
-  <div id="debugGoalieLine"></div><div id="debugTeamLine"></div>
-</div>
-
 <script>
 /* ===== App Version ===== */
 const APP_VERSION = '6.0.0';
@@ -1664,19 +1659,6 @@ function clearGoodPendingFor(id){
 /* Offensive breakaway timing */
 let lastBreakawayForTap = 0;
 
-function wasRecentEvent(type, seconds){
-  const now = Date.now();
-  const ms = seconds * 1000;
-
-  for(let i = state.events.length - 1; i >= 0; i--){
-    const ev = state.events[i];
-    if(ev.type !== type) continue;
-    const t = new Date(ev.tISO).getTime();
-    return (now - t) <= ms;
-  }
-  return false;
-}
-
 /* Track most recent "shot" event for linking with big_save/bad_rebound */
 let lastShotAgainstTime = 0;
 let lastShotAgainstId = null;
@@ -1902,6 +1884,7 @@ function labelFor(ev){
   let label = ev.type
     .replace('soft_goal','Soft Goal')
     .replace('bad_rebound','Bad Rebound')
+    .replace('big_save','Big Save')
     .replace('for_shot','Our Shot')
     .replace('for_goal','Our Goal')
     .replace('breakaway_against','Breakaway Ag')
@@ -1955,7 +1938,7 @@ $('gaGrid').addEventListener('click', e=>{
   $('gaOverlay').style.display='none';
   renderAll();
 
-  openMultiPicker({title:'5 Players On Ice (required)', max:5, event:lastGAEvent, field:'onIce', exclude:[]});
+  openMultiPicker({title:'5 Players On Ice (for +/-)', max:5, event:lastGAEvent, field:'onIce', exclude:[]});
   lastGAEvent=null;
 });
 $('gaSkip').addEventListener('click', ()=>{
@@ -2259,12 +2242,12 @@ function normalizeLevelKey(levelStr){
 }
 
 const LEVEL_PROFILES = {
-  U9:  { goalieBaseSV:0.75, teamFinExp:0.20, minShots:10 },
-  U11: { goalieBaseSV:0.80, teamFinExp:0.17, minShots:15 },
-  U13: { goalieBaseSV:0.82, teamFinExp:0.15, minShots:18 },
-  U15: { goalieBaseSV:0.86, teamFinExp:0.13, minShots:22 },
-  U18: { goalieBaseSV:0.89, teamFinExp:0.12, minShots:25 },
-  Other:{ goalieBaseSV:0.85, teamFinExp:0.14, minShots:20 }
+  U9:  { goalieBaseSV:0.75 },
+  U11: { goalieBaseSV:0.80 },
+  U13: { goalieBaseSV:0.82 },
+  U15: { goalieBaseSV:0.86 },
+  U18: { goalieBaseSV:0.89 },
+  Other:{ goalieBaseSV:0.85 }
 };
 
 /* ===== SCORING ENGINE (UPDATED per Gemini 3 critique) ===== */
@@ -2402,17 +2385,17 @@ function computeTeamScore() {
   const scoreDanger = getSigmoidScore(dangerDiff, 0, 3);
 
   // 3) EXECUTION / RESULT (Weighted goal differential) — 35% weight
-  //    PK goals against count FULL weight for team (team caused the penalty)
+  //    Strength reflects OUR team's situation when the goal-against happened:
+  //    SH = we were shorthanded → opponent scored a PP goal (expected, reduced blame)
+  //    PP = we were on power play → opponent scored SH goal (embarrassing, full blame)
   let teamWeightedGF = GF;
   let teamWeightedGA = 0;
   for (const ev of state.events) {
     if (ev.type === 'goal' || ev.type === 'soft_goal') {
-      // SH goals against = full weight (team took the penalty)
-      // PP goals against = reduced weight (opponent earned their PP)
-      teamWeightedGA += (ev.strength === 'PP') ? 0.6 : 1.0;
+      teamWeightedGA += (ev.strength === 'SH') ? 0.6 : 1.0;
     }
   }
-  if (teamWeightedGA === 0) teamWeightedGA = GA; // fallback if no strength tagged
+  if (teamWeightedGA === 0 && GA > 0) teamWeightedGA = GA; // fallback if no strength tagged
   const goalDiff = teamWeightedGF - teamWeightedGA;
   const scoreResult = getSigmoidScore(goalDiff, 0, 2.5);
 
@@ -2654,7 +2637,9 @@ function renderLog(){
     if(ev.strength) tags.push(ev.strength);
 
     const tagText = tags.join(' • ');
-    const needs = ev.needsContext && isGA;
+    const needsCtx = ev.needsContext && isGA;
+    const isGoal = isGA || ev.type==='for_goal';
+    const needsStr = isGoal && !ev.strength;
     const meta = `P${ev.period} • ${fmtTime(ev.tISO)}`;
     return `
       <div class="log-item" data-id="${ev.id}">
@@ -2663,7 +2648,8 @@ function renderLog(){
           <span>${labelFor(ev)}</span>
           ${tagText ? `<span class="badge">${tagText}</span>` : ''}
         </div>
-        ${needs ? `<span class="badge badge-tag" data-id="${ev.id}">Tag</span>` : ''}
+        ${needsCtx ? `<span class="badge badge-tag" data-id="${ev.id}">Tag</span>` : ''}
+        ${needsStr ? `<span class="badge badge-tag badge-str" data-id="${ev.id}">EV/PP/SH</span>` : ''}
       </div>`;
   }).join('');
 }
@@ -2676,10 +2662,15 @@ $('log').addEventListener('click', e=>{
   const ev = state.events.find(x=>x.id===id);
   if(!ev) return;
 
-  // user is tagging now, so stop showing "Tag" immediately
+  // Strength tag badge → open strength picker
+  if(badge.classList.contains('badge-str')){
+    openStrengthPicker(ev, 'Our Team\'s Situation (required)');
+    return;
+  }
+
+  // GA context tag badge → open GA context modal
   ev.needsContext = false;
   save();
-
   openGAContext(ev);
 });
 
@@ -2755,13 +2746,13 @@ function endGame(){
     `Goals Against — EV ${sb.against.EV||0}, PP ${sb.against.PP||0}, SH ${sb.against.SH||0}, Unk ${sb.against.UNK||0}.`;
 
   // Period table
-  let html = `<table><tr><th>P</th><th>SF</th><th>SA</th><th>GF</th><th>GA</th><th>BF</th><th>OMRF</th><th>BA</th><th>DZ</th><th>OMRA</th><th>PF</th><th>PA</th></tr>`;
+  let html = `<table><tr><th>P</th><th>SF</th><th>SA</th><th>GF</th><th>GA</th><th>BF</th><th>OMRF</th><th>FT</th><th>BA</th><th>DZ</th><th>OMRA</th><th>PF</th><th>PA</th></tr>`;
   for(let p=1;p<=4;p++){
     const v=per[p];
     html+=`<tr>
       <td>${p===4?'OT':p}</td>
       <td>${v.F_shots}</td><td>${v.A_shots}</td><td>${v.F_goals}</td><td>${v.A_goals}</td>
-      <td>${v.BF}</td><td>${v.OMRF}</td><td>${v.BA}</td><td>${v.DZ}</td>
+      <td>${v.BF}</td><td>${v.OMRF}</td><td>${v.FT||0}</td><td>${v.BA}</td><td>${v.DZ}</td>
       <td>${v.OMRA||0}</td><td>${v.PF||0}</td><td>${v.PA||0}</td>
     </tr>`;
   }
@@ -2780,6 +2771,7 @@ function endGame(){
         <tr><th>Context</th><th>Count</th></tr>
         <tr><td>Breakaway</td><td>${gfCtx.BA}</td></tr>
         <tr><td>Odd Man Rush</td><td>${gfCtx.OMR}</td></tr>
+        <tr><td>Forced Turnover</td><td>${gfCtx.FT||0}</td></tr>
         <tr><td>Other</td><td>${gfCtx.Other}</td></tr>
       </table>
     </div>
@@ -3367,9 +3359,18 @@ $('btnReset').onclick=async()=>{
   pingCloud();
 };
 
-/* Modals close on backdrop click */
+/* Modals close on backdrop click — with state cleanup for stateful modals */
 document.querySelectorAll('.modal').forEach(m=>
-  m.addEventListener('click',e=>{if(e.target===m)m.style.display='none';})
+  m.addEventListener('click',e=>{
+    if(e.target!==m) return;
+    m.style.display='none';
+    // Clean up state for modals that track pending operations
+    const mid = m.id;
+    if(mid==='pickerModal'){ pickerFlow.mode=null; }
+    if(mid==='strengthModal'){ strengthTarget=null; }
+    if(mid==='gaOverlay'){ lastGAEvent=null; }
+    if(mid==='onIceModal'){ multiPick.eventRef=null; }
+  })
 );
 
 /* Inputs */

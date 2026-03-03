@@ -1143,6 +1143,9 @@
     <button class="btn-std" id="gameDetailClose" style="font-size:11px; padding:4px 10px;">Close</button>
   </div>
   <div id="gameDetailBody" class="small"></div>
+  <div style="margin-top:16px; text-align:center;">
+    <button class="btn-std" id="gameDetailDelete" style="border-color:var(--accent-them); color:var(--accent-them); font-size:12px;">Delete Game</button>
+  </div>
 </div></div>
 
 <!-- Debug (Hidden by default in UI but kept for ref) -->
@@ -3265,12 +3268,15 @@ function renderHistoryList(games){
   });
 }
 
+let currentDetailGameId = null;
+
 function showGameDetail(game){
   const d = game.data || {};
   const opp = d.Opponent || game.opponent || 'Unknown';
   const date = d.Date || game.date || '—';
   const level = d.Level || game.level || '';
 
+  currentDetailGameId = game.id || null;
   $('gameDetailTitle').textContent = `${opp} — ${date}`;
 
   const gf=d.GF??'—', ga=d.GA??'—', sf=d.SF??'—', sa=d.SA??'—';
@@ -3299,9 +3305,32 @@ function showGameDetail(game){
   html+='</table>';
 
   $('gameDetailBody').innerHTML = html;
+  $('gameDetailDelete').style.display = currentDetailGameId ? 'inline-block' : 'none';
   $('gameDetailModal').style.display = 'flex';
 }
 $('gameDetailClose').addEventListener('click', ()=>{ $('gameDetailModal').style.display='none'; });
+
+$('gameDetailDelete').addEventListener('click', async ()=>{
+  if(!currentDetailGameId) return;
+  const ok = await showConfirm('Permanently delete this game?');
+  if(!ok) return;
+
+  try{
+    const res = await fetch(`/api/games?id=${encodeURIComponent(currentDetailGameId)}`, { method:'DELETE' });
+    const d = await res.json();
+    if(d.success){
+      showStatusToast('Game deleted', 'success');
+      $('gameDetailModal').style.display = 'none';
+      // Refresh the history list
+      $('btnHistory').click();
+    } else {
+      showStatusToast('Delete failed', 'error', 3500);
+    }
+  }catch(e){
+    console.error(e);
+    showStatusToast('Error deleting game', 'error', 3500);
+  }
+});
 
 </script>
 </body>

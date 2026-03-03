@@ -2526,10 +2526,11 @@ function endGame(){
     GA_Other: gaStats.Other
   };
 
-  saveGameToAirtable(gameData);
+  gameData.gameId = state.gameId;
+  saveGameToCloud(gameData);
 }
 
-async function saveGameToAirtable(game){
+async function saveGameToCloud(game){
   try{
     setCloudStatus('Cloud: Saving…','warn');
     const res = await fetch('/api/save-game',{
@@ -2541,7 +2542,7 @@ async function saveGameToAirtable(game){
     if(d.success){
       localStorage.setItem(LAST_SAVED_KEY, state.gameId);
       setCloudStatus('Cloud: Saved','good');
-      alert('Saved to Airtable!');
+      alert('Game saved!');
     }else{
       setCloudStatus('Cloud: Error','bad');
       alert('Save Failed');

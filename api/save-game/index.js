@@ -1,162 +1,71 @@
 // api/save-game/index.js
-// Version: v5.1.0 – keep in sync with app version
+// Version: v6.0.0 – Supabase edition
 //
 // Purpose:
-// - Accept ONLY the simple save payload: { game: { ...AirtableFields } }
-// - Strict allowlist filtering to match Airtable columns
-// - (Optional) JSONDump support if the field exists
-
-// 1) CONFIGURATION: Strict allowlist must match Airtable field names exactly.
-const AIRTABLE_ALLOWED_FIELDS = [
-  "Date",
-  "Opponent",
-  "Level",
-  "TeamScore",
-  "GoalieScore",
-  "SF",
-  "SA",
-  "GF",
-  "GA",
-  "BreakawaysAgainst",
-  "DZTurnovers",
-  "BreakawaysFor",
-  "OddManRushFor",
-  "Smothers",
-  "BadRebounds",
-  "BigSaves",
-  "SoftGoals",
-  "GA_BA",
-  "GA_DZ",
-  "GA_BR",
-  "GA_Other",
-  // Optional: keep only if you have a LONG TEXT field in Airtable named JSONDump
-  "JSONDump"
-];
-
-// 2) HELPER: Manual JSON body parsing (Vercel/Node)
-const parseBody = async (req) => {
-  // If middleware already parsed JSON, use it
-  if (req.body && typeof req.body === "object" && Object.keys(req.body).length > 0) {
-    return req.body;
-  }
-
-  // Otherwise, manually read the stream
-  return new Promise((resolve) => {
-    let body = "";
-    req.on("data", (chunk) => {
-      body += chunk;
-    });
-    req.on("end", () => {
-      try {
-        resolve(JSON.parse(body || "{}"));
-      } catch (e) {
-        console.error("DEBUG: JSON parse error:", e);
-        resolve({});
-      }
-    });
-  });
-};
+// - Accept game data: { game: { ...stats } }
+// - Store in Supabase with all stats in a flexible JSONB column
+// - No allowlist needed — any new stat you track is saved automatically
 
 export default async function handler(req, res) {
-  // CORS & Method Check
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
 
   try {
-    const payload = await parseBody(req);
-    console.log("DEBUG: Received payload keys:", Object.keys(payload || {}));
+    const payload = typeof req.body === "object" && req.body ? req.body : JSON.parse(await readBody(req));
 
-    // We now accept ONLY: { game: { ... } }
     if (!payload || !payload.game || typeof payload.game !== "object") {
-      console.warn("DEBUG: Invalid payload structure. Expected { game: {...} }");
-      return res.status(400).json({ error: "Invalid payload structure. Expected { game: {...} }" });
+      return res.status(400).json({ error: "Invalid payload. Expected { game: {...} }" });
     }
 
-    // Candidate data is the game object
-    const candidateData = { ...payload.game };
+    const game = payload.game;
 
-    // Optional JSONDump: store raw payload/game for debugging if the field exists
-    if (AIRTABLE_ALLOWED_FIELDS.includes("JSONDump")) {
-      // You can choose one of these:
-      // 1) Dump only the game object:
-      candidateData.JSONDump = JSON.stringify(payload.game);
-      // 2) Or dump the entire payload:
-      // candidateData.JSONDump = JSON.stringify(payload);
-    }
-
-    // --- Strict Filtering (Guardrails) ---
-    const finalFields = {};
-    AIRTABLE_ALLOWED_FIELDS.forEach((field) => {
-      if (candidateData[field] !== undefined) {
-        finalFields[field] = candidateData[field];
-      }
-    });
-
-    console.log("DEBUG: Final fields going to Airtable:", JSON.stringify(finalFields, null, 2));
-
-    if (Object.keys(finalFields).length === 0) {
-      console.warn("DEBUG: No allowed Airtable fields present in candidateData.");
-      return res.status(400).json({ error: "No allowed Airtable fields in payload." });
-    }
-
-    // --- Send to Airtable ---
-    const baseId = process.env.AIRTABLE_BASE_ID;
-    const tableId = process.env.AIRTABLE_TABLE_ID;
-    const pat = process.env.AIRTABLE_PAT;
-
-    if (!baseId || !tableId || !pat) {
-      console.error("DEBUG: Missing Airtable env vars", {
-        baseId: !!baseId,
-        tableId: !!tableId,
-        pat: !!pat
-      });
-      return res
-        .status(500)
-        .json({ error: "Server configuration error (Airtable env vars)" });
-    }
-
-    const airtableUrl = `https://api.airtable.com/v0/${baseId}/${tableId}`;
-
-    const airtablePayload = {
-      records: [
-        {
-          fields: finalFields
-        }
-      ],
-      typecast: true
+    const row = {
+      game_id: game.gameId || null,
+      date: game.Date || null,
+      opponent: game.Opponent || null,
+      level: game.Level || null,
+      data: game
     };
 
-    console.log("DEBUG: Sending payload to Airtable:", JSON.stringify(airtablePayload, null, 2));
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_ANON_KEY;
 
-    const response = await fetch(airtableUrl, {
+    if (!supabaseUrl || !supabaseKey) {
+      console.error("Missing SUPABASE_URL or SUPABASE_ANON_KEY env vars");
+      return res.status(500).json({ error: "Server configuration error" });
+    }
+
+    const response = await fetch(`${supabaseUrl}/rest/v1/games`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${pat}`,
-        "Content-Type": "application/json"
+        "apikey": supabaseKey,
+        "Authorization": `Bearer ${supabaseKey}`,
+        "Content-Type": "application/json",
+        "Prefer": "return=representation"
       },
-      body: JSON.stringify(airtablePayload)
+      body: JSON.stringify(row)
     });
 
     const data = await response.json();
-    console.log("DEBUG: Airtable status / response:", response.status, JSON.stringify(data, null, 2));
 
     if (!response.ok) {
-      console.error("DEBUG: Airtable Error:", JSON.stringify(data));
-      return res.status(response.status).json({
-        error: "Airtable Save Failed",
-        details: data?.error || data
-      });
+      console.error("Supabase error:", JSON.stringify(data));
+      return res.status(response.status).json({ error: "Save failed", details: data });
     }
 
-    const recordId = data?.records?.[0]?.id;
-    console.log("DEBUG: Airtable Success ID:", recordId);
+    const record = Array.isArray(data) ? data[0] : data;
+    return res.status(200).json({ success: true, id: record.id });
 
-    return res.status(200).json({ success: true, id: recordId });
   } catch (error) {
-    console.error("DEBUG: Server Exception:", error);
-    return res.status(500).json({
-      error: "Internal Server Error",
-      message: error.message
-    });
+    console.error("Server error:", error);
+    return res.status(500).json({ error: "Internal Server Error", message: error.message });
   }
+}
+
+function readBody(req) {
+  return new Promise((resolve) => {
+    let body = "";
+    req.on("data", (chunk) => { body += chunk; });
+    req.on("end", () => resolve(body || "{}"));
+  });
 }

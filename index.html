@@ -6,7 +6,7 @@
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Team Tracker – iPhone (v5.1.1)</title>
+<title>Team Tracker – iPhone (v6.0.0)</title>
 <style>
   :root{
     /* Theme: High Contrast / Split Brain */
@@ -599,21 +599,6 @@
     border-color:var(--accent-them);
   }
 
-  .ai-actions{
-    display:flex;
-    flex-wrap:wrap;
-    gap:8px;
-    margin-top:10px;
-  }
-  .btn.ai{
-    padding:10px;
-    background:#1a1a1a;
-    border:1px solid #333;
-    color:#ccc;
-    border-radius:8px;
-    flex:1;
-  }
-
   /* Common utils */
   .rowbtn{
     display:flex;
@@ -690,6 +675,99 @@
     display:none;
     z-index:3000;
   }
+
+  /* Status toast (save success/failure) */
+  .status-toast{
+    position:fixed;
+    top:60px;
+    left:50%;
+    transform:translateX(-50%);
+    padding:10px 20px;
+    border-radius:12px;
+    font-size:13px;
+    font-weight:700;
+    z-index:10000;
+    opacity:0;
+    transition:opacity 0.3s;
+    pointer-events:none;
+  }
+  .status-toast.show{ opacity:1; }
+  .status-toast.success{ background:#0a2a0a; border:1px solid var(--good); color:var(--good); }
+  .status-toast.error{ background:#2a0a0a; border:1px solid var(--accent-them); color:var(--accent-them); }
+
+  /* Confirm modal */
+  .confirm-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.85);
+    z-index:10001;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:16px;
+  }
+  .confirm-box{
+    background:#111;
+    border:1px solid #333;
+    border-radius:14px;
+    padding:24px 20px;
+    max-width:320px;
+    width:100%;
+    text-align:center;
+  }
+  .confirm-box .confirm-msg{
+    font-size:16px;
+    font-weight:700;
+    margin-bottom:20px;
+  }
+  .confirm-box .confirm-btns{
+    display:flex;
+    gap:12px;
+    justify-content:center;
+  }
+  .confirm-box .confirm-btn{
+    flex:1;
+    padding:12px;
+    border-radius:10px;
+    font-size:14px;
+    font-weight:700;
+    border:1px solid #444;
+    cursor:pointer;
+  }
+  .confirm-box .confirm-cancel{
+    background:#222;
+    color:#fff;
+  }
+  .confirm-box .confirm-ok{
+    background:#3a0e0e;
+    border-color:var(--accent-them);
+    color:var(--accent-them);
+  }
+
+  /* Game History */
+  .history-item{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:10px;
+    border:1px solid #222;
+    border-radius:10px;
+    margin-bottom:6px;
+    cursor:pointer;
+    background:#0a0a0a;
+  }
+  .history-item:active{ background:#1a1a1a; }
+  .history-left{ display:flex; flex-direction:column; gap:2px; }
+  .history-opp{ font-size:14px; font-weight:700; color:#fff; }
+  .history-meta{ font-size:11px; color:var(--muted); }
+  .history-score{
+    font-size:20px;
+    font-weight:800;
+    letter-spacing:-0.5px;
+  }
+  .history-score .w{ color:var(--good); }
+  .history-score .l{ color:var(--accent-them); }
+  .history-score .t{ color:var(--warn); }
 </style>
 </head>
 <body>
@@ -758,6 +836,16 @@
       </div>
       <div id="resumeBanner" class="banner hidden" style="font-size:12px; color:var(--warn); margin-bottom:10px;">Resumed saved game.</div>
       <button id="btnStartGame" class="btn-start">Start Game</button>
+      <button id="btnHistory" class="btn-start" style="background:#222; color:#fff; border:1px solid #444; margin-top:8px; font-size:14px;">Past Games</button>
+    </div>
+
+    <!-- Game History Panel -->
+    <div id="historyPanel" class="card" style="display:none; margin-top:14px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h3 style="margin:0; font-size:16px;">Game History</h3>
+        <button class="btn-std" id="btnHistoryClose" style="font-size:11px; padding:4px 10px;">Close</button>
+      </div>
+      <div id="historyList" class="small" style="color:#aaa;">Loading...</div>
     </div>
   </div>
 
@@ -932,23 +1020,6 @@
     <div id="pmTableWrap" style="margin-top:15px;"></div>
     <div id="gaDetailWrap" style="margin-top:15px;"></div>
 
-    <div class="ai-actions">
-      <button class="btn ai" id="btnAIPractice">Practice Plan</button>
-      <button class="btn ai" id="btnAIGoalieReport">Goalie Report</button>
-      <button class="btn ai" id="btnAIFocus">Next Game Focus</button>
-    </div>
-
-    <!-- AI Results Cards -->
-    <div class="card" id="aiPracticeCard" style="margin-top:10px;display:none;">
-      <h3 style="margin:0 0 6px 0;">AI Practice Plan</h3><div class="small" id="aiPracticeBody"></div>
-    </div>
-    <div class="card" id="aiGoalieCard" style="margin-top:10px;display:none;">
-      <h3 style="margin:0 0 6px 0;">AI Goalie Report</h3><div class="small" id="aiGoalieBody"></div>
-    </div>
-    <div class="card" id="aiFocusCard" style="margin-top:10px;display:none;">
-      <h3 style="margin:0 0 6px 0;">AI Next Game Focus</h3><div class="small" id="aiFocusBody"></div>
-    </div>
-
     <div class="rowbtn" style="margin-top:20px; justify-content:center;">
       <button class="btn-std" id="btnExportGameCSV">Export CSV</button>
       <button class="btn-std" id="btnCopySummary">Copy Text</button>
@@ -1051,6 +1122,29 @@
 
 <div class="toast" id="toast">Removed. <button id="toastRestore" style="background:none; border:none; color:var(--accent-us); font-weight:700;">Restore</button></div>
 
+<!-- Status Toast -->
+<div class="status-toast" id="statusToast"></div>
+
+<!-- Confirm Modal -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <div class="confirm-msg" id="confirmMsg">Are you sure?</div>
+    <div class="confirm-btns">
+      <button class="confirm-btn confirm-cancel" id="confirmCancel">Cancel</button>
+      <button class="confirm-btn confirm-ok" id="confirmOk">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Game Detail Modal -->
+<div class="modal" id="gameDetailModal"><div class="box" style="max-height:80vh; overflow-y:auto;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+    <h3 style="margin:0; font-size:16px;" id="gameDetailTitle">Game Detail</h3>
+    <button class="btn-std" id="gameDetailClose" style="font-size:11px; padding:4px 10px;">Close</button>
+  </div>
+  <div id="gameDetailBody" class="small"></div>
+</div></div>
+
 <!-- Debug (Hidden by default in UI but kept for ref) -->
 <div id="debugWrap" style="display:none;">
   <div id="debugGoalieLine"></div><div id="debugTeamLine"></div>
@@ -1058,10 +1152,10 @@
 
 <script>
 /* ===== App Version ===== */
-const APP_VERSION = '5.1.1';
+const APP_VERSION = '6.0.0';
 
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', ()=>navigator.serviceWorker.register('service-worker.js?v=5111'));
+  window.addEventListener('load', ()=>navigator.serviceWorker.register('service-worker.js?v=6000'));
 }
 
 /* ===== IndexedDB KV helper ===== */
@@ -1275,6 +1369,32 @@ setInterval(()=>{
 /* ===== Helpers ===== */
 function vibrate(ms=20){ if(navigator.vibrate) navigator.vibrate(ms); }
 
+/* Status toast (replaces alert) */
+let statusToastTimer = null;
+function showStatusToast(msg, type='success', duration=2500){
+  const el = $('statusToast');
+  el.textContent = msg;
+  el.className = 'status-toast ' + type;
+  requestAnimationFrame(()=>el.classList.add('show'));
+  if(statusToastTimer) clearTimeout(statusToastTimer);
+  statusToastTimer = setTimeout(()=>{
+    el.classList.remove('show');
+    statusToastTimer = null;
+  }, duration);
+}
+
+/* Confirm modal (replaces confirm()) */
+function showConfirm(msg){
+  return new Promise(resolve => {
+    $('confirmMsg').textContent = msg;
+    $('confirmOverlay').style.display = 'flex';
+    function cleanup(){ $('confirmOverlay').style.display = 'none'; }
+    $('confirmOk').onclick = ()=>{ cleanup(); resolve(true); };
+    $('confirmCancel').onclick = ()=>{ cleanup(); resolve(false); };
+    $('confirmOverlay').onclick = (e)=>{ if(e.target === $('confirmOverlay')){ cleanup(); resolve(false); }};
+  });
+}
+
 function highlightPeriod(){
   [...$('periodChips').children].forEach(ch=>{
     const p = Number(ch.dataset.p);
@@ -1431,15 +1551,20 @@ function validateState(source='unknown'){
 }
 
 const pendingGood = new Map();
+let lastShotEventId = null; // tracks the most recent shot/big_save for linking
 
-/* Only allow ONE pending "good rebound" credit at a time.
-   This prevents older timers from firing after a later outcome (goal/smother/bad rebound). */
+/* Schedule a "good rebound" credit for a shot/big_save event.
+   Each event gets its own independent 4s timer. A new shot only cancels the
+   immediately preceding shot's timer (back-to-back shots imply an uncontrolled
+   rebound), but does NOT cancel older timers that have already been running. */
 function scheduleGoodReboundCredit(id){
-  // Clear any existing pending credits first
-  for(const [pid, to] of pendingGood.entries()){
-    clearTimeout(to);
-    pendingGood.delete(pid);
+  // A new shot/big_save means the PREVIOUS shot's rebound wasn't controlled
+  // (puck came back out as another shot). Cancel only that one.
+  if(lastShotEventId !== null && pendingGood.has(lastShotEventId)){
+    clearTimeout(pendingGood.get(lastShotEventId));
+    pendingGood.delete(lastShotEventId);
   }
+  lastShotEventId = id;
 
   const to = setTimeout(()=>{
     const ev = state.events.find(e=>e.id===id);
@@ -1449,19 +1574,21 @@ function scheduleGoodReboundCredit(id){
       renderAll();
     }
     pendingGood.delete(id);
+    if(lastShotEventId === id) lastShotEventId = null;
   }, 4000);
 
   pendingGood.set(id, to);
 }
 
-/* Cancel ALL pending credits (not just the most recent).
-   Called when an outcome happens (smother/bad rebound/goal). */
+/* Cancel ALL pending credits.
+   Called when a definitive outcome happens (smother/bad rebound/goal). */
 function cancelRecentGoodCredit(){
   if(!pendingGood.size) return;
   for(const [pid, to] of pendingGood.entries()){
     clearTimeout(to);
     pendingGood.delete(pid);
   }
+  lastShotEventId = null;
 }
 
 /* If the specific event is pending, clear it. */
@@ -1469,6 +1596,7 @@ function clearGoodPendingFor(id){
   if(!pendingGood.has(id)) return;
   clearTimeout(pendingGood.get(id));
   pendingGood.delete(id);
+  if(lastShotEventId === id) lastShotEventId = null;
 }
 
 /* Offensive breakaway timing */
@@ -1487,7 +1615,41 @@ function wasRecentEvent(type, seconds){
   return false;
 }
 
+/* Track most recent "shot" event for linking with big_save/bad_rebound */
+let lastShotAgainstTime = 0;
+let lastShotAgainstId = null;
+const SHOT_LINK_WINDOW = 3000; // 3 seconds
+
 function addEvent(type, meta={}){
+  // If big_save or bad_rebound is tapped within 3s of a plain "shot", upgrade
+  // that shot event instead of creating a second SA.
+  if(type === 'big_save' || type === 'bad_rebound'){
+    const now = Date.now();
+    if(lastShotAgainstId !== null && (now - lastShotAgainstTime) <= SHOT_LINK_WINDOW){
+      const prevIdx = state.events.findIndex(e => e.id === lastShotAgainstId && e.type === 'shot');
+      if(prevIdx !== -1){
+        const prev = state.events[prevIdx];
+        // Revert the old "shot" counts
+        revert(prev);
+        // Upgrade it
+        prev.type = type;
+        // Re-apply with new type
+        bump(type, prev.period);
+        // Handle good rebound credit
+        clearGoodPendingFor(prev.id);
+        if(type === 'bad_rebound') cancelRecentGoodCredit();
+        if(type === 'big_save') scheduleGoodReboundCredit(prev.id);
+        lastShotAgainstId = null;
+        lastShotAgainstTime = 0;
+        save();
+        validateState(`upgrade:${type}`);
+        renderAll();
+        vibrate();
+        return prev;
+      }
+    }
+  }
+
   const ev = {
     id: ++state.lastEventId,
     type,
@@ -1495,6 +1657,12 @@ function addEvent(type, meta={}){
     period: sanitizePeriod(state.period),
     ...meta
   };
+
+  // Track plain shots for linking
+  if(type === 'shot'){
+    lastShotAgainstTime = Date.now();
+    lastShotAgainstId = ev.id;
+  }
 
   // If a follow-up outcome happens, cancel the pending "good rebound" credit
   // (shot → smother means no rebound; shot → bad rebound means rebound was bad; goal ends the sequence)
@@ -2089,8 +2257,9 @@ const isSoft =
     if (ev.type === 'goal' || ev.type === 'soft_goal') weightedGoals += wGoal;
   });
 
-  // 3) Rebound control signal
-  const reboundScore = (C.smothers * 1.5) - (C.badRebounds * 2.0);
+  // 3) Rebound control signal (smothers + good rebounds positive, bad rebounds negative)
+  const goodRebounds = state.events.filter(e => e.goodRebound).length;
+  const reboundScore = (C.smothers * 1.5) + (goodRebounds * 1.0) - (C.badRebounds * 2.0);
 
   // 4) GSAx: goals saved above expected (weighted)
   const expectedGoalsAllowed = weightedShots * (1 - baseSvPct);
@@ -2109,7 +2278,8 @@ const isSoft =
     ctxAdj: Math.round(GSAx * 10) / 10,
     scoreRebound: Math.round(reboundScore),
     scoreBig: C.bigSaves,
-    goodRebounds: C.smothers
+    goodRebounds: goodRebounds,
+    smothers: C.smothers
   };
 }
 
@@ -2431,7 +2601,7 @@ function endGame(){
   // Goalie audit: show weighted workload + GSAx + key counters
   $('scoreBreakdown').textContent =
     `Weighted Shots: ${K.scoreSV} | GSAx: ${K.ctxAdj} | Soft Goals: ${K.softPenalty} | ` +
-    `Rebound Score: ${K.scoreRebound} | Big Saves: ${K.scoreBig} | Smothers: ${K.goodRebounds}`;
+    `Rebound Score: ${K.scoreRebound} | Big Saves: ${K.scoreBig} | Smothers: ${K.smothers} | Good Reb: ${K.goodRebounds}`;
 
   // Team audit: map to 3 pillars
   $('teamBreakdown').textContent =
@@ -2542,21 +2712,22 @@ async function saveGameToCloud(game){
     if(d.success){
       localStorage.setItem(LAST_SAVED_KEY, state.gameId);
       setCloudStatus('Cloud: Saved','good');
-      alert('Game saved!');
+      showStatusToast('Game saved!', 'success');
     }else{
       setCloudStatus('Cloud: Error','bad');
-      alert('Save Failed');
+      showStatusToast('Save failed', 'error', 3500);
     }
   }catch(e){
     console.error(e);
     setCloudStatus('Cloud: Error','bad');
-    alert('Error saving.');
+    showStatusToast('Error saving game', 'error', 3500);
   }
 }
 
 /* CSV Helpers: game row + per-player block */
 function computePlayerStats(){
   const stats = new Map();
+  let unattr = {player:'Unattributed', shots:0, goals:0, assists:0, pm:0};
   function ensure(n){
     const s = String(n||'').trim();
     if(!s || s==='Unknown' || s==='?') return null;
@@ -2569,10 +2740,12 @@ function computePlayerStats(){
     if(ev.type==='for_shot'){
       const st = ensure(ev.player);
       if(st) st.shots++;
+      else unattr.shots++;
     }
     if(ev.type==='for_goal'){
       const stS = ensure(ev.player);
-      if(stS) stS.goals++;
+      if(stS){ stS.goals++; stS.shots++; }
+      else { unattr.goals++; unattr.shots++; }
       const stA = ensure(ev.assist);
       if(stA) stA.assists++;
     }
@@ -2583,7 +2756,9 @@ function computePlayerStats(){
     const st = ensure(k);
     if(st) st.pm = v;
   }
-  return sortRoster([...stats.keys()]).map(k=>stats.get(k));
+  const result = sortRoster([...stats.keys()]).map(k=>stats.get(k));
+  if(unattr.shots > 0 || unattr.goals > 0) result.push(unattr);
+  return result;
 }
 
 function exportGameCSV(){
@@ -2833,48 +3008,6 @@ return;
   pickerFlow.mode=null;
 }
 
-/* AI calls */
-async function runAI(endpoint, payload){
-  const res = await fetch(endpoint,{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(payload||{})
-  });
-  const d = await res.json();
-  if(!d || !d.success) throw new Error('AI failed');
-  return d;
-}
-async function aiPracticePlan(){
-  $('aiPracticeCard').style.display='block';
-  $('aiPracticeBody').textContent = 'Loading…';
-  try{
-    const d = await runAI('/api/practice-plan', {game: state});
-    $('aiPracticeBody').textContent = d.text || d.result || '—';
-  }catch(e){
-    $('aiPracticeBody').textContent = 'Failed.';
-  }
-}
-async function aiGoalieReport(){
-  $('aiGoalieCard').style.display='block';
-  $('aiGoalieBody').textContent = 'Loading…';
-  try{
-    const d = await runAI('/api/goalie-report', {game: state});
-    $('aiGoalieBody').textContent = d.text || d.result || '—';
-  }catch(e){
-    $('aiGoalieBody').textContent = 'Failed.';
-  }
-}
-async function aiSeasonFocus(){
-  $('aiFocusCard').style.display='block';
-  $('aiFocusBody').textContent = 'Loading…';
-  try{
-    const d = await runAI('/api/season-focus', {game: state});
-    $('aiFocusBody').textContent = d.text || d.result || '—';
-  }catch(e){
-    $('aiFocusBody').textContent = 'Failed.';
-  }
-}
-
 /* Init */
 (function init(){
   // Version pill
@@ -2994,8 +3127,9 @@ $('btnNextPeriod').onclick=()=>{
 
 $('btnEnd').onclick=endGame;
 
-$('btnReset').onclick=()=>{
-  if(!confirm('Clear game?'))return;
+$('btnReset').onclick=async()=>{
+  const ok = await showConfirm('Clear current game and start fresh?');
+  if(!ok) return;
 
   // Hide "Resumed saved game" banner when starting a truly new game
   $('resumeBanner').classList.add('hidden');
@@ -3080,10 +3214,94 @@ $('btnCopyClose').addEventListener('click', ()=>{ $('copyModal').style.display='
 /* Export CSV */
 $('btnExportGameCSV').addEventListener('click', exportGameCSV);
 
-/* AI / Season buttons */
-$('btnAIPractice').addEventListener('click', aiPracticePlan);
-$('btnAIGoalieReport').addEventListener('click', aiGoalieReport);
-$('btnAIFocus').addEventListener('click', aiSeasonFocus);
+/* ===== Game History ===== */
+$('btnHistory').addEventListener('click', async ()=>{
+  $('historyPanel').style.display = 'block';
+  $('historyList').innerHTML = '<div style="text-align:center; padding:20px; color:var(--muted);">Loading...</div>';
+  try{
+    const res = await fetch('/api/games');
+    const d = await res.json();
+    if(!d.success || !d.games || !d.games.length){
+      $('historyList').innerHTML = '<div style="text-align:center; padding:20px;">No past games found.</div>';
+      return;
+    }
+    renderHistoryList(d.games);
+  }catch(e){
+    console.error(e);
+    $('historyList').innerHTML = '<div style="text-align:center; padding:20px; color:var(--accent-them);">Failed to load games. Check your connection.</div>';
+  }
+});
+$('btnHistoryClose').addEventListener('click', ()=>{ $('historyPanel').style.display='none'; });
+
+function renderHistoryList(games){
+  $('historyList').innerHTML = games.map((g,i) => {
+    const data = g.data || {};
+    const gf = data.GF ?? '?';
+    const ga = data.GA ?? '?';
+    const opp = data.Opponent || g.opponent || 'Unknown';
+    const date = data.Date || g.date || '—';
+    const level = data.Level || g.level || '';
+    const gs = data.GoalieScore != null ? data.GoalieScore : '—';
+    const ts = data.TeamScore != null ? data.TeamScore : '—';
+    const scoreClass = gf > ga ? 'w' : gf < ga ? 'l' : 't';
+    return `<div class="history-item" data-idx="${i}">
+      <div class="history-left">
+        <span class="history-opp">vs ${opp}</span>
+        <span class="history-meta">${date} &bull; ${level} &bull; GK:${gs} TM:${ts}</span>
+      </div>
+      <div class="history-score"><span class="${scoreClass}">${gf}–${ga}</span></div>
+    </div>`;
+  }).join('');
+
+  // Store games for detail view
+  $('historyList')._games = games;
+
+  $('historyList').addEventListener('click', (e) => {
+    const item = e.target.closest('.history-item');
+    if(!item) return;
+    const idx = Number(item.dataset.idx);
+    const game = $('historyList')._games[idx];
+    if(game) showGameDetail(game);
+  });
+}
+
+function showGameDetail(game){
+  const d = game.data || {};
+  const opp = d.Opponent || game.opponent || 'Unknown';
+  const date = d.Date || game.date || '—';
+  const level = d.Level || game.level || '';
+
+  $('gameDetailTitle').textContent = `${opp} — ${date}`;
+
+  const gf=d.GF??'—', ga=d.GA??'—', sf=d.SF??'—', sa=d.SA??'—';
+  const saves = d.Saves ?? '—', sv = d.SVPct ?? '—';
+  const shoot = d.OurShootingPct ?? '—';
+  const share = d.ShotShare != null ? Math.round(d.ShotShare*100)+'%' : '—';
+
+  const rows = [
+    ['Level', level], ['GF', gf], ['GA', ga],
+    ['SF', sf], ['SA', sa], ['Saves', saves],
+    ['SV%', sv], ['Our Shooting%', shoot], ['Shot Share', share],
+    ['Goalie Score', d.GoalieScore ?? '—'], ['Team Score', d.TeamScore ?? '—'],
+    ['Smothers', d.Smothers ?? '—'], ['Bad Rebounds', d.BadRebounds ?? '—'],
+    ['Big Saves', d.BigSaves ?? '—'], ['Soft Goals', d.SoftGoals ?? '—'],
+    ['Breakaways Ag', d.BreakawaysAgainst ?? '—'], ['DZ Turnovers', d.DZTurnovers ?? '—'],
+    ['Breakaways For', d.BreakawaysFor ?? '—'], ['Odd Man Rush For', d.OddManRushFor ?? '—'],
+    ['GA off BA', d.GA_BA ?? '—'], ['GA off DZ', d.GA_DZ ?? '—'],
+    ['GA off Bad Reb', d.GA_BR ?? '—'], ['GA Other', d.GA_Other ?? '—']
+  ];
+
+  let html = '<table><tr><th>Stat</th><th>Value</th><th>Stat</th><th>Value</th></tr>';
+  for(let i=0;i<rows.length;i+=2){
+    const a=rows[i], b=rows[i+1];
+    html+=`<tr><td>${a[0]}</td><td>${a[1]}</td><td>${b?b[0]:''}</td><td>${b?b[1]:''}</td></tr>`;
+  }
+  html+='</table>';
+
+  $('gameDetailBody').innerHTML = html;
+  $('gameDetailModal').style.display = 'flex';
+}
+$('gameDetailClose').addEventListener('click', ()=>{ $('gameDetailModal').style.display='none'; });
 
 </script>
 </body>

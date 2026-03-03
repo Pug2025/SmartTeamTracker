@@ -892,9 +892,10 @@
           <div class="g-btn ctx h-md" id="btnBreakawayFor">Breakaway</div>
         </div>
         <div class="context-row">
+          <div class="g-btn ctx h-md" id="btnForcedTurnover">Forced Turnover</div>
           <div class="g-btn ctx h-md" id="btnMissedChanceFor">Missed Chance</div>
-          <div class="g-btn ctx h-md" id="btnPenaltyFor">Penalty For (They took)</div>
         </div>
+        <div class="g-btn ctx h-md" id="btnPenaltyFor">Penalty For (They took)</div>
       </div>
 
     </div>
@@ -949,6 +950,7 @@
 
         <div class="dashTile"><div class="k">Breakaways For</div><div class="v" id="baForVal">0</div><div class="s">Offensive ctx</div></div>
         <div class="dashTile"><div class="k">Odd Man Rush For</div><div class="v" id="omrForVal">0</div><div class="s">Offensive ctx</div></div>
+        <div class="dashTile"><div class="k">Forced Turnovers</div><div class="v" id="ftVal">0</div><div class="s">Offensive ctx</div></div>
         <div class="dashTile"><div class="k">Good Rebounds</div><div class="v" id="goodRebVal">0</div><div class="s">Auto credit</div></div>
 
         <div class="dashTile"><div class="k">OMR Against</div><div class="v" id="omrAgVal">0</div><div class="s">Defensive ctx</div></div>
@@ -1264,7 +1266,8 @@ const state = {
     penaltiesFor:0,
     penaltiesAgainst:0,
     missedChancesFor:0,
-    missedChancesAgainst:0
+    missedChancesAgainst:0,
+    forcedTurnovers:0
   },
   roster:[],
   lastEventId:0
@@ -1276,7 +1279,7 @@ function initP(){
     A_shots:0, A_goals:0, A_smothers:0, A_badRebounds:0, A_bigSaves:0,
     F_shots:0, F_goals:0,
     BA:0, DZ:0,
-    BF:0, OMRF:0,
+    BF:0, OMRF:0, FT:0,
     OMRA:0, PF:0, PA:0, MCF:0, MCA:0
   };
 }
@@ -1509,6 +1512,8 @@ function bump(type, period){
     state.team.missedChancesFor++; p.MCF++;
   }else if(type==='missed_chance_against'){
     state.team.missedChancesAgainst++; p.MCA++;
+  }else if(type==='forced_turnover'){
+    state.team.forcedTurnovers++; p.FT++;
   }
 }
 
@@ -1516,7 +1521,7 @@ function rebuildFromEvents(){
   per = {1:initP(),2:initP(),3:initP(),4:initP()};
   state.countsA = {shots:0, goals:0, softGoals:0, smothers:0, badRebounds:0, bigSaves:0};
   state.countsF = {shots:0, goals:0};
-  state.team = {breakawaysAgainst:0, dzTurnovers:0, breakawaysFor:0, oddManRushFor:0, oddManRushAgainst:0, penaltiesFor:0, penaltiesAgainst:0, missedChancesFor:0, missedChancesAgainst:0};
+  state.team = {breakawaysAgainst:0, dzTurnovers:0, breakawaysFor:0, oddManRushFor:0, oddManRushAgainst:0, penaltiesFor:0, penaltiesAgainst:0, missedChancesFor:0, missedChancesAgainst:0, forcedTurnovers:0};
 
   for(const ev of state.events){
     bump(ev.type, ev.period);
@@ -1545,7 +1550,8 @@ function validateState(source='unknown'){
     ['team.penaltiesFor', state.team.penaltiesFor],
     ['team.penaltiesAgainst', state.team.penaltiesAgainst],
     ['team.missedChancesFor', state.team.missedChancesFor],
-    ['team.missedChancesAgainst', state.team.missedChancesAgainst]
+    ['team.missedChancesAgainst', state.team.missedChancesAgainst],
+    ['team.forcedTurnovers', state.team.forcedTurnovers]
   ];
   for(const [k,v] of nonNeg){
     if(typeof v !== 'number' || v < 0){
@@ -1559,7 +1565,7 @@ function validateState(source='unknown'){
   const expectedPer = {1:initP(),2:initP(),3:initP(),4:initP()};
   const expectedA = {shots:0, goals:0, softGoals:0, smothers:0, badRebounds:0, bigSaves:0};
   const expectedF = {shots:0, goals:0};
-  const expectedTeam = {breakawaysAgainst:0, dzTurnovers:0, breakawaysFor:0, oddManRushFor:0, oddManRushAgainst:0, penaltiesFor:0, penaltiesAgainst:0, missedChancesFor:0, missedChancesAgainst:0};
+  const expectedTeam = {breakawaysAgainst:0, dzTurnovers:0, breakawaysFor:0, oddManRushFor:0, oddManRushAgainst:0, penaltiesFor:0, penaltiesAgainst:0, missedChancesFor:0, missedChancesAgainst:0, forcedTurnovers:0};
   for(const ev of state.events){
     const p = expectedPer[sanitizePeriod(ev.period)] || expectedPer[4];
     if(ev.type==='shot'){ expectedA.shots++; p.A_shots++; }
@@ -1579,6 +1585,7 @@ function validateState(source='unknown'){
     else if(ev.type==='penalty_against'){ expectedTeam.penaltiesAgainst++; p.PA++; }
     else if(ev.type==='missed_chance_for'){ expectedTeam.missedChancesFor++; p.MCF++; }
     else if(ev.type==='missed_chance_against'){ expectedTeam.missedChancesAgainst++; p.MCA++; }
+    else if(ev.type==='forced_turnover'){ expectedTeam.forcedTurnovers++; p.FT++; }
   }
 
   if(JSON.stringify(expectedA) !== JSON.stringify(state.countsA)) issues.push('countsA mismatch vs event log');
@@ -1809,6 +1816,7 @@ function revert(ev){
   else if(ev.type==='penalty_against'){ state.team.penaltiesAgainst--; p.PA--; }
   else if(ev.type==='missed_chance_for'){ state.team.missedChancesFor--; p.MCF--; }
   else if(ev.type==='missed_chance_against'){ state.team.missedChancesAgainst--; p.MCA--; }
+  else if(ev.type==='forced_turnover'){ state.team.forcedTurnovers--; p.FT--; }
 
   save();
   validateState(`revert:${ev.type}`);
@@ -1905,6 +1913,7 @@ function labelFor(ev){
     .replace('penalty_against','Penalty Against')
     .replace('missed_chance_for','Missed Chance For')
     .replace('missed_chance_against','Missed Chance Ag')
+    .replace('forced_turnover','Forced Turnover')
     .replace(/_/g,' ');
 
   if(ev.type==='for_goal'){
@@ -1914,6 +1923,7 @@ function labelFor(ev){
 
     if(ev.off_ctx === 'Breakaway') label += ' [BA]';
     else if(ev.off_ctx === 'Odd Man Rush') label += ' [OMR]';
+    else if(ev.off_ctx === 'Forced Turnover') label += ' [FT]';
   }
 
   if((ev.type==='for_shot')&&ev.player&&ev.player!=='?'&&ev.player!=='Unknown') {
@@ -2043,6 +2053,7 @@ function tagGFCause(gfEv){
 
   let hasBA = false;
   let hasOMR = false;
+  let hasFT = false;
 
   for(const ev of state.events){
     const t = new Date(ev.tISO).getTime();
@@ -2050,11 +2061,13 @@ function tagGFCause(gfEv){
 
     if(ev.type === 'breakaway_for') hasBA = true;
     if(ev.type === 'odd_man_rush_for') hasOMR = true;
+    if(ev.type === 'forced_turnover') hasFT = true;
   }
 
-  // Priority: Breakaway > Odd Man Rush > Other
+  // Priority: Breakaway > Odd Man Rush > Forced Turnover > Other
   if(hasBA) gfEv.off_ctx = 'Breakaway';
   else if(hasOMR) gfEv.off_ctx = 'Odd Man Rush';
+  else if(hasFT) gfEv.off_ctx = 'Forced Turnover';
   else gfEv.off_ctx = 'Other';
 
   save();
@@ -2381,8 +2394,9 @@ function computeTeamScore() {
   const scorePossession = getSigmoidScore(shotShare, 0.5, 0.15);
 
   // 2) DANGER CONTROL (Net dangerous events) — 30% weight
-  //    Includes odd man rush against + penalties taken as dangers against
-  const dangerFor = (state.team.breakawaysFor || 0) + (state.team.oddManRushFor || 0);
+  //    For: breakaways + odd man rush + forced turnovers (we stole it)
+  //    Against: breakaways ag + DZ turnovers + odd man rush ag
+  const dangerFor = (state.team.breakawaysFor || 0) + (state.team.oddManRushFor || 0) + (state.team.forcedTurnovers || 0);
   const dangerAg  = (state.team.breakawaysAgainst || 0) + (state.team.dzTurnovers || 0) + (state.team.oddManRushAgainst || 0);
   const dangerDiff = dangerFor - dangerAg;
   const scoreDanger = getSigmoidScore(dangerDiff, 0, 3);
@@ -2443,7 +2457,7 @@ function computeGABreakdown(){
 }
 
 function computeGFContextBreakdown(){
-  const acc = {BA:0, OMR:0, Other:0};
+  const acc = {BA:0, OMR:0, FT:0, Other:0};
 
   for(let i = 0; i < state.events.length; i++){
     const e = state.events[i];
@@ -2452,6 +2466,7 @@ function computeGFContextBreakdown(){
     // If already tagged, trust it
     if(e.off_ctx === 'Breakaway') { acc.BA++; continue; }
     if(e.off_ctx === 'Odd Man Rush') { acc.OMR++; continue; }
+    if(e.off_ctx === 'Forced Turnover') { acc.FT++; continue; }
     if(e.off_ctx === 'Other') { acc.Other++; continue; }
 
     // Otherwise compute with no bleed across previous for_goal
@@ -2468,7 +2483,7 @@ function computeGFContextBreakdown(){
       }
     }
 
-    let hasBA = false, hasOMR = false;
+    let hasBA = false, hasOMR = false, hasFT = false;
     for(let j = i - 1; j >= 0; j--){
       const prior = state.events[j];
       const t = new Date(prior.tISO).getTime();
@@ -2476,10 +2491,12 @@ function computeGFContextBreakdown(){
 
       if(prior.type === 'breakaway_for') hasBA = true;
       if(prior.type === 'odd_man_rush_for') hasOMR = true;
+      if(prior.type === 'forced_turnover') hasFT = true;
     }
 
     if(hasBA) acc.BA++;
     else if(hasOMR) acc.OMR++;
+    else if(hasFT) acc.FT++;
     else acc.Other++;
   }
 
@@ -2549,6 +2566,7 @@ function updateMeta(){
   $('dzVal').textContent = state.team.dzTurnovers;
   $('baForVal').textContent = state.team.breakawaysFor;
   $('omrForVal').textContent = state.team.oddManRushFor;
+  $('ftVal').textContent = state.team.forcedTurnovers || 0;
   $('omrAgVal').textContent = state.team.oddManRushAgainst || 0;
   $('penForVal').textContent = state.team.penaltiesFor || 0;
   $('penAgVal').textContent = state.team.penaltiesAgainst || 0;
@@ -2688,8 +2706,8 @@ function buildAllStatsHTML(){
     ['Smothers', state.countsA.smothers], ['Bad Rebounds', state.countsA.badRebounds], ['Big Saves', state.countsA.bigSaves], ['Soft Goals', state.countsA.softGoals],
     ['Good Rebounds', goodReb], ['HD Chances For', hdFor], ['HD Chances Ag', hdAg], ['Missed Chances', (state.team.missedChancesFor||0)+(state.team.missedChancesAgainst||0)],
     ['Breakaways Ag', state.team.breakawaysAgainst], ['D-Zone TO', state.team.dzTurnovers], ['Breakaways For', state.team.breakawaysFor], ['Odd Man Rush For', state.team.oddManRushFor],
-    ['OMR Against', state.team.oddManRushAgainst||0], ['Penalties For', state.team.penaltiesFor||0], ['Penalties Ag', state.team.penaltiesAgainst||0], [''],
-    ['GF off BA', gfCtx.BA], ['GF off OMR', gfCtx.OMR], ['GF Other', gfCtx.Other], [''],
+    ['Forced Turnovers', state.team.forcedTurnovers||0], ['OMR Against', state.team.oddManRushAgainst||0], ['Penalties For', state.team.penaltiesFor||0], ['Penalties Ag', state.team.penaltiesAgainst||0],
+    ['GF off BA', gfCtx.BA], ['GF off OMR', gfCtx.OMR], ['GF off FT', gfCtx.FT||0], ['GF Other', gfCtx.Other],
     ['GA off BA', gaStats.BA], ['GA off DZ', gaStats.DZ], ['GA off Bad Reb', gaStats.BR], ['GA off OMR', gaStats.OMRA||0],
     ['GA Other', gaStats.Other], ['']
   ];
@@ -2809,6 +2827,7 @@ function endGame(){
     PenaltiesAgainst: state.team.penaltiesAgainst||0,
     MissedChancesFor: state.team.missedChancesFor||0,
     MissedChancesAgainst: state.team.missedChancesAgainst||0,
+    ForcedTurnovers: state.team.forcedTurnovers||0,
     Smothers: state.countsA.smothers,
     BadRebounds: state.countsA.badRebounds,
     BigSaves: state.countsA.bigSaves,
@@ -2908,6 +2927,7 @@ function exportGameCSV(){
     breakawaysFor: state.team.breakawaysFor,
     oddManRushFor: state.team.oddManRushFor,
     oddManRushAgainst: state.team.oddManRushAgainst||0,
+    forcedTurnovers: state.team.forcedTurnovers||0,
     penaltiesFor: state.team.penaltiesFor||0,
     penaltiesAgainst: state.team.penaltiesAgainst||0,
     smothers: state.countsA.smothers,
@@ -3283,6 +3303,7 @@ $('btnBreakawayFor').onclick=()=>{
   addEvent('breakaway_for');
 };
 $('btnOddManRushFor').onclick=()=>addEvent('odd_man_rush_for');
+$('btnForcedTurnover').onclick=()=>addEvent('forced_turnover');
 
 /* New buttons: D1-D2 + B4 */
 $('btnOMRAgainst').onclick=()=>addEvent('odd_man_rush_against');
@@ -3327,7 +3348,7 @@ $('btnReset').onclick=async()=>{
   $('opponent').value = '';
   state.countsA={shots:0,goals:0,softGoals:0,smothers:0,badRebounds:0,bigSaves:0};
   state.countsF={shots:0,goals:0};
-  state.team={breakawaysAgainst:0,dzTurnovers:0,breakawaysFor:0,oddManRushFor:0,oddManRushAgainst:0,penaltiesFor:0,penaltiesAgainst:0,missedChancesFor:0,missedChancesAgainst:0};
+  state.team={breakawaysAgainst:0,dzTurnovers:0,breakawaysFor:0,oddManRushFor:0,oddManRushAgainst:0,penaltiesFor:0,penaltiesAgainst:0,missedChancesFor:0,missedChancesAgainst:0,forcedTurnovers:0};
   per={1:initP(),2:initP(),3:initP(),4:initP()};
 
   state.gameId = Math.random().toString(36).slice(2);
@@ -3375,9 +3396,9 @@ $('btnCopySummary').addEventListener('click', ()=>{
     `Team Score: ${T.total}/100 | Goalie Score: ${K.total}/100`,
     `Smothers ${state.countsA.smothers} | Bad Reb ${state.countsA.badRebounds} | Big Saves ${state.countsA.bigSaves} | Soft Goals ${state.countsA.softGoals}`,
     `Shot Share ${share} | Our Shooting% ${shootPct}`,
-    `BA Ag ${state.team.breakawaysAgainst} | DZ TO ${state.team.dzTurnovers} | OMR Ag ${state.team.oddManRushAgainst||0} | BA For ${state.team.breakawaysFor} | OMR For ${state.team.oddManRushFor}`,
+    `BA Ag ${state.team.breakawaysAgainst} | DZ TO ${state.team.dzTurnovers} | OMR Ag ${state.team.oddManRushAgainst||0} | BA For ${state.team.breakawaysFor} | OMR For ${state.team.oddManRushFor} | FT ${state.team.forcedTurnovers||0}`,
     `Penalties For ${state.team.penaltiesFor||0} | Penalties Ag ${state.team.penaltiesAgainst||0}`,
-    `GF off BA ${gfCtx.BA} | GF off OMR ${gfCtx.OMR} | GF Other ${gfCtx.Other}`,
+    `GF off BA ${gfCtx.BA} | GF off OMR ${gfCtx.OMR} | GF off FT ${gfCtx.FT||0} | GF Other ${gfCtx.Other}`,
     `GA off Bad Reb ${gaStats.BR} | GA off BA ${gaStats.BA} | GA off DZ ${gaStats.DZ} | GA Other ${gaStats.Other}`
   ];
 
@@ -3473,7 +3494,7 @@ function showGameDetail(game){
     ['Smothers', d.Smothers ?? '—'], ['Bad Rebounds', d.BadRebounds ?? '—'],
     ['Big Saves', d.BigSaves ?? '—'], ['Soft Goals', d.SoftGoals ?? '—'],
     ['Breakaways Ag', d.BreakawaysAgainst ?? '—'], ['DZ Turnovers', d.DZTurnovers ?? '—'],
-    ['Breakaways For', d.BreakawaysFor ?? '—'], ['Odd Man Rush For', d.OddManRushFor ?? '—'],
+    ['Breakaways For', d.BreakawaysFor ?? '—'], ['Odd Man Rush For', d.OddManRushFor ?? '—'], ['Forced Turnovers', d.ForcedTurnovers ?? '—'],
     ['GA off BA', d.GA_BA ?? '—'], ['GA off DZ', d.GA_DZ ?? '—'],
     ['GA off Bad Reb', d.GA_BR ?? '—'], ['GA Other', d.GA_Other ?? '—']
   ];

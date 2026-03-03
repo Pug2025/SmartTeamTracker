@@ -869,6 +869,11 @@
           <div class="g-btn ctx h-md" id="btnBreakaway">Breakaway Ag</div>
           <div class="g-btn ctx h-md" id="btnDZTurnover">DZ Turnover</div>
         </div>
+        <div class="context-row">
+          <div class="g-btn ctx h-md" id="btnOMRAgainst">Odd Man Rush Ag</div>
+          <div class="g-btn ctx h-md" id="btnMissedChanceAg">Missed Chance Ag</div>
+        </div>
+        <div class="g-btn ctx h-md" id="btnPenaltyAgainst">Penalty Against (We took)</div>
       </div>
 
       <!-- RIGHT COLUMN: US / GOOD (Blue) -->
@@ -886,6 +891,11 @@
           <div class="g-btn ctx h-md" id="btnOddManRushFor">Odd Man Rush</div>
           <div class="g-btn ctx h-md" id="btnBreakawayFor">Breakaway</div>
         </div>
+        <div class="context-row">
+          <div class="g-btn ctx h-md" id="btnForcedTurnover">Forced Turnover</div>
+          <div class="g-btn ctx h-md" id="btnMissedChanceFor">Missed Chance</div>
+        </div>
+        <div class="g-btn ctx h-md" id="btnPenaltyFor">Penalty For (They took)</div>
       </div>
 
     </div>
@@ -940,7 +950,16 @@
 
         <div class="dashTile"><div class="k">Breakaways For</div><div class="v" id="baForVal">0</div><div class="s">Offensive ctx</div></div>
         <div class="dashTile"><div class="k">Odd Man Rush For</div><div class="v" id="omrForVal">0</div><div class="s">Offensive ctx</div></div>
+        <div class="dashTile"><div class="k">Forced Turnovers</div><div class="v" id="ftVal">0</div><div class="s">Offensive ctx</div></div>
         <div class="dashTile"><div class="k">Good Rebounds</div><div class="v" id="goodRebVal">0</div><div class="s">Auto credit</div></div>
+
+        <div class="dashTile"><div class="k">OMR Against</div><div class="v" id="omrAgVal">0</div><div class="s">Defensive ctx</div></div>
+        <div class="dashTile"><div class="k">Penalties For</div><div class="v" id="penForVal">0</div><div class="s">They took</div></div>
+        <div class="dashTile"><div class="k">Penalties Ag</div><div class="v" id="penAgVal">0</div><div class="s">We took</div></div>
+
+        <div class="dashTile"><div class="k">HD Chances For</div><div class="v" id="hdForVal">0</div><div class="s">High Danger</div></div>
+        <div class="dashTile"><div class="k">HD Chances Ag</div><div class="v" id="hdAgVal">0</div><div class="s">High Danger</div></div>
+        <div class="dashTile"><div class="k">Missed Chances</div><div class="v" id="missedChanceVal">0</div><div class="s">No shot</div></div>
       </div>
 
       <div class="card" style="margin-top:10px;">
@@ -1094,13 +1113,22 @@
 
 <!-- Strength -->
 <div class="modal" id="strengthModal"><div class="box">
-  <div class="small" style="margin-bottom:8px;" id="strengthTitle">Situation</div>
+  <div class="small" style="margin-bottom:8px;" id="strengthTitle">Our Team's Situation</div>
   <div class="pickerGrid" style="grid-template-columns:1fr;">
-    <div class="pickerBtn" data-strength="EV">Even Strength (EV)</div>
-    <div class="pickerBtn" data-strength="PP">Power Play (PP)</div>
-    <div class="pickerBtn" data-strength="SH">Short Handed (SH)</div>
+    <div class="pickerBtn" data-strength="EV">Even Strength (5v5)</div>
+    <div class="pickerBtn" data-strength="PP">Our Power Play (PP)</div>
+    <div class="pickerBtn" data-strength="SH">We Are Short Handed (SH)</div>
   </div>
   <div class="rowbtn"><button class="btn-std" id="strengthSkip">Skip</button></div>
+</div></div>
+
+<!-- High Danger prompt -->
+<div class="modal" id="dangerModal"><div class="box">
+  <div class="small" style="margin-bottom:8px;" id="dangerTitle">High Danger Chance?</div>
+  <div class="pickerGrid" style="grid-template-columns:1fr 1fr;">
+    <div class="pickerBtn" data-danger="yes" style="border-color:var(--warn); color:var(--warn);">Yes</div>
+    <div class="pickerBtn" data-danger="no">No</div>
+  </div>
 </div></div>
 
 <!-- Copy -->
@@ -1147,11 +1175,6 @@
     <button class="btn-std" id="gameDetailDelete" style="border-color:var(--accent-them); color:var(--accent-them); font-size:12px;">Delete Game</button>
   </div>
 </div></div>
-
-<!-- Debug (Hidden by default in UI but kept for ref) -->
-<div id="debugWrap" style="display:none;">
-  <div id="debugGoalieLine"></div><div id="debugTeamLine"></div>
-</div>
 
 <script>
 /* ===== App Version ===== */
@@ -1233,7 +1256,13 @@ const state = {
     breakawaysAgainst:0,
     dzTurnovers:0,
     breakawaysFor:0,
-    oddManRushFor:0
+    oddManRushFor:0,
+    oddManRushAgainst:0,
+    penaltiesFor:0,
+    penaltiesAgainst:0,
+    missedChancesFor:0,
+    missedChancesAgainst:0,
+    forcedTurnovers:0
   },
   roster:[],
   lastEventId:0
@@ -1245,7 +1274,8 @@ function initP(){
     A_shots:0, A_goals:0, A_smothers:0, A_badRebounds:0, A_bigSaves:0,
     F_shots:0, F_goals:0,
     BA:0, DZ:0,
-    BF:0, OMRF:0
+    BF:0, OMRF:0, FT:0,
+    OMRA:0, PF:0, PA:0, MCF:0, MCA:0
   };
 }
 
@@ -1467,6 +1497,18 @@ function bump(type, period){
     state.team.breakawaysFor++; p.BF++;
   }else if(type==='odd_man_rush_for'){
     state.team.oddManRushFor++; p.OMRF++;
+  }else if(type==='odd_man_rush_against'){
+    state.team.oddManRushAgainst++; p.OMRA++;
+  }else if(type==='penalty_for'){
+    state.team.penaltiesFor++; p.PF++;
+  }else if(type==='penalty_against'){
+    state.team.penaltiesAgainst++; p.PA++;
+  }else if(type==='missed_chance_for'){
+    state.team.missedChancesFor++; p.MCF++;
+  }else if(type==='missed_chance_against'){
+    state.team.missedChancesAgainst++; p.MCA++;
+  }else if(type==='forced_turnover'){
+    state.team.forcedTurnovers++; p.FT++;
   }
 }
 
@@ -1474,7 +1516,7 @@ function rebuildFromEvents(){
   per = {1:initP(),2:initP(),3:initP(),4:initP()};
   state.countsA = {shots:0, goals:0, softGoals:0, smothers:0, badRebounds:0, bigSaves:0};
   state.countsF = {shots:0, goals:0};
-  state.team = {breakawaysAgainst:0, dzTurnovers:0, breakawaysFor:0, oddManRushFor:0};
+  state.team = {breakawaysAgainst:0, dzTurnovers:0, breakawaysFor:0, oddManRushFor:0, oddManRushAgainst:0, penaltiesFor:0, penaltiesAgainst:0, missedChancesFor:0, missedChancesAgainst:0, forcedTurnovers:0};
 
   for(const ev of state.events){
     bump(ev.type, ev.period);
@@ -1498,7 +1540,13 @@ function validateState(source='unknown'){
     ['team.breakawaysAgainst', state.team.breakawaysAgainst],
     ['team.dzTurnovers', state.team.dzTurnovers],
     ['team.breakawaysFor', state.team.breakawaysFor],
-    ['team.oddManRushFor', state.team.oddManRushFor]
+    ['team.oddManRushFor', state.team.oddManRushFor],
+    ['team.oddManRushAgainst', state.team.oddManRushAgainst],
+    ['team.penaltiesFor', state.team.penaltiesFor],
+    ['team.penaltiesAgainst', state.team.penaltiesAgainst],
+    ['team.missedChancesFor', state.team.missedChancesFor],
+    ['team.missedChancesAgainst', state.team.missedChancesAgainst],
+    ['team.forcedTurnovers', state.team.forcedTurnovers]
   ];
   for(const [k,v] of nonNeg){
     if(typeof v !== 'number' || v < 0){
@@ -1512,7 +1560,7 @@ function validateState(source='unknown'){
   const expectedPer = {1:initP(),2:initP(),3:initP(),4:initP()};
   const expectedA = {shots:0, goals:0, softGoals:0, smothers:0, badRebounds:0, bigSaves:0};
   const expectedF = {shots:0, goals:0};
-  const expectedTeam = {breakawaysAgainst:0, dzTurnovers:0, breakawaysFor:0, oddManRushFor:0};
+  const expectedTeam = {breakawaysAgainst:0, dzTurnovers:0, breakawaysFor:0, oddManRushFor:0, oddManRushAgainst:0, penaltiesFor:0, penaltiesAgainst:0, missedChancesFor:0, missedChancesAgainst:0, forcedTurnovers:0};
   for(const ev of state.events){
     const p = expectedPer[sanitizePeriod(ev.period)] || expectedPer[4];
     if(ev.type==='shot'){ expectedA.shots++; p.A_shots++; }
@@ -1527,6 +1575,12 @@ function validateState(source='unknown'){
     else if(ev.type==='dz_turnover'){ expectedTeam.dzTurnovers++; p.DZ++; }
     else if(ev.type==='breakaway_for'){ expectedTeam.breakawaysFor++; p.BF++; }
     else if(ev.type==='odd_man_rush_for'){ expectedTeam.oddManRushFor++; p.OMRF++; }
+    else if(ev.type==='odd_man_rush_against'){ expectedTeam.oddManRushAgainst++; p.OMRA++; }
+    else if(ev.type==='penalty_for'){ expectedTeam.penaltiesFor++; p.PF++; }
+    else if(ev.type==='penalty_against'){ expectedTeam.penaltiesAgainst++; p.PA++; }
+    else if(ev.type==='missed_chance_for'){ expectedTeam.missedChancesFor++; p.MCF++; }
+    else if(ev.type==='missed_chance_against'){ expectedTeam.missedChancesAgainst++; p.MCA++; }
+    else if(ev.type==='forced_turnover'){ expectedTeam.forcedTurnovers++; p.FT++; }
   }
 
   if(JSON.stringify(expectedA) !== JSON.stringify(state.countsA)) issues.push('countsA mismatch vs event log');
@@ -1604,19 +1658,6 @@ function clearGoodPendingFor(id){
 
 /* Offensive breakaway timing */
 let lastBreakawayForTap = 0;
-
-function wasRecentEvent(type, seconds){
-  const now = Date.now();
-  const ms = seconds * 1000;
-
-  for(let i = state.events.length - 1; i >= 0; i--){
-    const ev = state.events[i];
-    if(ev.type !== type) continue;
-    const t = new Date(ev.tISO).getTime();
-    return (now - t) <= ms;
-  }
-  return false;
-}
 
 /* Track most recent "shot" event for linking with big_save/bad_rebound */
 let lastShotAgainstTime = 0;
@@ -1699,7 +1740,7 @@ function addEvent(type, meta={}){
       ev.needsContext = false;
       save();
     } else if(pureRebound){
-      ev.ga_ctx = 'Rebound';
+      ev.ga_ctx = 'Net-Front Scramble';
       ev.needsContext = false;
       save();
     } else {
@@ -1752,6 +1793,12 @@ function revert(ev){
   else if(ev.type==='dz_turnover'){ state.team.dzTurnovers--; p.DZ--; }
   else if(ev.type==='breakaway_for'){ state.team.breakawaysFor--; p.BF--; }
   else if(ev.type==='odd_man_rush_for'){ state.team.oddManRushFor--; p.OMRF--; }
+  else if(ev.type==='odd_man_rush_against'){ state.team.oddManRushAgainst--; p.OMRA--; }
+  else if(ev.type==='penalty_for'){ state.team.penaltiesFor--; p.PF--; }
+  else if(ev.type==='penalty_against'){ state.team.penaltiesAgainst--; p.PA--; }
+  else if(ev.type==='missed_chance_for'){ state.team.missedChancesFor--; p.MCF--; }
+  else if(ev.type==='missed_chance_against'){ state.team.missedChancesAgainst--; p.MCA--; }
+  else if(ev.type==='forced_turnover'){ state.team.forcedTurnovers--; p.FT--; }
 
   save();
   validateState(`revert:${ev.type}`);
@@ -1837,12 +1884,19 @@ function labelFor(ev){
   let label = ev.type
     .replace('soft_goal','Soft Goal')
     .replace('bad_rebound','Bad Rebound')
+    .replace('big_save','Big Save')
     .replace('for_shot','Our Shot')
     .replace('for_goal','Our Goal')
     .replace('breakaway_against','Breakaway Ag')
     .replace('dz_turnover','DZ Turnover')
     .replace('breakaway_for','Breakaway For')
     .replace('odd_man_rush_for','Odd Man Rush For')
+    .replace('odd_man_rush_against','Odd Man Rush Ag')
+    .replace('penalty_for','Penalty For')
+    .replace('penalty_against','Penalty Against')
+    .replace('missed_chance_for','Missed Chance For')
+    .replace('missed_chance_against','Missed Chance Ag')
+    .replace('forced_turnover','Forced Turnover')
     .replace(/_/g,' ');
 
   if(ev.type==='for_goal'){
@@ -1852,6 +1906,7 @@ function labelFor(ev){
 
     if(ev.off_ctx === 'Breakaway') label += ' [BA]';
     else if(ev.off_ctx === 'Odd Man Rush') label += ' [OMR]';
+    else if(ev.off_ctx === 'Forced Turnover') label += ' [FT]';
   }
 
   if((ev.type==='for_shot')&&ev.player&&ev.player!=='?'&&ev.player!=='Unknown') {
@@ -1861,7 +1916,7 @@ function labelFor(ev){
 }
 
 /* GA Context */
-const GA_TAGS = ['Screen','Deflection','Cross-Crease','Weak-Side','Rush','Rebound','Other'];
+const GA_TAGS = ['Screen','Deflection/Tip','Cross-Crease','Odd-Man Rush','Net-Front Scramble','Clean Look','Other'];
 let lastGAEvent = null;
 function openGAContext(ev){
   lastGAEvent = ev;
@@ -1883,7 +1938,7 @@ $('gaGrid').addEventListener('click', e=>{
   $('gaOverlay').style.display='none';
   renderAll();
 
-  openMultiPicker({title:'5 Players On Ice (required)', max:5, event:lastGAEvent, field:'onIce', exclude:[]});
+  openMultiPicker({title:'5 Players On Ice (for +/-)', max:5, event:lastGAEvent, field:'onIce', exclude:[]});
   lastGAEvent=null;
 });
 $('gaSkip').addEventListener('click', ()=>{
@@ -1923,16 +1978,17 @@ function tagGACause(gaEv){
 
   const brWindowStart = Math.max(windowStart, tGA - 5000); // BR window = 5s
 
-  let hasBA = false, hasDZ = false, hasBR = false;
+  let hasBA = false, hasDZ = false, hasBR = false, hasOMRA = false;
 
   for(const ev of state.events){
     const t = new Date(ev.tISO).getTime();
     if(t > tGA) continue;
 
-    // BA/DZ check within 10s window
+    // BA/DZ/OMRA check within 10s window
     if(t >= windowStart){
       if(ev.type === 'breakaway_against') hasBA = true;
       if(ev.type === 'dz_turnover') hasDZ = true;
+      if(ev.type === 'odd_man_rush_against') hasOMRA = true;
     }
 
     // BR check within 5s window
@@ -1945,10 +2001,12 @@ function tagGACause(gaEv){
   gaEv.ga_ba = !!hasBA;
   gaEv.ga_dz = !!hasDZ;
   gaEv.ga_br = !!hasBR;
+  gaEv.ga_omra = !!hasOMRA;
 
   if(gaEv.ga_ba) parts.push('BA');
   if(gaEv.ga_dz) parts.push('DZ');
   if(gaEv.ga_br) parts.push('BR');
+  if(gaEv.ga_omra) parts.push('OMRA');
 
   gaEv.ga_cause = parts.length ? parts.join('+') : 'other';
   save();
@@ -1978,6 +2036,7 @@ function tagGFCause(gfEv){
 
   let hasBA = false;
   let hasOMR = false;
+  let hasFT = false;
 
   for(const ev of state.events){
     const t = new Date(ev.tISO).getTime();
@@ -1985,11 +2044,13 @@ function tagGFCause(gfEv){
 
     if(ev.type === 'breakaway_for') hasBA = true;
     if(ev.type === 'odd_man_rush_for') hasOMR = true;
+    if(ev.type === 'forced_turnover') hasFT = true;
   }
 
-  // Priority: Breakaway > Odd Man Rush > Other
+  // Priority: Breakaway > Odd Man Rush > Forced Turnover > Other
   if(hasBA) gfEv.off_ctx = 'Breakaway';
   else if(hasOMR) gfEv.off_ctx = 'Odd Man Rush';
+  else if(hasFT) gfEv.off_ctx = 'Forced Turnover';
   else gfEv.off_ctx = 'Other';
 
   save();
@@ -2103,7 +2164,7 @@ $('onIceUse').addEventListener('click', ()=>{
   renderAll();
 
   // Strength required after any goal for/against (and soft goal)
-  if(ev.type==='goal'||ev.type==='soft_goal'||ev.type==='for_goal') openStrengthPicker(ev, 'Situation (required)');
+  if(ev.type==='goal'||ev.type==='soft_goal'||ev.type==='for_goal') openStrengthPicker(ev, 'Our Team\'s Situation (required)');
 });
 $('onIceCancel').addEventListener('click', ()=>{
   const ev = multiPick.eventRef;
@@ -2111,7 +2172,7 @@ $('onIceCancel').addEventListener('click', ()=>{
   multiPick.eventRef=null;
 
   if(ev && (ev.type==='goal'||ev.type==='soft_goal'||ev.type==='for_goal')){
-    openStrengthPicker(ev, 'Situation (required)');
+    openStrengthPicker(ev, 'Our Team\'s Situation (required)');
   }
 });
 
@@ -2181,25 +2242,35 @@ function normalizeLevelKey(levelStr){
 }
 
 const LEVEL_PROFILES = {
-  U9:  { goalieBaseSV:0.75, teamFinExp:0.20, minShots:10 },
-  U11: { goalieBaseSV:0.80, teamFinExp:0.17, minShots:15 },
-  U13: { goalieBaseSV:0.82, teamFinExp:0.15, minShots:18 },
-  U15: { goalieBaseSV:0.86, teamFinExp:0.13, minShots:22 },
-  U18: { goalieBaseSV:0.89, teamFinExp:0.12, minShots:25 },
-  Other:{ goalieBaseSV:0.85, teamFinExp:0.14, minShots:20 }
+  U9:  { goalieBaseSV:0.75 },
+  U11: { goalieBaseSV:0.80 },
+  U13: { goalieBaseSV:0.82 },
+  U15: { goalieBaseSV:0.86 },
+  U18: { goalieBaseSV:0.89 },
+  Other:{ goalieBaseSV:0.85 }
 };
 
 /* ===== SCORING ENGINE (UPDATED per Gemini 3 critique) ===== */
 
-/* Helper: Logistic Function (S-Curve)
-   Maps a value to a 0-100 scale based on a midpoint (expected) and spread.
-   If actual == expected, score is ~75.
+/* Helper: Grade-Curve Scoring Function
+   Maps a value to a 0-100 scale using a school-grade philosophy:
+   - Meeting expectations (z=0) = 72 (C+ baseline)
+   - Above expected → rises toward 100 (A+ ceiling)
+   - Below expected → drops steeply toward 0 (F floor)
+   Asymmetric: doing well is rewarded generously, doing poorly is punished fairly.
 */
 function getSigmoidScore(actual, expected, spread) {
   const z = (actual - expected) / (spread || 1);
-  // Corrected so z=0 yields ~75: 100/(1+e^-1.1) ≈ 75
-  const score = 100 / (1 + Math.exp(-(z * 0.8 + 1.1)));
-  return Math.round(Math.max(0, Math.min(100, score)));
+  // Asymmetric curve: baseline at 72, ceiling ~98, floor ~5
+  // Upside: +3 spread units → ~96 (A+)
+  // Downside: -3 spread units → ~15 (F)
+  if (z >= 0) {
+    // Above expected: 72 → 98 (generous upside)
+    return Math.round(Math.min(100, 72 + 26 * (1 - Math.exp(-z * 0.8))));
+  } else {
+    // Below expected: 72 → 0 (steeper punishment)
+    return Math.round(Math.max(0, 72 * Math.exp(z * 0.55)));
+  }
 }
 
 function computeGoalieScore() {
@@ -2209,7 +2280,7 @@ function computeGoalieScore() {
 
   // 1) Minimum Volume Check
   if (shots < 5) {
-    return { total: 75, scoreSV: 75, softPenalty: 0, ctxAdj: 0, scoreRebound: 0, scoreBig: 0, goodRebounds: 0 };
+    return { total: 50, scoreSV: 0, softPenalty: 0, ctxAdj: 0, scoreRebound: 0, scoreBig: 0, goodRebounds: 0, smothers: 0 };
   }
 
   const prof = LEVEL_PROFILES[normalizeLevelKey(state.level)] || LEVEL_PROFILES.Other;
@@ -2223,34 +2294,36 @@ function computeGoalieScore() {
     e.type === 'goal' || e.type === 'soft_goal' || e.type === 'shot' || e.type === 'big_save' || e.type === 'bad_rebound' || e.type === 'smother'
   );
 
+  let bigSaveBonus = 0;
+
   defenseEvents.forEach(ev => {
     let wShot = 1.0;
     let wGoal = 1.0;
 
-    // Big save: treat as higher-difficulty "shot faced"
+    // Big save: count as normal shot weight (no inflation) but give additive bonus
     if (ev.type === 'big_save') {
-      wShot = 1.8;
+      bigSaveBonus += 0.3;
     }
 
     if (ev.type === 'goal' || ev.type === 'soft_goal') {
       const cause = ev.ga_cause || '';
       const ctx = ev.ga_ctx || '';
 
-      // Hard goals (less blame): breakaways, cross-crease, screens, deflections, rush, SH situations
+      // Hard goals (less blame on goalie): breakaways, screens, deflections, odd-man rush, SH situations
       const isHard =
         cause.includes('BA') ||
-        /Screen|Deflection|Cross-Crease|Rush/.test(ctx) ||
+        /Screen|Deflection\/Tip|Cross-Crease|Odd-Man Rush/.test(ctx) ||
         ev.strength === 'SH';
 
-      // Soft goals (more blame): explicit soft goal or bad rebound cause
-const isSoft =
-  ev.type === 'soft_goal' ||
-  !!ev.ga_br ||                 // explicit flag on the goal event
-  cause.includes('BR');          // ga_cause is "BR" or contains it (e.g., "BA+BR")
-
+      // Soft goals (more blame on goalie): explicit soft goal, bad rebound, or clean look
+      const isSoft =
+        ev.type === 'soft_goal' ||
+        !!ev.ga_br ||
+        cause.includes('BR') ||
+        ctx === 'Clean Look';
 
       if (isSoft) {
-        wGoal = 2.5;
+        wGoal = 2.0;
       } else if (isHard) {
         wGoal = 0.5;
       }
@@ -2268,8 +2341,10 @@ const isSoft =
   const expectedGoalsAllowed = weightedShots * (1 - baseSvPct);
   const GSAx = expectedGoalsAllowed - weightedGoals; // positive is good
 
-  // 5) Final goalie score: sigmoid on (GSAx + small rebound influence)
-  const totalScore = getSigmoidScore(GSAx + (reboundScore * 0.2), 0, 1.5);
+  // 5) Final goalie score: sigmoid with wider spread (3.0) for better range usage
+  //    Includes big save bonus (additive credit) and rebound influence
+  const goalieInput = GSAx + bigSaveBonus + (reboundScore * 0.15);
+  const totalScore = getSigmoidScore(goalieInput, 0, 3.0);
 
   return {
     total: totalScore,
@@ -2294,37 +2369,54 @@ function computeTeamScore() {
   const totalShots = SF + SA;
 
   if (totalShots < 5) {
-    return { total: 50, scoreSS:0, scoreFin:0, scoreImp:0, scoreStab:0, SS:0, Fin:0, scoreChance:0, scoreST:0, scoreDepth:0, penDef:0 };
+    return { total: 50, scoreSS:0, scoreFin:0, scoreImp:0, scoreStab:0, SS:0, Fin:0, scoreChance:0, scoreST:0, scoreDepth:0, penDef:0, scoreDiscipline:0 };
   }
 
-  // 1) POSSESSION (Shot Share)
+  // 1) POSSESSION (Shot Share) — 25% weight
   const shotShare = SF / totalShots;
   const scorePossession = getSigmoidScore(shotShare, 0.5, 0.15);
 
-  // 2) DANGER CONTROL (Net dangerous events)
-  const dangerFor = (state.team.breakawaysFor || 0) + (state.team.oddManRushFor || 0);
-  const dangerAg  = (state.team.breakawaysAgainst || 0) + (state.team.dzTurnovers || 0);
+  // 2) DANGER CONTROL (Net dangerous events) — 30% weight
+  //    For: breakaways + odd man rush + forced turnovers (we stole it)
+  //    Against: breakaways ag + DZ turnovers + odd man rush ag
+  const dangerFor = (state.team.breakawaysFor || 0) + (state.team.oddManRushFor || 0) + (state.team.forcedTurnovers || 0);
+  const dangerAg  = (state.team.breakawaysAgainst || 0) + (state.team.dzTurnovers || 0) + (state.team.oddManRushAgainst || 0);
   const dangerDiff = dangerFor - dangerAg;
-  const scoreDanger = getSigmoidScore(dangerDiff, 0, 2);
+  const scoreDanger = getSigmoidScore(dangerDiff, 0, 3);
 
-  // 3) EXECUTION / RESULT (Goal differential)
-  const goalDiff = GF - GA;
+  // 3) EXECUTION / RESULT (Weighted goal differential) — 35% weight
+  //    Strength reflects OUR team's situation when the goal-against happened:
+  //    SH = we were shorthanded → opponent scored a PP goal (expected, reduced blame)
+  //    PP = we were on power play → opponent scored SH goal (embarrassing, full blame)
+  let teamWeightedGF = GF;
+  let teamWeightedGA = 0;
+  for (const ev of state.events) {
+    if (ev.type === 'goal' || ev.type === 'soft_goal') {
+      teamWeightedGA += (ev.strength === 'SH') ? 0.6 : 1.0;
+    }
+  }
+  if (teamWeightedGA === 0 && GA > 0) teamWeightedGA = GA; // fallback if no strength tagged
+  const goalDiff = teamWeightedGF - teamWeightedGA;
   const scoreResult = getSigmoidScore(goalDiff, 0, 2.5);
 
-  // Weighted total
-  const total = (scorePossession * 0.4) + (scoreDanger * 0.3) + (scoreResult * 0.3);
+  // 4) DISCIPLINE (Penalties) — 10% weight
+  const penFor = state.team.penaltiesFor || 0;  // penalties drawn (good)
+  const penAg = state.team.penaltiesAgainst || 0; // penalties taken (bad)
+  const penDiff = penFor - penAg;
+  const scoreDiscipline = getSigmoidScore(penDiff, 0, 2);
+
+  // Weighted total: Possession 25%, Danger 30%, Result 35%, Discipline 10%
+  const total = (scorePossession * 0.25) + (scoreDanger * 0.30) + (scoreResult * 0.35) + (scoreDiscipline * 0.10);
 
   return {
     total: Math.round(total),
-    // Keep the old field names your UI expects, but map them to the new pillars:
-    scoreSS: Math.round(scorePossession), // Possession
-    scoreImp: Math.round(scoreDanger),    // Danger Control
-    scoreFin: Math.round(scoreResult),    // Result
-    scoreStab: 0,                         // Deprecated
+    scoreSS: Math.round(scorePossession),
+    scoreImp: Math.round(scoreDanger),
+    scoreFin: Math.round(scoreResult),
+    scoreDiscipline: Math.round(scoreDiscipline),
+    scoreStab: 0,
     SS: shotShare,
     Fin: SF > 0 ? GF/SF : 0,
-
-    // Pass-throughs used by your audit/summary UI:
     scoreChance: dangerFor,
     scoreST: 0,
     scoreDepth: 0,
@@ -2340,14 +2432,15 @@ function computeGABreakdown(){
       if(e.ga_ba||c.includes('BA')) acc.BA++;
       else if(e.ga_dz||c.includes('DZ')) acc.DZ++;
       else if(e.ga_br||c.includes('BR')) acc.BR++;
+      else if(e.ga_omra||c.includes('OMRA')) acc.OMRA++;
       else acc.Other++;
     }
     return acc;
-  }, {BA:0,DZ:0,BR:0,Other:0});
+  }, {BA:0,DZ:0,BR:0,OMRA:0,Other:0});
 }
 
 function computeGFContextBreakdown(){
-  const acc = {BA:0, OMR:0, Other:0};
+  const acc = {BA:0, OMR:0, FT:0, Other:0};
 
   for(let i = 0; i < state.events.length; i++){
     const e = state.events[i];
@@ -2356,6 +2449,7 @@ function computeGFContextBreakdown(){
     // If already tagged, trust it
     if(e.off_ctx === 'Breakaway') { acc.BA++; continue; }
     if(e.off_ctx === 'Odd Man Rush') { acc.OMR++; continue; }
+    if(e.off_ctx === 'Forced Turnover') { acc.FT++; continue; }
     if(e.off_ctx === 'Other') { acc.Other++; continue; }
 
     // Otherwise compute with no bleed across previous for_goal
@@ -2372,7 +2466,7 @@ function computeGFContextBreakdown(){
       }
     }
 
-    let hasBA = false, hasOMR = false;
+    let hasBA = false, hasOMR = false, hasFT = false;
     for(let j = i - 1; j >= 0; j--){
       const prior = state.events[j];
       const t = new Date(prior.tISO).getTime();
@@ -2380,10 +2474,12 @@ function computeGFContextBreakdown(){
 
       if(prior.type === 'breakaway_for') hasBA = true;
       if(prior.type === 'odd_man_rush_for') hasOMR = true;
+      if(prior.type === 'forced_turnover') hasFT = true;
     }
 
     if(hasBA) acc.BA++;
     else if(hasOMR) acc.OMR++;
+    else if(hasFT) acc.FT++;
     else acc.Other++;
   }
 
@@ -2453,9 +2549,20 @@ function updateMeta(){
   $('dzVal').textContent = state.team.dzTurnovers;
   $('baForVal').textContent = state.team.breakawaysFor;
   $('omrForVal').textContent = state.team.oddManRushFor;
+  $('ftVal').textContent = state.team.forcedTurnovers || 0;
+  $('omrAgVal').textContent = state.team.oddManRushAgainst || 0;
+  $('penForVal').textContent = state.team.penaltiesFor || 0;
+  $('penAgVal').textContent = state.team.penaltiesAgainst || 0;
 
   const goodReb = state.events.filter(e=>e.goodRebound).length;
   $('goodRebVal').textContent = goodReb;
+
+  // High danger + missed chances
+  const hdFor = state.events.filter(e=>(e.type==='for_shot'||e.type==='for_goal')&&e.highDanger).length;
+  const hdAg = state.events.filter(e=>(e.type==='shot'||e.type==='goal'||e.type==='soft_goal'||e.type==='big_save')&&e.highDanger).length;
+  $('hdForVal').textContent = hdFor;
+  $('hdAgVal').textContent = hdAg;
+  $('missedChanceVal').textContent = (state.team.missedChancesFor||0) + (state.team.missedChancesAgainst||0);
 
   const shootPct = F.shots ? (F.goals/F.shots).toFixed(3).slice(1) : '—';
   $('shootPctVal').textContent = shootPct;
@@ -2530,7 +2637,9 @@ function renderLog(){
     if(ev.strength) tags.push(ev.strength);
 
     const tagText = tags.join(' • ');
-    const needs = ev.needsContext && isGA;
+    const needsCtx = ev.needsContext && isGA;
+    const isGoal = isGA || ev.type==='for_goal';
+    const needsStr = isGoal && !ev.strength;
     const meta = `P${ev.period} • ${fmtTime(ev.tISO)}`;
     return `
       <div class="log-item" data-id="${ev.id}">
@@ -2539,7 +2648,8 @@ function renderLog(){
           <span>${labelFor(ev)}</span>
           ${tagText ? `<span class="badge">${tagText}</span>` : ''}
         </div>
-        ${needs ? `<span class="badge badge-tag" data-id="${ev.id}">Tag</span>` : ''}
+        ${needsCtx ? `<span class="badge badge-tag" data-id="${ev.id}">Tag</span>` : ''}
+        ${needsStr ? `<span class="badge badge-tag badge-str" data-id="${ev.id}">EV/PP/SH</span>` : ''}
       </div>`;
   }).join('');
 }
@@ -2552,10 +2662,15 @@ $('log').addEventListener('click', e=>{
   const ev = state.events.find(x=>x.id===id);
   if(!ev) return;
 
-  // user is tagging now, so stop showing "Tag" immediately
+  // Strength tag badge → open strength picker
+  if(badge.classList.contains('badge-str')){
+    openStrengthPicker(ev, 'Our Team\'s Situation (required)');
+    return;
+  }
+
+  // GA context tag badge → open GA context modal
   ev.needsContext = false;
   save();
-
   openGAContext(ev);
 });
 
@@ -2567,6 +2682,8 @@ function buildAllStatsHTML(){
   const shootPct = SF ? (GF/SF).toFixed(3).slice(1) : '—';
   const share = (SF+SA) ? Math.round(100*(SF/(SF+SA)))+'%' : '—';
   const goodReb = state.events.filter(e=>e.goodRebound).length;
+  const hdFor = state.events.filter(e=>(e.type==='for_shot'||e.type==='for_goal')&&e.highDanger).length;
+  const hdAg = state.events.filter(e=>(e.type==='shot'||e.type==='goal'||e.type==='soft_goal'||e.type==='big_save')&&e.highDanger).length;
 
   // GA cause breakdown
   const gaStats = computeGABreakdown();
@@ -2578,18 +2695,23 @@ function buildAllStatsHTML(){
     ['GF', GF], ['GA', GA], ['SF', SF], ['SA', SA],
     ['Saves', saves], ['SV%', svText], ['Our Shooting%', shootPct], ['Shot Share', share],
     ['Smothers', state.countsA.smothers], ['Bad Rebounds', state.countsA.badRebounds], ['Big Saves', state.countsA.bigSaves], ['Soft Goals', state.countsA.softGoals],
+    ['Good Rebounds', goodReb], ['HD Chances For', hdFor], ['HD Chances Ag', hdAg], ['Missed Chances', (state.team.missedChancesFor||0)+(state.team.missedChancesAgainst||0)],
     ['Breakaways Ag', state.team.breakawaysAgainst], ['D-Zone TO', state.team.dzTurnovers], ['Breakaways For', state.team.breakawaysFor], ['Odd Man Rush For', state.team.oddManRushFor],
-    ['Good Rebounds', goodReb],
-
-    ['GF off BA', gfCtx.BA], ['GF off OMR', gfCtx.OMR], ['GF Other', gfCtx.Other],
-
-    ['GA off BA', gaStats.BA], ['GA off DZ', gaStats.DZ], ['GA off Bad Reb', gaStats.BR], ['GA Other', gaStats.Other]
+    ['Forced Turnovers', state.team.forcedTurnovers||0], ['OMR Against', state.team.oddManRushAgainst||0], ['Penalties For', state.team.penaltiesFor||0], ['Penalties Ag', state.team.penaltiesAgainst||0],
+    ['GF off BA', gfCtx.BA], ['GF off OMR', gfCtx.OMR], ['GF off FT', gfCtx.FT||0], ['GF Other', gfCtx.Other],
+    ['GA off BA', gaStats.BA], ['GA off DZ', gaStats.DZ], ['GA off Bad Reb', gaStats.BR], ['GA off OMR', gaStats.OMRA||0],
+    ['GA Other', gaStats.Other], ['']
   ];
 
   let html = `<table><tr><th>Stat</th><th>Value</th><th>Stat</th><th>Value</th></tr>`;
   for(let i=0;i<rows.length;i+=2){
     const a=rows[i], b=rows[i+1];
-    html += `<tr><td>${a[0]}</td><td>${a[1]}</td><td>${b?b[0]:''}</td><td>${b?b[1]:''}</td></tr>`;
+    const aName = Array.isArray(a) ? a[0] : '';
+    const aVal = Array.isArray(a) ? a[1] : '';
+    const bName = (b && Array.isArray(b)) ? b[0] : '';
+    const bVal = (b && Array.isArray(b)) ? b[1] : '';
+    if(!aName && !bName) continue;
+    html += `<tr><td>${aName}</td><td>${aVal}</td><td>${bName}</td><td>${bVal}</td></tr>`;
   }
   html += `</table>`;
   return html;
@@ -2608,7 +2730,7 @@ function endGame(){
 
   // Team audit: map to 3 pillars
   $('teamBreakdown').textContent =
-    `Possession: ${Math.round(T.scoreSS)} | Danger: ${Math.round(T.scoreImp)} | Result: ${Math.round(T.scoreFin)} | ` +
+    `Possession (25%): ${Math.round(T.scoreSS)} | Danger (30%): ${Math.round(T.scoreImp)} | Result (35%): ${Math.round(T.scoreFin)} | Discipline (10%): ${Math.round(T.scoreDiscipline||0)} | ` +
     `Danger For: ${Math.round(T.scoreChance||0)} | Danger Ag: ${Math.round(T.penDef||0)}`;
 
   // Summary rings
@@ -2624,13 +2746,14 @@ function endGame(){
     `Goals Against — EV ${sb.against.EV||0}, PP ${sb.against.PP||0}, SH ${sb.against.SH||0}, Unk ${sb.against.UNK||0}.`;
 
   // Period table
-  let html = `<table><tr><th>P</th><th>SF</th><th>SA</th><th>GF</th><th>GA</th><th>BF</th><th>OMRF</th><th>BA</th><th>DZ</th></tr>`;
+  let html = `<table><tr><th>P</th><th>SF</th><th>SA</th><th>GF</th><th>GA</th><th>BF</th><th>OMRF</th><th>FT</th><th>BA</th><th>DZ</th><th>OMRA</th><th>PF</th><th>PA</th></tr>`;
   for(let p=1;p<=4;p++){
     const v=per[p];
     html+=`<tr>
       <td>${p===4?'OT':p}</td>
       <td>${v.F_shots}</td><td>${v.A_shots}</td><td>${v.F_goals}</td><td>${v.A_goals}</td>
-      <td>${v.BF}</td><td>${v.OMRF}</td><td>${v.BA}</td><td>${v.DZ}</td>
+      <td>${v.BF}</td><td>${v.OMRF}</td><td>${v.FT||0}</td><td>${v.BA}</td><td>${v.DZ}</td>
+      <td>${v.OMRA||0}</td><td>${v.PF||0}</td><td>${v.PA||0}</td>
     </tr>`;
   }
   html+=`</table>`;
@@ -2648,6 +2771,7 @@ function endGame(){
         <tr><th>Context</th><th>Count</th></tr>
         <tr><td>Breakaway</td><td>${gfCtx.BA}</td></tr>
         <tr><td>Odd Man Rush</td><td>${gfCtx.OMR}</td></tr>
+        <tr><td>Forced Turnover</td><td>${gfCtx.FT||0}</td></tr>
         <tr><td>Other</td><td>${gfCtx.Other}</td></tr>
       </table>
     </div>
@@ -2659,6 +2783,7 @@ function endGame(){
         <tr><td>Breakaway</td><td>${gaStats.BA}</td></tr>
         <tr><td>D-Zone Turnover</td><td>${gaStats.DZ}</td></tr>
         <tr><td>Bad Rebound</td><td>${gaStats.BR}</td></tr>
+        <tr><td>Odd Man Rush</td><td>${gaStats.OMRA||0}</td></tr>
         <tr><td>Other</td><td>${gaStats.Other}</td></tr>
       </table>
     </div>
@@ -2689,6 +2814,12 @@ function endGame(){
     DZTurnovers: state.team.dzTurnovers,
     BreakawaysFor: state.team.breakawaysFor,
     OddManRushFor: state.team.oddManRushFor,
+    OddManRushAgainst: state.team.oddManRushAgainst||0,
+    PenaltiesFor: state.team.penaltiesFor||0,
+    PenaltiesAgainst: state.team.penaltiesAgainst||0,
+    MissedChancesFor: state.team.missedChancesFor||0,
+    MissedChancesAgainst: state.team.missedChancesAgainst||0,
+    ForcedTurnovers: state.team.forcedTurnovers||0,
     Smothers: state.countsA.smothers,
     BadRebounds: state.countsA.badRebounds,
     BigSaves: state.countsA.bigSaves,
@@ -2787,6 +2918,10 @@ function exportGameCSV(){
     dzTurnovers: state.team.dzTurnovers,
     breakawaysFor: state.team.breakawaysFor,
     oddManRushFor: state.team.oddManRushFor,
+    oddManRushAgainst: state.team.oddManRushAgainst||0,
+    forcedTurnovers: state.team.forcedTurnovers||0,
+    penaltiesFor: state.team.penaltiesFor||0,
+    penaltiesAgainst: state.team.penaltiesAgainst||0,
     smothers: state.countsA.smothers,
     badRebounds: state.countsA.badRebounds,
     bigSaves: state.countsA.bigSaves,
@@ -2955,9 +3090,10 @@ function applyPickerSelection(num){
   if(num!==null) ensureRosterNumber(String(num));
 
   if(mode==='for_shot'){
-    addEvent('for_shot',{player: (num===null ? '?' : String(num))});
+    const ev = addEvent('for_shot',{player: (num===null ? '?' : String(num))});
     pickerFlow.mode=null;
     renderAll();
+    openDangerPrompt(ev);
     return;
   }
 
@@ -3089,10 +3225,59 @@ $('btnRoster').onclick=openRoster;
 $('btnRosterSave').onclick=saveRosterFromArea;
 $('btnRosterClose').onclick=closeRoster;
 
-$('btnShot').onclick=()=>addEvent('shot');
+/* High Danger modal logic — auto-dismisses after 2s (defaults to No) */
+let dangerTarget = null;
+let dangerAutoTimer = null;
+function openDangerPrompt(ev) {
+  dangerTarget = ev;
+  $('dangerTitle').textContent = 'High Danger Chance?';
+  $('dangerModal').style.display = 'flex';
+  // Auto-dismiss after 2s if user doesn't tap
+  if (dangerAutoTimer) clearTimeout(dangerAutoTimer);
+  dangerAutoTimer = setTimeout(() => {
+    if (dangerTarget) {
+      dangerTarget.highDanger = false;
+      save();
+      $('dangerModal').style.display = 'none';
+      dangerTarget = null;
+    }
+    dangerAutoTimer = null;
+  }, 2000);
+}
+function closeDangerModal() {
+  if (dangerAutoTimer) { clearTimeout(dangerAutoTimer); dangerAutoTimer = null; }
+  $('dangerModal').style.display = 'none';
+  dangerTarget = null;
+}
+$('dangerModal').addEventListener('click', e => {
+  const b = e.target.closest('.pickerBtn');
+  if (!b || !dangerTarget) {
+    // Backdrop click — dismiss as No
+    if (e.target === $('dangerModal')) {
+      if (dangerTarget) { dangerTarget.highDanger = false; save(); }
+      closeDangerModal();
+    }
+    return;
+  }
+  if (dangerAutoTimer) { clearTimeout(dangerAutoTimer); dangerAutoTimer = null; }
+  dangerTarget.highDanger = (b.dataset.danger === 'yes');
+  save();
+  $('dangerModal').style.display = 'none';
+  dangerTarget = null;
+  renderAll();
+});
+
+$('btnShot').onclick=()=>{
+  const ev = addEvent('shot');
+  openDangerPrompt(ev);
+};
 $('btnGoal').onclick=()=>addEvent('goal');
 
-$('btnForShot').onclick=()=>openPicker('for_shot','Shooter');
+$('btnForShot').onclick=()=>{
+  // Store pending danger check - will fire after picker closes
+  const origMode = pickerFlow.mode;
+  openPicker('for_shot','Shooter');
+};
 $('btnForGoal').onclick=()=>openPicker('for_goal_scorer','Scorer');
 
 $('btnSoftGoal').onclick=()=>addEvent('soft_goal');
@@ -3110,6 +3295,14 @@ $('btnBreakawayFor').onclick=()=>{
   addEvent('breakaway_for');
 };
 $('btnOddManRushFor').onclick=()=>addEvent('odd_man_rush_for');
+$('btnForcedTurnover').onclick=()=>addEvent('forced_turnover');
+
+/* New buttons: D1-D2 + B4 */
+$('btnOMRAgainst').onclick=()=>addEvent('odd_man_rush_against');
+$('btnPenaltyFor').onclick=()=>addEvent('penalty_for');
+$('btnPenaltyAgainst').onclick=()=>addEvent('penalty_against');
+$('btnMissedChanceFor').onclick=()=>addEvent('missed_chance_for');
+$('btnMissedChanceAg').onclick=()=>addEvent('missed_chance_against');
 
 $('periodChips').addEventListener('click',e=>{
   const c=e.target.closest('.p-opt');
@@ -3147,7 +3340,7 @@ $('btnReset').onclick=async()=>{
   $('opponent').value = '';
   state.countsA={shots:0,goals:0,softGoals:0,smothers:0,badRebounds:0,bigSaves:0};
   state.countsF={shots:0,goals:0};
-  state.team={breakawaysAgainst:0,dzTurnovers:0,breakawaysFor:0,oddManRushFor:0};
+  state.team={breakawaysAgainst:0,dzTurnovers:0,breakawaysFor:0,oddManRushFor:0,oddManRushAgainst:0,penaltiesFor:0,penaltiesAgainst:0,missedChancesFor:0,missedChancesAgainst:0,forcedTurnovers:0};
   per={1:initP(),2:initP(),3:initP(),4:initP()};
 
   state.gameId = Math.random().toString(36).slice(2);
@@ -3166,9 +3359,18 @@ $('btnReset').onclick=async()=>{
   pingCloud();
 };
 
-/* Modals close on backdrop click */
+/* Modals close on backdrop click — with state cleanup for stateful modals */
 document.querySelectorAll('.modal').forEach(m=>
-  m.addEventListener('click',e=>{if(e.target===m)m.style.display='none';})
+  m.addEventListener('click',e=>{
+    if(e.target!==m) return;
+    m.style.display='none';
+    // Clean up state for modals that track pending operations
+    const mid = m.id;
+    if(mid==='pickerModal'){ pickerFlow.mode=null; }
+    if(mid==='strengthModal'){ strengthTarget=null; }
+    if(mid==='gaOverlay'){ lastGAEvent=null; }
+    if(mid==='onIceModal'){ multiPick.eventRef=null; }
+  })
 );
 
 /* Inputs */
@@ -3195,8 +3397,9 @@ $('btnCopySummary').addEventListener('click', ()=>{
     `Team Score: ${T.total}/100 | Goalie Score: ${K.total}/100`,
     `Smothers ${state.countsA.smothers} | Bad Reb ${state.countsA.badRebounds} | Big Saves ${state.countsA.bigSaves} | Soft Goals ${state.countsA.softGoals}`,
     `Shot Share ${share} | Our Shooting% ${shootPct}`,
-    `BA Ag ${state.team.breakawaysAgainst} | DZ TO ${state.team.dzTurnovers} | BA For ${state.team.breakawaysFor} | OMR For ${state.team.oddManRushFor}`,
-    `GF off BA ${gfCtx.BA} | GF off OMR ${gfCtx.OMR} | GF Other ${gfCtx.Other}`,
+    `BA Ag ${state.team.breakawaysAgainst} | DZ TO ${state.team.dzTurnovers} | OMR Ag ${state.team.oddManRushAgainst||0} | BA For ${state.team.breakawaysFor} | OMR For ${state.team.oddManRushFor} | FT ${state.team.forcedTurnovers||0}`,
+    `Penalties For ${state.team.penaltiesFor||0} | Penalties Ag ${state.team.penaltiesAgainst||0}`,
+    `GF off BA ${gfCtx.BA} | GF off OMR ${gfCtx.OMR} | GF off FT ${gfCtx.FT||0} | GF Other ${gfCtx.Other}`,
     `GA off Bad Reb ${gaStats.BR} | GA off BA ${gaStats.BA} | GA off DZ ${gaStats.DZ} | GA Other ${gaStats.Other}`
   ];
 
@@ -3292,7 +3495,7 @@ function showGameDetail(game){
     ['Smothers', d.Smothers ?? '—'], ['Bad Rebounds', d.BadRebounds ?? '—'],
     ['Big Saves', d.BigSaves ?? '—'], ['Soft Goals', d.SoftGoals ?? '—'],
     ['Breakaways Ag', d.BreakawaysAgainst ?? '—'], ['DZ Turnovers', d.DZTurnovers ?? '—'],
-    ['Breakaways For', d.BreakawaysFor ?? '—'], ['Odd Man Rush For', d.OddManRushFor ?? '—'],
+    ['Breakaways For', d.BreakawaysFor ?? '—'], ['Odd Man Rush For', d.OddManRushFor ?? '—'], ['Forced Turnovers', d.ForcedTurnovers ?? '—'],
     ['GA off BA', d.GA_BA ?? '—'], ['GA off DZ', d.GA_DZ ?? '—'],
     ['GA off Bad Reb', d.GA_BR ?? '—'], ['GA Other', d.GA_Other ?? '—']
   ];

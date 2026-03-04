@@ -18,6 +18,10 @@ export default async function handler(req, res) {
       if (userId) {
         queryUrl += `&user_id=eq.${encodeURIComponent(userId)}`;
       }
+      const teamId = req.query.team_id || null;
+      if (teamId) {
+        queryUrl += `&team_id=eq.${encodeURIComponent(teamId)}`;
+      }
 
       const response = await fetch(
         queryUrl,

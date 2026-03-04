@@ -1191,3 +1191,47 @@
   .history-score .w{ color:var(--good); }
   .history-score .l{ color:var(--accent-them); }
   .history-score .t{ color:var(--warn); }
+
+/* ===== Team Selector & Manager ===== */
+.team-selector-row{
+  display:flex; gap:8px; align-items:center;
+}
+.team-selector-row select{
+  flex:1;
+  background:#000; color:#fff; border:1px solid #333;
+  padding:10px 12px; border-radius:8px; font-size:14px;
+  -webkit-appearance:none; appearance:none;
+}
+.btn-manage-teams{
+  font-size:11px !important; padding:8px 12px !important;
+  white-space:nowrap;
+}
+
+/* Team list inside modal */
+.team-list{ display:flex; flex-direction:column; gap:6px; margin-bottom:10px; }
+.team-list-item{
+  display:flex; justify-content:space-between; align-items:center;
+  background:#111; border:1px solid #222; border-radius:8px;
+  padding:10px 12px; cursor:pointer;
+}
+.team-list-item.active{ border-color:var(--accent-us); }
+.team-list-item:active{ background:#1a1a1a; }
+.team-item-info{ display:flex; flex-direction:column; gap:2px; }
+.team-item-name{ font-size:14px; font-weight:700; color:#fff; }
+.team-item-meta{ font-size:11px; color:var(--muted); }
+.team-item-actions{ display:flex; gap:6px; }
+.team-item-actions button{
+  font-size:10px; padding:4px 8px;
+  background:none; border:1px solid #444; color:#888;
+  border-radius:6px; cursor:pointer;
+}
+.team-item-actions button:active{ background:#222; }
+.team-item-actions .btn-del{ border-color:var(--accent-them); color:var(--accent-them); }
+
+/* Team form in modal */
+.team-form{
+  display:none; padding:12px; background:#0a0a0a;
+  border:1px solid #333; border-radius:8px; margin-bottom:10px;
+}
+.team-form.visible{ display:block; }
+.team-form-title{ font-size:14px; font-weight:700; color:#fff; margin-bottom:8px; }

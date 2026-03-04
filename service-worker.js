@@ -3,7 +3,7 @@
 // Version: v5.1.1
 // -----------------------------
 
-const CACHE_VERSION = "team-tracker-cache-v6.1.0";
+const CACHE_VERSION = "team-tracker-cache-v6.2.0";
 const CACHE_NAME = CACHE_VERSION;
 
 const ASSETS_TO_CACHE = [
@@ -13,6 +13,7 @@ const ASSETS_TO_CACHE = [
   "/css/auth.css",
   "/js/app.js",
   "/js/auth.js",
+  "/js/teams.js",
   "/manifest.json",
   "/service-worker.js",
   "/favicon.ico",

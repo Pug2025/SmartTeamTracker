@@ -2537,12 +2537,14 @@ function computeGoalieScore() {
       const cause = ev.ga_cause || '';
       const ctx = ev.ga_ctx || '';
 
-      // Hard goals (less blame on goalie): breakaways, screens, deflections, odd-man rush, SH, HD
+      // Hard goals (less blame on goalie): breakaways, screens, deflections, odd-man rush, SH
+      // Note: HD is NOT included here. HD means the team let the opponent into a dangerous
+      // position, but the goalie is still expected to compete on those shots. The goalie gets
+      // credit via the 1.5x weighted shot for HD saves, but letting one in is not excused.
       const isHard =
         cause.includes('BA') ||
         /Screen|Deflection\/Tip|Cross-Crease|Odd-Man Rush/.test(ctx) ||
-        ev.strength === 'SH' ||
-        ev.highDanger;
+        ev.strength === 'SH';
 
       // Soft goals (more blame on goalie): explicit soft goal, bad rebound, or clean look
       const isSoft =

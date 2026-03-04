@@ -136,16 +136,29 @@
   /* Pulse Animation for Score */
   @keyframes pulse-green {
     0% {color:#fff;}
-    50% {color:var(--good); transform:scale(1.2);}
+    50% {color:var(--good); transform:scale(1.3);}
     100% {color:#fff;}
   }
   @keyframes pulse-red {
     0% {color:#fff;}
-    50% {color:var(--accent-them); transform:scale(1.2);}
+    50% {color:var(--accent-them); transform:scale(1.3);}
     100% {color:#fff;}
   }
-  .pulse-good { animation: pulse-green 0.4s ease-out; }
-  .pulse-bad { animation: pulse-red 0.4s ease-out; }
+  .pulse-good { animation: pulse-green 0.5s ease-out; }
+  .pulse-bad { animation: pulse-red 0.5s ease-out; }
+
+  /* Full-screen goal flash overlay */
+  .goal-flash{
+    position:fixed; inset:0; z-index:8000;
+    pointer-events:none;
+    animation:goal-flash-anim 0.4s ease-out forwards;
+  }
+  .goal-flash.good{ background:rgba(50,215,75,0.15); }
+  .goal-flash.bad{ background:rgba(255,69,58,0.15); }
+  @keyframes goal-flash-anim {
+    0% { opacity:1; }
+    100% { opacity:0; }
+  }
 
   /* Period Selector (Segmented) */
   .period-seg{
@@ -939,7 +952,7 @@
       </div>
       <div id="resumeBanner" class="banner hidden" style="font-size:12px; color:var(--warn); margin-bottom:10px;">Resumed saved game.</div>
       <button id="btnStartGame" class="btn-start">Start Game</button>
-      <button id="btnHistory" class="btn-start" style="background:#222; color:#fff; border:1px solid #444; margin-top:8px; font-size:14px;">Past Games</button>
+      <button id="btnHistory" class="btn-start" style="background:transparent; color:var(--accent-us); border:2px solid var(--accent-us); margin-top:8px; font-size:15px;">Past Games</button>
     </div>
 
     <!-- Game History Panel -->
@@ -1049,12 +1062,15 @@
         <div class="dashTile"><div class="k">Soft Goals</div><div class="v" id="softVal">0</div><div class="s">Preventable</div></div>
       </div>
 
-      <!-- Shooting Stats -->
-      <div class="dash-section-label">Shooting</div>
+      <!-- Shot Quality Analysis -->
+      <div class="dash-section-label">Shot Quality</div>
       <div class="dashGrid">
         <div class="dashTile"><div class="k">Shooting %</div><div class="v" id="shootPctVal">—</div><div class="s">GF / SF</div></div>
         <div class="dashTile"><div class="k">Shot Share</div><div class="v" id="shotShareVal">—</div><div class="s">SF / (SF+SA)</div></div>
-        <div class="dashTile"><div class="k">Missed Chances</div><div class="v" id="missedChanceVal">0</div><div class="s">No shot</div></div>
+        <div class="dashTile"><div class="k">Missed Chances</div><div class="v" id="missedChanceVal">0</div><div class="s">Chances w/o shot</div></div>
+        <div class="dashTile"><div class="k">xGF</div><div class="v" id="xgfVal">—</div><div class="s" id="xgfSub">Expected goals for</div></div>
+        <div class="dashTile"><div class="k">xGA</div><div class="v" id="xgaVal">—</div><div class="s" id="xgaSub">Expected goals ag</div></div>
+        <div class="dashTile"><div class="k">xG Diff</div><div class="v" id="xgDiffVal">—</div><div class="s" id="xgDiffSub">Quality edge</div></div>
       </div>
 
       <!-- Offensive Context -->
@@ -1520,9 +1536,6 @@ setInterval(()=>{
 }, 5000);
 
 /* ===== Helpers ===== */
-function vibrate(pattern=20){
-  try { if(navigator.vibrate) navigator.vibrate(pattern); } catch(_){}
-}
 const HAPTIC = {
   tap: 15,
   goal: [40, 30, 40],
@@ -1532,6 +1545,27 @@ const HAPTIC = {
   save: [30, 20, 30, 20, 60],
   error: [100, 50, 100]
 };
+
+/* Haptic feedback with Android vibrate + iOS audio-tick fallback */
+let _hapticCtx = null;
+function vibrate(pattern=20){
+  // Android / Chrome: use vibration API
+  try { if(navigator.vibrate) { navigator.vibrate(pattern); return; } } catch(_){}
+  // iOS / Safari fallback: play a tiny inaudible tick via AudioContext
+  // This triggers the system haptic engine on iOS when paired with user gesture
+  try {
+    if(!_hapticCtx) _hapticCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if(_hapticCtx.state === 'suspended') _hapticCtx.resume();
+    const osc = _hapticCtx.createOscillator();
+    const gain = _hapticCtx.createGain();
+    gain.gain.value = 0.001; // nearly silent
+    osc.connect(gain);
+    gain.connect(_hapticCtx.destination);
+    osc.frequency.value = 1;
+    osc.start();
+    osc.stop(_hapticCtx.currentTime + 0.01);
+  } catch(_){}
+}
 
 /* Status toast (replaces alert) */
 let statusToastTimer = null;
@@ -1885,9 +1919,11 @@ function addEvent(type, meta={}){
 
   if(type==='goal' || type==='soft_goal'){
     triggerPulse('liveGA','bad');
+    goalFlash('bad');
     vibrate(HAPTIC.goalAgainst);
   } else if(type==='for_goal'){
     triggerPulse('liveGF','good');
+    goalFlash('good');
     vibrate(HAPTIC.goal);
   } else {
     vibrate(HAPTIC.tap);
@@ -1910,6 +1946,12 @@ function flashBtn(btnEl){
   btnEl.classList.remove('flash');
   void btnEl.offsetWidth;
   btnEl.classList.add('flash');
+}
+function goalFlash(type){
+  const el = document.createElement('div');
+  el.className = `goal-flash ${type}`;
+  document.body.appendChild(el);
+  el.addEventListener('animationend', ()=>el.remove());
 }
 
 function undo(){
@@ -2399,6 +2441,48 @@ const LEVEL_PROFILES = {
   Other:{ goalieBaseSV:0.85 }
 };
 
+/* ===== SHOT QUALITY / xG MODEL ===== */
+const XG_RATES = {
+  hd: 0.18,       // high danger shot: ~18% chance of goal
+  normal: 0.07,   // regular shot: ~7% chance
+  missed: 0.12    // missed chance: would have been ~12% (between normal and HD)
+};
+
+function computeShotQuality() {
+  let xGF = 0, xGA = 0;
+  let hdFor = 0, hdAg = 0, regFor = 0, regAg = 0;
+  let mcFor = state.team.missedChancesFor || 0;
+  let mcAg = state.team.missedChancesAgainst || 0;
+
+  for (const ev of state.events) {
+    if (ev.type === 'for_shot' || ev.type === 'for_goal') {
+      if (ev.highDanger) { xGF += XG_RATES.hd; hdFor++; }
+      else { xGF += XG_RATES.normal; regFor++; }
+    }
+    if (ev.type === 'shot' || ev.type === 'goal' || ev.type === 'soft_goal' || ev.type === 'big_save' || ev.type === 'bad_rebound') {
+      if (ev.highDanger) { xGA += XG_RATES.hd; hdAg++; }
+      else { xGA += XG_RATES.normal; regAg++; }
+    }
+  }
+
+  // Missed chances add to expected goals (they were quality chances not taken)
+  xGF += mcFor * XG_RATES.missed;
+  xGA += mcAg * XG_RATES.missed;
+
+  const SF = state.countsF.shots || 0;
+  const SA = state.countsA.shots || 0;
+  const hdPctFor = SF > 0 ? Math.round(100 * hdFor / SF) : 0;
+  const hdPctAg = SA > 0 ? Math.round(100 * hdAg / SA) : 0;
+
+  return {
+    xGF: Math.round(xGF * 100) / 100,
+    xGA: Math.round(xGA * 100) / 100,
+    xGDiff: Math.round((xGF - xGA) * 100) / 100,
+    hdFor, hdAg, regFor, regAg, mcFor, mcAg,
+    hdPctFor, hdPctAg
+  };
+}
+
 /* ===== SCORING ENGINE ===== */
 function getSigmoidScore(actual, expected, spread) {
   const z = (actual - expected) / (spread || 1);
@@ -2441,7 +2525,10 @@ function computeGoalieScore() {
     let wShot = 1.0;
     let wGoal = 1.0;
 
-    // Big save: count as normal shot weight (no inflation) but give additive bonus
+    // HD shots are harder to save — weight them higher
+    if (ev.highDanger) wShot = 1.5;
+
+    // Big save: give additive bonus
     if (ev.type === 'big_save') {
       bigSaveBonus += 0.3;
     }
@@ -2450,7 +2537,10 @@ function computeGoalieScore() {
       const cause = ev.ga_cause || '';
       const ctx = ev.ga_ctx || '';
 
-      // Hard goals (less blame on goalie): breakaways, screens, deflections, odd-man rush, SH situations
+      // Hard goals (less blame on goalie): breakaways, screens, deflections, odd-man rush, SH
+      // Note: HD is NOT included here. HD means the team let the opponent into a dangerous
+      // position, but the goalie is still expected to compete on those shots. The goalie gets
+      // credit via the 1.5x weighted shot for HD saves, but letting one in is not excused.
       const isHard =
         cause.includes('BA') ||
         /Screen|Deflection\/Tip|Cross-Crease|Odd-Man Rush/.test(ctx) ||
@@ -2510,25 +2600,26 @@ function computeTeamScore() {
   const totalShots = SF + SA;
 
   if (totalShots < 5) {
-    return { total: 50, scoreSS:0, scoreFin:0, scoreImp:0, scoreStab:0, SS:0, Fin:0, scoreChance:0, scoreST:0, scoreDepth:0, penDef:0, scoreDiscipline:0 };
+    return { total: 50, scoreSS:0, scoreFin:0, scoreImp:0, scoreSQ:0, scoreStab:0, SS:0, Fin:0, scoreChance:0, scoreST:0, scoreDepth:0, penDef:0, scoreDiscipline:0 };
   }
 
-  // 1) POSSESSION (Shot Share) — 25% weight
+  const sq = computeShotQuality();
+
+  // 1) POSSESSION (Shot Share) — 20% weight
   const shotShare = SF / totalShots;
   const scorePossession = getSigmoidScore(shotShare, 0.5, 0.15);
 
-  // 2) DANGER CONTROL (Net dangerous events) — 30% weight
-  //    For: breakaways + odd man rush + forced turnovers (we stole it)
-  //    Against: breakaways ag + DZ turnovers + odd man rush ag
+  // 2) DANGER CONTROL (Net dangerous events) — 20% weight
   const dangerFor = (state.team.breakawaysFor || 0) + (state.team.oddManRushFor || 0) + (state.team.forcedTurnovers || 0);
   const dangerAg  = (state.team.breakawaysAgainst || 0) + (state.team.dzTurnovers || 0) + (state.team.oddManRushAgainst || 0);
   const dangerDiff = dangerFor - dangerAg;
   const scoreDanger = getSigmoidScore(dangerDiff, 0, 3);
 
-  // 3) EXECUTION / RESULT (Weighted goal differential) — 35% weight
-  //    Strength reflects OUR team's situation when the goal-against happened:
-  //    SH = we were shorthanded → opponent scored a PP goal (expected, reduced blame)
-  //    PP = we were on power play → opponent scored SH goal (embarrassing, full blame)
+  // 3) SHOT QUALITY (xG differential) — 15% weight
+  //    Measures whether we're generating better chances than the opponent
+  const scoreShotQuality = getSigmoidScore(sq.xGDiff, 0, 0.8);
+
+  // 4) EXECUTION / RESULT (Weighted goal differential) — 35% weight
   let teamWeightedGF = GF;
   let teamWeightedGA = 0;
   for (const ev of state.events) {
@@ -2536,23 +2627,24 @@ function computeTeamScore() {
       teamWeightedGA += (ev.strength === 'SH') ? 0.6 : 1.0;
     }
   }
-  if (teamWeightedGA === 0 && GA > 0) teamWeightedGA = GA; // fallback if no strength tagged
+  if (teamWeightedGA === 0 && GA > 0) teamWeightedGA = GA;
   const goalDiff = teamWeightedGF - teamWeightedGA;
   const scoreResult = getSigmoidScore(goalDiff, 0, 2.5);
 
-  // 4) DISCIPLINE (Penalties) — 10% weight
-  const penFor = state.team.penaltiesFor || 0;  // penalties drawn (good)
-  const penAg = state.team.penaltiesAgainst || 0; // penalties taken (bad)
+  // 5) DISCIPLINE (Penalties) — 10% weight
+  const penFor = state.team.penaltiesFor || 0;
+  const penAg = state.team.penaltiesAgainst || 0;
   const penDiff = penFor - penAg;
   const scoreDiscipline = getSigmoidScore(penDiff, 0, 2);
 
-  // Weighted total: Possession 25%, Danger 30%, Result 35%, Discipline 10%
-  const total = (scorePossession * 0.25) + (scoreDanger * 0.30) + (scoreResult * 0.35) + (scoreDiscipline * 0.10);
+  // Weighted total: Possession 20%, Danger 20%, Shot Quality 15%, Result 35%, Discipline 10%
+  const total = (scorePossession * 0.20) + (scoreDanger * 0.20) + (scoreShotQuality * 0.15) + (scoreResult * 0.35) + (scoreDiscipline * 0.10);
 
   return {
     total: Math.round(total),
     scoreSS: Math.round(scorePossession),
     scoreImp: Math.round(scoreDanger),
+    scoreSQ: Math.round(scoreShotQuality),
     scoreFin: Math.round(scoreResult),
     scoreDiscipline: Math.round(scoreDiscipline),
     scoreStab: 0,
@@ -2711,6 +2803,27 @@ function updateMeta(){
   const share = (F.shots + A.shots) ? Math.round(100 * (F.shots/(F.shots+A.shots)))+'%' : '—';
   $('shotShareVal').textContent = share;
 
+  // Shot quality / xG
+  const sq = computeShotQuality();
+  if(state.events.length > 0){
+    $('xgfVal').textContent = sq.xGF.toFixed(1);
+    $('xgaVal').textContent = sq.xGA.toFixed(1);
+    const diff = sq.xGDiff;
+    $('xgDiffVal').textContent = (diff > 0 ? '+' : '') + diff.toFixed(1);
+    $('xgDiffVal').style.color = diff > 0 ? 'var(--good)' : diff < 0 ? 'var(--accent-them)' : 'var(--ink)';
+    $('xgfSub').textContent = `${sq.hdFor} HD / ${sq.regFor} reg`;
+    $('xgaSub').textContent = `${sq.hdAg} HD / ${sq.regAg} reg`;
+    $('xgDiffSub').textContent = diff > 0 ? 'Outplaying' : diff < 0 ? 'Under pressure' : 'Even';
+  } else {
+    $('xgfVal').textContent = '—';
+    $('xgaVal').textContent = '—';
+    $('xgDiffVal').textContent = '—';
+    $('xgDiffVal').style.color = '';
+    $('xgfSub').textContent = 'Expected goals for';
+    $('xgaSub').textContent = 'Expected goals ag';
+    $('xgDiffSub').textContent = 'Quality edge';
+  }
+
   // rings
   if(state.events.length === 0){
     // start-of-game display
@@ -2765,8 +2878,8 @@ function renderLog(){
     logEl.innerHTML = `<div class="small" style="opacity:0.7;">No events yet.</div>`;
     return;
   }
-  const THEM_TYPES = new Set(['shot','goal','soft_goal','smother','bad_rebound','big_save','breakaway_against','dz_turnover','odd_man_rush_against','penalty_against','missed_chance_against']);
-  const US_TYPES = new Set(['for_shot','for_goal','breakaway_for','odd_man_rush_for','forced_turnover','penalty_for','missed_chance_for']);
+  const THEM_TYPES = new Set(['shot','goal','soft_goal','bad_rebound','breakaway_against','dz_turnover','odd_man_rush_against','penalty_against','missed_chance_against']);
+  const US_TYPES = new Set(['for_shot','for_goal','smother','big_save','breakaway_for','odd_man_rush_for','forced_turnover','penalty_for','missed_chance_for']);
 
   logEl.innerHTML = evs.map(ev=>{
     const isGA = (ev.type==='goal' || ev.type==='soft_goal');
@@ -2836,13 +2949,16 @@ function buildAllStatsHTML(){
   // GF context breakdown
   const gfCtx = computeGFContextBreakdown();
 
+  const sq = computeShotQuality();
   const rows = [
     ['GF', GF], ['GA', GA], ['SF', SF], ['SA', SA],
     ['Saves', saves], ['SV%', svText], ['Our Shooting%', shootPct], ['Shot Share', share],
+    ['xGF', sq.xGF], ['xGA', sq.xGA], ['xG Diff', (sq.xGDiff>0?'+':'')+sq.xGDiff], ['HD % For', sq.hdPctFor+'%'],
+    ['HD Chances For', hdFor], ['HD Chances Ag', hdAg], ['HD % Against', sq.hdPctAg+'%'], ['Missed Chances', (state.team.missedChancesFor||0)+(state.team.missedChancesAgainst||0)],
     ['Smothers', state.countsA.smothers], ['Bad Rebounds', state.countsA.badRebounds], ['Big Saves', state.countsA.bigSaves], ['Soft Goals', state.countsA.softGoals],
-    ['Good Rebounds', goodReb], ['HD Chances For', hdFor], ['HD Chances Ag', hdAg], ['Missed Chances', (state.team.missedChancesFor||0)+(state.team.missedChancesAgainst||0)],
-    ['Breakaways Ag', state.team.breakawaysAgainst], ['D-Zone TO', state.team.dzTurnovers], ['Breakaways For', state.team.breakawaysFor], ['Odd Man Rush For', state.team.oddManRushFor],
-    ['Forced Turnovers', state.team.forcedTurnovers||0], ['OMR Against', state.team.oddManRushAgainst||0], ['Penalties For', state.team.penaltiesFor||0], ['Penalties Ag', state.team.penaltiesAgainst||0],
+    ['Good Rebounds', goodReb], ['Breakaways Ag', state.team.breakawaysAgainst], ['D-Zone TO', state.team.dzTurnovers], ['Breakaways For', state.team.breakawaysFor],
+    ['Odd Man Rush For', state.team.oddManRushFor], ['Forced Turnovers', state.team.forcedTurnovers||0], ['OMR Against', state.team.oddManRushAgainst||0], ['Penalties For', state.team.penaltiesFor||0],
+    ['Penalties Ag', state.team.penaltiesAgainst||0], [''],
     ['GF off BA', gfCtx.BA], ['GF off OMR', gfCtx.OMR], ['GF off FT', gfCtx.FT||0], ['GF Other', gfCtx.Other],
     ['GA off BA', gaStats.BA], ['GA off DZ', gaStats.DZ], ['GA off Bad Reb', gaStats.BR], ['GA off OMR', gaStats.OMRA||0],
     ['GA Other', gaStats.Other], ['']
@@ -2873,10 +2989,11 @@ function endGame(){
     `Weighted Shots: ${K.scoreSV} | GSAx: ${K.ctxAdj} | Soft Goals: ${K.softPenalty} | ` +
     `Rebound Score: ${K.scoreRebound} | Big Saves: ${K.scoreBig} | Smothers: ${K.smothers} | Good Reb: ${K.goodRebounds}`;
 
-  // Team audit: map to 3 pillars
+  // Team audit
+  const sqSum = computeShotQuality();
   $('teamBreakdown').textContent =
-    `Possession (25%): ${Math.round(T.scoreSS)} | Danger (30%): ${Math.round(T.scoreImp)} | Result (35%): ${Math.round(T.scoreFin)} | Discipline (10%): ${Math.round(T.scoreDiscipline||0)} | ` +
-    `Danger For: ${Math.round(T.scoreChance||0)} | Danger Ag: ${Math.round(T.penDef||0)}`;
+    `Possession (20%): ${Math.round(T.scoreSS)} | Danger (20%): ${Math.round(T.scoreImp)} | Shot Quality (15%): ${Math.round(T.scoreSQ||0)} | Result (35%): ${Math.round(T.scoreFin)} | Discipline (10%): ${Math.round(T.scoreDiscipline||0)} | ` +
+    `xGF: ${sqSum.xGF} | xGA: ${sqSum.xGA} | xG Diff: ${sqSum.xGDiff > 0 ? '+' : ''}${sqSum.xGDiff}`;
 
   // Summary rings
   setRing($('goalieScoreNumSum'),$('gsArcSum'),K.total);
@@ -3518,11 +3635,13 @@ $('btnCopySummary').addEventListener('click', ()=>{
   const gfCtx = computeGFContextBreakdown();
   const gaStats = computeGABreakdown();
 
+  const sqCopy = computeShotQuality();
   const lines = [
     `${state.level||'?'} vs ${state.opponent||'Unknown'} on ${date}`,
     `Score: Us ${GF} – ${GA} Them`,
     `Shots: SF ${SF}, SA ${SA} | Saves ${saves} | SV% ${svText}`,
     `Team Score: ${T.total}/100 | Goalie Score: ${K.total}/100`,
+    `xGF ${sqCopy.xGF} | xGA ${sqCopy.xGA} | xG Diff ${sqCopy.xGDiff > 0 ? '+' : ''}${sqCopy.xGDiff} | HD For ${sqCopy.hdFor} (${sqCopy.hdPctFor}%) | HD Ag ${sqCopy.hdAg} (${sqCopy.hdPctAg}%)`,
     `Smothers ${state.countsA.smothers} | Bad Reb ${state.countsA.badRebounds} | Big Saves ${state.countsA.bigSaves} | Soft Goals ${state.countsA.softGoals}`,
     `Shot Share ${share} | Our Shooting% ${shootPct}`,
     `BA Ag ${state.team.breakawaysAgainst} | DZ TO ${state.team.dzTurnovers} | OMR Ag ${state.team.oddManRushAgainst||0} | BA For ${state.team.breakawaysFor} | OMR For ${state.team.oddManRushFor} | FT ${state.team.forcedTurnovers||0}`,

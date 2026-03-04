@@ -136,16 +136,29 @@
   /* Pulse Animation for Score */
   @keyframes pulse-green {
     0% {color:#fff;}
-    50% {color:var(--good); transform:scale(1.2);}
+    50% {color:var(--good); transform:scale(1.3);}
     100% {color:#fff;}
   }
   @keyframes pulse-red {
     0% {color:#fff;}
-    50% {color:var(--accent-them); transform:scale(1.2);}
+    50% {color:var(--accent-them); transform:scale(1.3);}
     100% {color:#fff;}
   }
-  .pulse-good { animation: pulse-green 0.4s ease-out; }
-  .pulse-bad { animation: pulse-red 0.4s ease-out; }
+  .pulse-good { animation: pulse-green 0.5s ease-out; }
+  .pulse-bad { animation: pulse-red 0.5s ease-out; }
+
+  /* Full-screen goal flash overlay */
+  .goal-flash{
+    position:fixed; inset:0; z-index:8000;
+    pointer-events:none;
+    animation:goal-flash-anim 0.4s ease-out forwards;
+  }
+  .goal-flash.good{ background:rgba(50,215,75,0.15); }
+  .goal-flash.bad{ background:rgba(255,69,58,0.15); }
+  @keyframes goal-flash-anim {
+    0% { opacity:1; }
+    100% { opacity:0; }
+  }
 
   /* Period Selector (Segmented) */
   .period-seg{
@@ -536,6 +549,10 @@
   .log-item.log-us{
     border-left:3px solid var(--accent-us);
     background:rgba(77,163,255,0.04);
+  }
+  .log-item.log-positive{
+    border-left:3px solid var(--good);
+    background:rgba(50,215,75,0.05);
   }
   .log-item.log-ctx{
     border-left:3px solid var(--muted);
@@ -939,7 +956,7 @@
       </div>
       <div id="resumeBanner" class="banner hidden" style="font-size:12px; color:var(--warn); margin-bottom:10px;">Resumed saved game.</div>
       <button id="btnStartGame" class="btn-start">Start Game</button>
-      <button id="btnHistory" class="btn-start" style="background:#222; color:#fff; border:1px solid #444; margin-top:8px; font-size:14px;">Past Games</button>
+      <button id="btnHistory" class="btn-start" style="background:transparent; color:var(--accent-us); border:2px solid var(--accent-us); margin-top:8px; font-size:15px;">Past Games</button>
     </div>
 
     <!-- Game History Panel -->
@@ -1520,9 +1537,6 @@ setInterval(()=>{
 }, 5000);
 
 /* ===== Helpers ===== */
-function vibrate(pattern=20){
-  try { if(navigator.vibrate) navigator.vibrate(pattern); } catch(_){}
-}
 const HAPTIC = {
   tap: 15,
   goal: [40, 30, 40],
@@ -1532,6 +1546,27 @@ const HAPTIC = {
   save: [30, 20, 30, 20, 60],
   error: [100, 50, 100]
 };
+
+/* Haptic feedback with Android vibrate + iOS audio-tick fallback */
+let _hapticCtx = null;
+function vibrate(pattern=20){
+  // Android / Chrome: use vibration API
+  try { if(navigator.vibrate) { navigator.vibrate(pattern); return; } } catch(_){}
+  // iOS / Safari fallback: play a tiny inaudible tick via AudioContext
+  // This triggers the system haptic engine on iOS when paired with user gesture
+  try {
+    if(!_hapticCtx) _hapticCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if(_hapticCtx.state === 'suspended') _hapticCtx.resume();
+    const osc = _hapticCtx.createOscillator();
+    const gain = _hapticCtx.createGain();
+    gain.gain.value = 0.001; // nearly silent
+    osc.connect(gain);
+    gain.connect(_hapticCtx.destination);
+    osc.frequency.value = 1;
+    osc.start();
+    osc.stop(_hapticCtx.currentTime + 0.01);
+  } catch(_){}
+}
 
 /* Status toast (replaces alert) */
 let statusToastTimer = null;
@@ -1885,9 +1920,11 @@ function addEvent(type, meta={}){
 
   if(type==='goal' || type==='soft_goal'){
     triggerPulse('liveGA','bad');
+    goalFlash('bad');
     vibrate(HAPTIC.goalAgainst);
   } else if(type==='for_goal'){
     triggerPulse('liveGF','good');
+    goalFlash('good');
     vibrate(HAPTIC.goal);
   } else {
     vibrate(HAPTIC.tap);
@@ -1910,6 +1947,12 @@ function flashBtn(btnEl){
   btnEl.classList.remove('flash');
   void btnEl.offsetWidth;
   btnEl.classList.add('flash');
+}
+function goalFlash(type){
+  const el = document.createElement('div');
+  el.className = `goal-flash ${type}`;
+  document.body.appendChild(el);
+  el.addEventListener('animationend', ()=>el.remove());
 }
 
 function undo(){
@@ -2765,8 +2808,9 @@ function renderLog(){
     logEl.innerHTML = `<div class="small" style="opacity:0.7;">No events yet.</div>`;
     return;
   }
-  const THEM_TYPES = new Set(['shot','goal','soft_goal','smother','bad_rebound','big_save','breakaway_against','dz_turnover','odd_man_rush_against','penalty_against','missed_chance_against']);
+  const THEM_TYPES = new Set(['shot','goal','soft_goal','bad_rebound','breakaway_against','dz_turnover','odd_man_rush_against','penalty_against','missed_chance_against']);
   const US_TYPES = new Set(['for_shot','for_goal','breakaway_for','odd_man_rush_for','forced_turnover','penalty_for','missed_chance_for']);
+  const POS_TYPES = new Set(['smother','big_save']);
 
   logEl.innerHTML = evs.map(ev=>{
     const isGA = (ev.type==='goal' || ev.type==='soft_goal');
@@ -2785,7 +2829,7 @@ function renderLog(){
     const isGoal = isGA || ev.type==='for_goal';
     const needsStr = isGoal && !ev.strength;
     const meta = `P${ev.period} ${fmtTime(ev.tISO)}`;
-    const side = THEM_TYPES.has(ev.type) ? 'log-them' : US_TYPES.has(ev.type) ? 'log-us' : 'log-ctx';
+    const side = POS_TYPES.has(ev.type) ? 'log-positive' : THEM_TYPES.has(ev.type) ? 'log-them' : US_TYPES.has(ev.type) ? 'log-us' : 'log-ctx';
     return `
       <div class="log-item ${side}" data-id="${ev.id}">
         <div class="log-main">

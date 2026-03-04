@@ -26,6 +26,7 @@ export default async function handler(req, res) {
       date: game.Date || null,
       opponent: game.Opponent || null,
       level: game.Level || null,
+      user_id: game.user_id || null,
       data: game // store ALL stats — no allowlist, no schema changes needed
     };
 

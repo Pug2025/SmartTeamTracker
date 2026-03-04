@@ -93,6 +93,42 @@
     padding:0 14px 6px 14px;
     gap:12px;
   }
+  /* Chance Quality Slider */
+  .quality-bar-wrap{
+    padding:0 14px 8px 14px;
+  }
+  .quality-bar-label{
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:0.8px;
+    color:var(--muted);
+    text-align:center;
+    margin-bottom:4px;
+    font-weight:600;
+  }
+  .quality-bar-track{
+    position:relative;
+    height:8px;
+    background:#1c1c1e;
+    border-radius:4px;
+    overflow:hidden;
+  }
+  .quality-bar-fill{
+    position:absolute;
+    top:0;
+    height:100%;
+    border-radius:4px;
+    transition:left 0.5s ease, width 0.5s ease, background 0.5s ease;
+  }
+  .quality-bar-text{
+    font-size:10px;
+    color:var(--muted);
+    text-align:center;
+    margin-top:3px;
+    font-weight:600;
+    transition:color 0.3s;
+  }
+
   .score-block{
     display:flex;
     flex-direction:column;
@@ -919,6 +955,14 @@
       <div class="score-sub" id="liveSF_sub">SF: 0</div>
     </div>
   </div>
+
+  <div class="quality-bar-wrap" id="qualityBarWrap" style="display:none;">
+    <div class="quality-bar-label">Chance Quality</div>
+    <div class="quality-bar-track">
+      <div class="quality-bar-fill" id="qualityFill"></div>
+    </div>
+    <div class="quality-bar-text" id="qualityText"></div>
+  </div>
 </header>
 
 <div class="wrap">
@@ -1468,7 +1512,7 @@ function refreshCloudStatus(){
 /* Make cloud pill useful: ping /api/ping to show online/offline */
 let lastCloudPingAt = 0;
 async function pingCloud(){
-  // If a "Saved" for this game is showing, keep it (don’t overwrite with OK).
+  // If a "Saved" for this game is showing, keep it (don't overwrite with OK).
   const el = $('cloudStatus');
   if(el && /Cloud:\s*Saved/i.test(el.textContent)) return;
 
@@ -2101,19 +2145,19 @@ function labelFor(ev){
 }
 
 /* GA Context */
-const GA_TAGS = [‘Screen’,’Deflection/Tip’,’Cross-Crease’,’Odd-Man Rush’,’Net-Front Scramble’,’Clean Look’,’Other’];
-const SOFT_GA_TAGS = [‘Misplay’,’Poor Positioning’,’Other’];
+const GA_TAGS = ['Screen','Deflection/Tip','Cross-Crease','Odd-Man Rush','Net-Front Scramble','Clean Look','Other'];
+const SOFT_GA_TAGS = ['Misplay','Poor Positioning','Other'];
 let lastGAEvent = null;
 function openGAContext(ev){
   lastGAEvent = ev;
 
-  // if we’re opening the modal, we’re actively tagging now
+  // if we're opening the modal, we're actively tagging now
   lastGAEvent.needsContext = false;
   save();
 
-  const tags = (ev.type === ‘soft_goal’) ? SOFT_GA_TAGS : GA_TAGS;
-  $(‘gaGrid’).innerHTML = tags.map(t=>`<div class="pickerBtn" data-t="${t}">${t}</div>`).join(‘’);
-  $(‘gaOverlay’).style.display = ‘flex’;
+  const tags = (ev.type === 'soft_goal') ? SOFT_GA_TAGS : GA_TAGS;
+  $('gaGrid').innerHTML = tags.map(t=>`<div class="pickerBtn" data-t="${t}">${t}</div>`).join('');
+  $('gaOverlay').style.display = 'flex';
 }
 
 $('gaGrid').addEventListener('click', e=>{
@@ -2824,6 +2868,46 @@ function updateMeta(){
     $('xgfSub').textContent = 'Expected goals for';
     $('xgaSub').textContent = 'Expected goals ag';
     $('xgDiffSub').textContent = 'Quality edge';
+  }
+
+  // Chance Quality slider
+  const totalShots = (state.countsF.shots || 0) + (state.countsA.shots || 0);
+  const qWrap = $('qualityBarWrap');
+  const qFill = $('qualityFill');
+  const qText = $('qualityText');
+  if(totalShots >= 5 && (sq.xGF + sq.xGA) > 0){
+    qWrap.style.display = 'block';
+    const pct = Math.round(100 * sq.xGF / (sq.xGF + sq.xGA));
+    // Fill from center: if pct > 50, fill right from 50%; if < 50, fill left toward 0
+    if(pct >= 50){
+      qFill.style.left = '50%';
+      qFill.style.width = (pct - 50) + '%';
+      const intensity = Math.min(1, (pct - 50) / 30);
+      qFill.style.background = `rgba(50, 215, 75, ${0.4 + intensity * 0.5})`;
+    } else {
+      qFill.style.left = pct + '%';
+      qFill.style.width = (50 - pct) + '%';
+      const intensity = Math.min(1, (50 - pct) / 30);
+      qFill.style.background = `rgba(255, 69, 58, ${0.4 + intensity * 0.5})`;
+    }
+    if(pct >= 58) {
+      qText.textContent = 'We\'re getting the better chances';
+      qText.style.color = 'var(--good)';
+    } else if(pct <= 42) {
+      qText.textContent = 'They\'re getting the better chances';
+      qText.style.color = 'var(--accent-them)';
+    } else {
+      qText.textContent = 'Chances are balanced';
+      qText.style.color = 'var(--muted)';
+    }
+  } else {
+    qWrap.style.display = totalShots > 0 ? 'block' : 'none';
+    if(totalShots > 0){
+      qFill.style.left = '50%';
+      qFill.style.width = '0%';
+      qText.textContent = 'Not enough data yet';
+      qText.style.color = 'var(--muted)';
+    }
   }
 
   // rings

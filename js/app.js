@@ -2365,11 +2365,15 @@ function refreshTeamUI() {
   if (!TM) return;
   const teams = TM.loadTeams();
   const activeId = TM.getActiveTeamId();
+  const activeTeam = activeId ? teams.find(t => t.id === activeId) : null;
 
   if (teams.length === 0) {
     // No teams: show "Add Team" prompt, hide selector
     $('teamEmpty').style.display = '';
     $('teamHasTeams').style.display = 'none';
+    // Show editable level dropdown (no team to pull from)
+    $('levelGroup').style.display = '';
+    $('levelReadonly').style.display = 'none';
   } else {
     // Has teams: show selector, hide prompt
     $('teamEmpty').style.display = 'none';
@@ -2379,6 +2383,16 @@ function refreshTeamUI() {
     sel.innerHTML = '<option value="">— Select Team —</option>' +
       teams.map(t => `<option value="${t.id}">${t.name} (${t.level})</option>`).join('');
     sel.value = activeId || '';
+
+    // Toggle level display: readonly when team selected, editable when "no team"
+    if (activeTeam) {
+      $('levelGroup').style.display = 'none';
+      $('levelReadonly').style.display = '';
+      $('levelDisplay').textContent = activeTeam.level || 'U11';
+    } else {
+      $('levelGroup').style.display = '';
+      $('levelReadonly').style.display = 'none';
+    }
   }
 }
 
@@ -2393,6 +2407,7 @@ function applyActiveTeam() {
     try { localStorage.setItem(ROSTER_KEY, JSON.stringify(state.roster)); } catch (_) {}
     save();
   }
+  refreshTeamUI();
 }
 
 function openTeamModal(autoShowForm) {

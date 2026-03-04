@@ -1217,6 +1217,10 @@
   font-size:11px !important; padding:8px 12px !important;
   white-space:nowrap;
 }
+.level-readonly{
+  background:#111; border:1px solid #333; border-radius:8px;
+  padding:10px 12px; font-size:14px; color:#aaa;
+}
 
 /* Team list inside modal */
 .team-list{ display:flex; flex-direction:column; gap:6px; margin-bottom:10px; }

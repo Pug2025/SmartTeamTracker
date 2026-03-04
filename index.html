@@ -118,7 +118,8 @@
         <label>Opponent Name</label>
         <input id="opponent" placeholder="e.g. Napanee Stars" autocomplete="off">
       </div>
-      <div class="input-group">
+      <!-- Level is now set per-team in the team manager. Show read-only when team selected, editable fallback when no team -->
+      <div class="input-group" id="levelGroup">
         <label>Level</label>
         <select id="level">
           <option>U9</option>
@@ -128,6 +129,10 @@
           <option>U18</option>
           <option>Other</option>
         </select>
+      </div>
+      <div class="input-group" id="levelReadonly" style="display:none;">
+        <label>Level</label>
+        <div id="levelDisplay" class="level-readonly">U11</div>
       </div>
       <div class="input-group">
         <label>Date</label>

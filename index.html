@@ -1508,8 +1508,8 @@
       <p>Tap these when the opponent has the puck and creates a chance against your team.</p>
       <h4>Primary Buttons</h4>
       <ul>
-        <li><strong>Shot Against</strong> &mdash; Any shot on net. You'll be asked if it was a <em>High Danger</em> chance (slot area, close range). If you don't respond in 2 seconds it defaults to No.</li>
-        <li><strong>Goal Against</strong> &mdash; They scored. This counts as a shot automatically. You'll be asked for context (Screen, Deflection, Cross-Crease, etc.) and game situation (EV/PP/SH).</li>
+        <li><strong>Shot Against</strong> &mdash; Any shot on net. You'll be asked if it was a <em>High Danger</em> chance (slot area, close range). If you don't respond in 2 seconds it defaults to No. The same HD prompt appears for Shot For too.</li>
+        <li><strong>Goal Against</strong> &mdash; They scored. This counts as a shot automatically. You'll be asked for context (Screen, Deflection/Tip, Cross-Crease, Odd-Man Rush, Net-Front Scramble, Clean Look, or Other) and game situation (EV/PP/SH).</li>
       </ul>
       <h4>Goalie Buttons</h4>
       <ul>
@@ -1521,7 +1521,7 @@
         <li><strong>Breakaway Ag</strong> &mdash; Opponent got a breakaway. If a goal follows within 10 seconds, it's auto-tagged. Reduces goalie blame.</li>
         <li><strong>DZ Turnover</strong> &mdash; Your team turned it over in the defensive zone. If a goal follows within 10 seconds, it's auto-tagged.</li>
         <li><strong>Odd Man Rush Ag</strong> &mdash; Opponent has a 2-on-1, 3-on-2, etc.</li>
-        <li><strong>Missed Chance Ag</strong> &mdash; They had a quality chance but didn't get a shot off. Counts toward their expected goals.</li>
+        <li><strong>Missed Chance Ag</strong> &mdash; They had a quality scoring chance but no shot on net (e.g. hit the post, went wide, fanned on it). Counts toward their expected goals at a 12% probability.</li>
         <li><strong>Penalty Against</strong> &mdash; Your team took a penalty.</li>
       </ul>
     </div>
@@ -1533,7 +1533,7 @@
       <p>Tap these when your team has the puck and creates chances.</p>
       <h4>Primary Buttons</h4>
       <ul>
-        <li><strong>Shot For</strong> &mdash; Your team shot on net. You'll be asked to select the shooter from your roster (or tap Unknown).</li>
+        <li><strong>Shot For</strong> &mdash; Your team shot on net. You'll select the shooter from your roster (or tap Unknown), then be asked if it was <em>High Danger</em>.</li>
         <li><strong>Goal For</strong> &mdash; Your team scored! You'll select the scorer, then optionally an assist, game situation (EV/PP/SH), and +/- players on ice.</li>
       </ul>
       <h4>Goalie Positive</h4>
@@ -1546,7 +1546,7 @@
         <li><strong>Odd Man Rush</strong> &mdash; Your team created a 2-on-1, 3-on-2, etc.</li>
         <li><strong>Breakaway</strong> &mdash; Your player got in alone.</li>
         <li><strong>Forced Turnover</strong> &mdash; Your team won the puck back through good pressure.</li>
-        <li><strong>Missed Chance</strong> &mdash; Your team had a quality chance but didn't get a shot off. Counts toward your expected goals.</li>
+        <li><strong>Missed Chance</strong> &mdash; Your team had a quality scoring chance but no shot on net (e.g. hit the post, went wide, fanned on it). Counts toward your expected goals at a 12% probability.</li>
         <li><strong>Penalty For</strong> &mdash; The other team took a penalty.</li>
       </ul>
     </div>
@@ -1558,7 +1558,7 @@
       <ul>
         <li><strong>Good Rebounds</strong> &mdash; Awarded automatically. If 4 seconds pass after a shot/big save without another shot, bad rebound, or goal, the goalie gets credit for controlling the rebound.</li>
         <li><strong>Goal Context</strong> &mdash; Breakaway and rebound goals are auto-tagged when a breakaway/bad rebound was logged within 10/5 seconds.</li>
-        <li><strong>High Danger</strong> &mdash; Only applies to shots against. After tapping Shot Against, you get a 2-second prompt. If you don't tap, it defaults to regular.</li>
+        <li><strong>High Danger</strong> &mdash; Applies to all shots (for and against). After logging any shot, you get a 2-second prompt asking if it was HD. If you don't respond, it defaults to regular. HD shots count as ~18% goal probability vs ~7% for regular in the xG model.</li>
       </ul>
     </div>
 

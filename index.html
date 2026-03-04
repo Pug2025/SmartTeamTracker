@@ -98,11 +98,19 @@
       <h2>Game Setup</h2>
 
       <!-- Team Selector -->
-      <div class="input-group team-selector-group">
-        <label>My Team</label>
-        <div class="team-selector-row">
-          <select id="teamSelect"><option value="">— No Team —</option></select>
-          <button class="btn-std btn-manage-teams" id="btnManageTeams" type="button">Manage</button>
+      <div id="teamSelectorWrap" class="team-selector-wrap">
+        <!-- When no teams: show Add Team prompt -->
+        <div id="teamEmpty" class="team-empty-card">
+          <div class="team-empty-text">Add your team to track rosters and game history per team</div>
+          <button class="btn-start" id="btnAddFirstTeam" type="button" style="margin:0; font-size:14px; padding:10px;">+ Add My Team</button>
+        </div>
+        <!-- When teams exist: show selector -->
+        <div id="teamHasTeams" class="team-has-teams" style="display:none;">
+          <label>My Team</label>
+          <div class="team-selector-row">
+            <select id="teamSelect"><option value="">— No Team —</option></select>
+            <button class="btn-std btn-manage-teams" id="btnManageTeams" type="button">Manage</button>
+          </div>
         </div>
       </div>
 
@@ -110,7 +118,8 @@
         <label>Opponent Name</label>
         <input id="opponent" placeholder="e.g. Napanee Stars" autocomplete="off">
       </div>
-      <div class="input-group">
+      <!-- Level is now set per-team in the team manager. Show read-only when team selected, editable fallback when no team -->
+      <div class="input-group" id="levelGroup">
         <label>Level</label>
         <select id="level">
           <option>U9</option>
@@ -120,6 +129,10 @@
           <option>U18</option>
           <option>Other</option>
         </select>
+      </div>
+      <div class="input-group" id="levelReadonly" style="display:none;">
+        <label>Level</label>
+        <div id="levelDisplay" class="level-readonly">U11</div>
       </div>
       <div class="input-group">
         <label>Date</label>
@@ -667,9 +680,9 @@
 </div></div>
 
 <!-- Team Manager Modal -->
-<div class="modal" id="teamModal"><div class="box" style="max-height:80vh; overflow-y:auto;">
+<div class="modal" id="teamModal"><div class="box" style="max-height:85vh; overflow-y:auto;">
   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-    <h3 style="margin:0; font-size:16px;">Manage Teams</h3>
+    <h3 style="margin:0; font-size:16px;" id="teamModalTitle">Manage Teams</h3>
     <button class="btn-std" id="teamModalClose" style="font-size:11px; padding:4px 10px;">Close</button>
   </div>
 
@@ -683,15 +696,15 @@
     <select id="teamLevelInput" class="auth-input" style="padding:10px;">
       <option>U9</option><option selected>U11</option><option>U13</option><option>U15</option><option>U18</option><option>Other</option>
     </select>
-    <div class="small" style="margin:6px 0 2px; color:#888;">Roster (one # per line)</div>
-    <textarea id="teamRosterInput" style="width:100%; height:80px; background:#000; border:1px solid #333; color:#fff; padding:8px; border-radius:6px;"></textarea>
-    <div class="rowbtn" style="margin-top:8px;">
-      <button class="btn-std" id="teamFormSave" style="border-color:var(--good); color:var(--good);">Save Team</button>
+    <div class="small" style="margin:6px 0 2px; color:#888;">Roster — optional, one # per line (you can also add players during the game)</div>
+    <textarea id="teamRosterInput" style="width:100%; height:100px; background:#000; border:1px solid #333; color:#fff; padding:8px; border-radius:6px;" placeholder="e.g.&#10;7&#10;11&#10;23&#10;99"></textarea>
+    <div class="rowbtn" style="margin-top:10px;">
+      <button class="btn-std" id="teamFormSave" style="border-color:var(--good); color:var(--good); flex:1;">Save Team</button>
       <button class="btn-std" id="teamFormCancel" style="border-color:#444;">Cancel</button>
     </div>
   </div>
 
-  <button class="btn-std" id="btnAddTeam" style="margin-top:10px; width:100%; border-color:var(--accent-us); color:var(--accent-us);">+ Add Team</button>
+  <button class="btn-std" id="btnAddTeam" style="margin-top:10px; width:100%; border-color:var(--accent-us); color:var(--accent-us);">+ Add Another Team</button>
 </div></div>
 
 </div><!-- End appShell -->

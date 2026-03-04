@@ -1193,6 +1193,17 @@
   .history-score .t{ color:var(--warn); }
 
 /* ===== Team Selector & Manager ===== */
+.team-selector-wrap{ margin-bottom:12px; }
+.team-empty-card{
+  background:#111; border:1px dashed #444; border-radius:10px;
+  padding:14px 16px; text-align:center;
+}
+.team-empty-text{
+  font-size:13px; color:#888; margin-bottom:10px; line-height:1.4;
+}
+.team-has-teams label{
+  display:block; font-size:13px; font-weight:600; color:#ccc; margin-bottom:6px;
+}
 .team-selector-row{
   display:flex; gap:8px; align-items:center;
 }
@@ -1205,6 +1216,10 @@
 .btn-manage-teams{
   font-size:11px !important; padding:8px 12px !important;
   white-space:nowrap;
+}
+.level-readonly{
+  background:#111; border:1px solid #333; border-radius:8px;
+  padding:10px 12px; font-size:14px; color:#aaa;
 }
 
 /* Team list inside modal */

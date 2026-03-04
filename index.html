@@ -249,7 +249,7 @@
   /* Button Styling */
   .g-btn{
     -webkit-tap-highlight-color:transparent;
-    border-radius:12px;
+    border-radius:14px;
     border:1px solid;
     color:#fff;
     font-weight:700;
@@ -261,26 +261,35 @@
     cursor:pointer;
     user-select:none;
     touch-action:manipulation;
-    transition:transform 0.05s, opacity 0.1s, box-shadow 0.15s;
+    transition:transform 0.08s ease-out, opacity 0.1s, box-shadow 0.15s, background 0.15s;
     box-shadow:none;
+    position:relative;
+    overflow:hidden;
   }
   .g-btn:active{
-    transform:scale(0.97);
-    opacity:0.8;
+    transform:scale(0.95);
+    opacity:0.85;
   }
   .g-btn.primary{
-    box-shadow:0 4px 10px rgba(0,0,0,0.4);
+    box-shadow:0 4px 12px rgba(0,0,0,0.5);
   }
+  @keyframes btn-flash {
+    0% { filter:brightness(1); }
+    50% { filter:brightness(1.4); }
+    100% { filter:brightness(1); }
+  }
+  .g-btn.flash{ animation:btn-flash 0.25s ease-out; }
 
   /* Sizes */
   .h-lg{
-    height:85px;
-    font-size:18px;
+    height:80px;
+    font-size:17px;
     font-weight:800;
-  } /* Primary Action */
+    letter-spacing:-0.3px;
+  }
   .h-md{
-    height:55px;
-    font-size:14px;
+    height:50px;
+    font-size:13px;
   }
 
   /* Theme: THEM (Left/Red) */
@@ -578,6 +587,23 @@
     font-weight:800;
   }
 
+  /* Toggle Switch */
+  .switch{
+    position:relative; display:inline-block; width:44px; height:24px; flex-shrink:0;
+  }
+  .switch input{ opacity:0; width:0; height:0; }
+  .slider{
+    position:absolute; cursor:pointer; inset:0;
+    background:#333; border-radius:24px; transition:0.2s;
+  }
+  .slider:before{
+    content:''; position:absolute; height:18px; width:18px;
+    left:3px; bottom:3px; background:#888;
+    border-radius:50%; transition:0.2s;
+  }
+  .switch input:checked + .slider{ background:var(--accent-us); }
+  .switch input:checked + .slider:before{ transform:translateX(20px); background:#fff; }
+
   .pill{
     font-size:10px;
     padding:3px 8px;
@@ -834,6 +860,10 @@
         <label>Date</label>
         <input id="date" type="date">
       </div>
+      <div class="input-group" style="display:flex; align-items:center; gap:10px; margin-top:4px;">
+        <label style="margin:0; flex:1;" for="togglePM">Track +/- (On-Ice)</label>
+        <label class="switch"><input type="checkbox" id="togglePM" checked><span class="slider"></span></label>
+      </div>
       <div id="resumeBanner" class="banner hidden" style="font-size:12px; color:var(--warn); margin-bottom:10px;">Resumed saved game.</div>
       <button id="btnStartGame" class="btn-start">Start Game</button>
       <button id="btnHistory" class="btn-start" style="background:#222; color:#fff; border:1px solid #444; margin-top:8px; font-size:14px;">Past Games</button>
@@ -935,31 +965,43 @@
         </div>
       </div>
 
+      <!-- Goalie Stats -->
+      <div class="dash-section-label">Goaltending</div>
       <div class="dashGrid">
         <div class="dashTile"><div class="k">Saves</div><div class="v" id="savesVal">0</div><div class="s" id="svVal">SV% —</div></div>
-        <div class="dashTile"><div class="k">Smothers</div><div class="v" id="smothersVal">0</div><div class="s">Tracked</div></div>
-        <div class="dashTile"><div class="k">Bad Rebounds</div><div class="v" id="badRebVal">0</div><div class="s">Tracked</div></div>
+        <div class="dashTile"><div class="k">Big Saves</div><div class="v" id="bigSavesVal">0</div><div class="s">Key stops</div></div>
+        <div class="dashTile"><div class="k">Smothers</div><div class="v" id="smothersVal">0</div><div class="s">Play killed</div></div>
+        <div class="dashTile"><div class="k">Good Rebounds</div><div class="v" id="goodRebVal">0</div><div class="s">Controlled</div></div>
+        <div class="dashTile"><div class="k">Bad Rebounds</div><div class="v" id="badRebVal">0</div><div class="s">Loose puck</div></div>
+        <div class="dashTile"><div class="k">Soft Goals</div><div class="v" id="softVal">0</div><div class="s">Preventable</div></div>
+      </div>
 
-        <div class="dashTile"><div class="k">Big Saves</div><div class="v" id="bigSavesVal">0</div><div class="s">Tracked</div></div>
-        <div class="dashTile"><div class="k">Our Shooting %</div><div class="v" id="shootPctVal">—</div><div class="s">GF / SF</div></div>
+      <!-- Shooting Stats -->
+      <div class="dash-section-label">Shooting</div>
+      <div class="dashGrid">
+        <div class="dashTile"><div class="k">Shooting %</div><div class="v" id="shootPctVal">—</div><div class="s">GF / SF</div></div>
         <div class="dashTile"><div class="k">Shot Share</div><div class="v" id="shotShareVal">—</div><div class="s">SF / (SF+SA)</div></div>
-
-        <div class="dashTile"><div class="k">Breakaways Ag</div><div class="v" id="baAgVal">0</div><div class="s">Tracked</div></div>
-        <div class="dashTile"><div class="k">D-Zone TO</div><div class="v" id="dzVal">0</div><div class="s">Tracked</div></div>
-        <div class="dashTile"><div class="k">Soft Goals</div><div class="v" id="softVal">0</div><div class="s">Tracked</div></div>
-
-        <div class="dashTile"><div class="k">Breakaways For</div><div class="v" id="baForVal">0</div><div class="s">Offensive ctx</div></div>
-        <div class="dashTile"><div class="k">Odd Man Rush For</div><div class="v" id="omrForVal">0</div><div class="s">Offensive ctx</div></div>
-        <div class="dashTile"><div class="k">Forced Turnovers</div><div class="v" id="ftVal">0</div><div class="s">Offensive ctx</div></div>
-        <div class="dashTile"><div class="k">Good Rebounds</div><div class="v" id="goodRebVal">0</div><div class="s">Auto credit</div></div>
-
-        <div class="dashTile"><div class="k">OMR Against</div><div class="v" id="omrAgVal">0</div><div class="s">Defensive ctx</div></div>
-        <div class="dashTile"><div class="k">Penalties For</div><div class="v" id="penForVal">0</div><div class="s">They took</div></div>
-        <div class="dashTile"><div class="k">Penalties Ag</div><div class="v" id="penAgVal">0</div><div class="s">We took</div></div>
-
-        <div class="dashTile"><div class="k">HD Chances For</div><div class="v" id="hdForVal">0</div><div class="s">High Danger</div></div>
-        <div class="dashTile"><div class="k">HD Chances Ag</div><div class="v" id="hdAgVal">0</div><div class="s">High Danger</div></div>
         <div class="dashTile"><div class="k">Missed Chances</div><div class="v" id="missedChanceVal">0</div><div class="s">No shot</div></div>
+      </div>
+
+      <!-- Offensive Context -->
+      <div class="dash-section-label" style="color:var(--accent-us);">Offensive</div>
+      <div class="dashGrid">
+        <div class="dashTile"><div class="k">Breakaways</div><div class="v" id="baForVal">0</div><div class="s">Created</div></div>
+        <div class="dashTile"><div class="k">Odd Man Rush</div><div class="v" id="omrForVal">0</div><div class="s">Created</div></div>
+        <div class="dashTile"><div class="k">Forced TO</div><div class="v" id="ftVal">0</div><div class="s">Won puck</div></div>
+        <div class="dashTile"><div class="k">HD Chances</div><div class="v" id="hdForVal">0</div><div class="s">High danger</div></div>
+        <div class="dashTile"><div class="k">Penalties Drawn</div><div class="v" id="penForVal">0</div><div class="s">They took</div></div>
+      </div>
+
+      <!-- Defensive Context -->
+      <div class="dash-section-label" style="color:var(--accent-them);">Defensive</div>
+      <div class="dashGrid">
+        <div class="dashTile"><div class="k">Breakaways Ag</div><div class="v" id="baAgVal">0</div><div class="s">Given up</div></div>
+        <div class="dashTile"><div class="k">D-Zone TO</div><div class="v" id="dzVal">0</div><div class="s">Turnovers</div></div>
+        <div class="dashTile"><div class="k">OMR Against</div><div class="v" id="omrAgVal">0</div><div class="s">Given up</div></div>
+        <div class="dashTile"><div class="k">HD Chances Ag</div><div class="v" id="hdAgVal">0</div><div class="s">High danger</div></div>
+        <div class="dashTile"><div class="k">Penalties Taken</div><div class="v" id="penAgVal">0</div><div class="s">We took</div></div>
       </div>
 
       <div class="card" style="margin-top:10px;">
@@ -1220,7 +1262,12 @@ const $ = id => document.getElementById(id);
 const SAVE_KEY = 'team-tracker-state';
 const ROSTER_KEY = 'team-tracker-roster';
 const LAST_SAVED_KEY = 'team-tracker-last-saved-gameId';
+const PREFS_KEY = 'team-tracker-prefs';
 const MAX_PERIOD = 4;
+
+let prefs = { trackPlusMinus: true };
+try { const p = JSON.parse(localStorage.getItem(PREFS_KEY)); if(p) prefs = {...prefs, ...p}; } catch(_){}
+function savePrefs(){ try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch(_){} }
 
 function getLocalTodayYMD(){
   const d = new Date();
@@ -1304,7 +1351,7 @@ $('btnStartGame').addEventListener('click', ()=>{
   save();
   validateState('start game');
   toggleSetup(false);
-  vibrate(10);
+  vibrate(HAPTIC.tap);
 });
 
 $('btnEditSetup').addEventListener('click', ()=>{ toggleSetup(true); });
@@ -1400,7 +1447,18 @@ setInterval(()=>{
 }, 5000);
 
 /* ===== Helpers ===== */
-function vibrate(ms=20){ if(navigator.vibrate) navigator.vibrate(ms); }
+function vibrate(pattern=20){
+  try { if(navigator.vibrate) navigator.vibrate(pattern); } catch(_){}
+}
+const HAPTIC = {
+  tap: 15,
+  goal: [40, 30, 40],
+  goalAgainst: [80, 40, 80],
+  period: [20, 15, 20, 15, 20],
+  undo: [10, 20, 10],
+  save: [30, 20, 30, 20, 60],
+  error: [100, 50, 100]
+};
 
 /* Status toast (replaces alert) */
 let statusToastTimer = null;
@@ -1688,7 +1746,7 @@ function addEvent(type, meta={}){
         save();
         validateState(`upgrade:${type}`);
         renderAll();
-        vibrate();
+        vibrate(HAPTIC.tap);
         return prev;
       }
     }
@@ -1751,10 +1809,16 @@ function addEvent(type, meta={}){
   save();
   validateState(`addEvent:${type}`);
   renderAll();
-  vibrate();
 
-  if(type==='goal' || type==='soft_goal') triggerPulse('liveGA','bad');
-  if(type==='for_goal') triggerPulse('liveGF','good');
+  if(type==='goal' || type==='soft_goal'){
+    triggerPulse('liveGA','bad');
+    vibrate(HAPTIC.goalAgainst);
+  } else if(type==='for_goal'){
+    triggerPulse('liveGF','good');
+    vibrate(HAPTIC.goal);
+  } else {
+    vibrate(HAPTIC.tap);
+  }
 
   if (type === 'shot' || type === 'big_save') scheduleGoodReboundCredit(ev.id);
 
@@ -1768,6 +1832,12 @@ function triggerPulse(elemId, type){
   void el.offsetWidth;
   el.classList.add(type==='good'?'pulse-good':'pulse-bad');
 }
+function flashBtn(btnEl){
+  if(!btnEl) return;
+  btnEl.classList.remove('flash');
+  void btnEl.offsetWidth;
+  btnEl.classList.add('flash');
+}
 
 function undo(){
   const ev = state.events.pop();
@@ -1775,7 +1845,7 @@ function undo(){
   revert(ev);
   validateState('undo');
   renderAll();
-  vibrate(15);
+  vibrate(HAPTIC.undo);
 }
 function revert(ev){
   clearGoodPendingFor(ev.id);
@@ -1938,7 +2008,11 @@ $('gaGrid').addEventListener('click', e=>{
   $('gaOverlay').style.display='none';
   renderAll();
 
-  openMultiPicker({title:'5 Players On Ice (for +/-)', max:5, event:lastGAEvent, field:'onIce', exclude:[]});
+  if(prefs.trackPlusMinus){
+    openMultiPicker({title:'5 Players On Ice (for +/-)', max:5, event:lastGAEvent, field:'onIce', exclude:[]});
+  } else {
+    openStrengthPicker(lastGAEvent, 'Our Team\'s Situation (required)');
+  }
   lastGAEvent=null;
 });
 $('gaSkip').addEventListener('click', ()=>{
@@ -1948,13 +2022,15 @@ $('gaSkip').addEventListener('click', ()=>{
     save();
     renderAll();
 
-    // still prompt on-ice (optional) then strength (required)
-    openMultiPicker({title:'5 Players On Ice (optional)', max:5, event:lastGAEvent, field:'onIce', exclude:[]});
-    // we keep lastGAEvent for the picker chain
+    if(prefs.trackPlusMinus){
+      openMultiPicker({title:'5 Players On Ice (optional)', max:5, event:lastGAEvent, field:'onIce', exclude:[]});
+    } else {
+      openStrengthPicker(lastGAEvent, 'Our Team\'s Situation (required)');
+    }
   }
 });
 
-/* IMPORTANT CHANGE: BR (bad rebound -> goal) is 5s window; BA/DZ remain 10s */
+/* BR window = 5s; BA/DZ window = 10s */
 function tagGACause(gaEv){
   const tGA = new Date(gaEv.tISO).getTime();
 
@@ -2200,7 +2276,7 @@ $('strengthSkip').addEventListener('click', ()=>{
 });
 
 /* PlusMinus / Stats / Scoring */
-/* ===== Scoring helpers (kept; some may be unused now) ===== */
+/* ===== Scoring helpers ===== */
 function bayesRate(success, trials, priorRate, priorWeight){
   const s = Math.max(0, success);
   const t = Math.max(0, trials);
@@ -2250,15 +2326,7 @@ const LEVEL_PROFILES = {
   Other:{ goalieBaseSV:0.85 }
 };
 
-/* ===== SCORING ENGINE (UPDATED per Gemini 3 critique) ===== */
-
-/* Helper: Grade-Curve Scoring Function
-   Maps a value to a 0-100 scale using a school-grade philosophy:
-   - Meeting expectations (z=0) = 72 (C+ baseline)
-   - Above expected → rises toward 100 (A+ ceiling)
-   - Below expected → drops steeply toward 0 (F floor)
-   Asymmetric: doing well is rewarded generously, doing poorly is punished fairly.
-*/
+/* ===== SCORING ENGINE ===== */
 function getSigmoidScore(actual, expected, spread) {
   const z = (actual - expected) / (spread || 1);
   // Asymmetric curve: baseline at 72, ceiling ~98, floor ~5
@@ -2963,7 +3031,6 @@ function exportGameCSV(){
   }
 }
 
-/* Debug placeholders */
 function updateDebugLines(){}
 
 /* Plus/minus table */
@@ -3059,8 +3126,7 @@ function openPicker(mode, label, { showNone=false, exclude=[] } = {}){
   $('pickerModal').style.display='flex';
 }
 
-/* IMPORTANT CHANGE:
-   If you tap a roster number, it is immediately applied (no "Use" required). */
+/* Tap roster number to immediately apply */
 $('pickerGrid').addEventListener('click', e=>{
   const b=e.target.closest('.pickerBtn');
   if(!b)return;
@@ -3122,21 +3188,16 @@ function applyPickerSelection(num){
     save();
     renderAll();
 
-// now on-ice (exclude only KNOWN scorer/assist), then strength
-// Rule: allow selection up to (5 - knownSkatersCount)
-// - scorer known + assist unknown -> max 4
-// - scorer unknown + assist unknown -> max 5
-// - scorer known + no assist -> max 4
-const known = [];
-
-if(ev.player && ev.player !== '?' && ev.player !== 'Unknown') known.push(String(ev.player));
-if(ev.assist && ev.assist !== '?' && ev.assist !== 'Unknown') known.push(String(ev.assist));
-
-const exclude = [...new Set(known)];
-const max = Math.max(0, 5 - exclude.length);
-const title = `Other ${max} On Ice (optional)`;
-
-openMultiPicker({ title, max, event: ev, field: 'forOnIce', exclude });
+if(prefs.trackPlusMinus){
+  const known = [];
+  if(ev.player && ev.player !== '?' && ev.player !== 'Unknown') known.push(String(ev.player));
+  if(ev.assist && ev.assist !== '?' && ev.assist !== 'Unknown') known.push(String(ev.assist));
+  const exclude = [...new Set(known)];
+  const max = Math.max(0, 5 - exclude.length);
+  openMultiPicker({ title:`Other ${max} On Ice (optional)`, max, event: ev, field: 'forOnIce', exclude });
+} else {
+  openStrengthPicker(ev, 'Our Team\'s Situation (required)');
+}
 
 pickerFlow.mode=null;
 pickerFlow.pendingGoalEv=null;
@@ -3267,42 +3328,30 @@ $('dangerModal').addEventListener('click', e => {
   renderAll();
 });
 
-$('btnShot').onclick=()=>{
-  const ev = addEvent('shot');
-  openDangerPrompt(ev);
-};
-$('btnGoal').onclick=()=>addEvent('goal');
+$('btnShot').onclick=function(){ flashBtn(this); const ev = addEvent('shot'); openDangerPrompt(ev); };
+$('btnGoal').onclick=function(){ flashBtn(this); addEvent('goal'); };
 
-$('btnForShot').onclick=()=>{
-  // Store pending danger check - will fire after picker closes
-  const origMode = pickerFlow.mode;
-  openPicker('for_shot','Shooter');
-};
-$('btnForGoal').onclick=()=>openPicker('for_goal_scorer','Scorer');
+$('btnForShot').onclick=function(){ flashBtn(this); openPicker('for_shot','Shooter'); };
+$('btnForGoal').onclick=function(){ flashBtn(this); openPicker('for_goal_scorer','Scorer'); };
 
-$('btnSoftGoal').onclick=()=>addEvent('soft_goal');
-$('btnBadRebound').onclick=()=>addEvent('bad_rebound');
+$('btnSoftGoal').onclick=function(){ flashBtn(this); addEvent('soft_goal'); };
+$('btnBadRebound').onclick=function(){ flashBtn(this); addEvent('bad_rebound'); };
 
-$('btnBreakaway').onclick=()=>addEvent('breakaway_against');
-$('btnDZTurnover').onclick=()=>addEvent('dz_turnover');
+$('btnBreakaway').onclick=function(){ flashBtn(this); addEvent('breakaway_against'); };
+$('btnDZTurnover').onclick=function(){ flashBtn(this); addEvent('dz_turnover'); };
 
-$('btnSmother').onclick=()=>addEvent('smother');
-$('btnBigSave').onclick=()=>addEvent('big_save');
+$('btnSmother').onclick=function(){ flashBtn(this); addEvent('smother'); };
+$('btnBigSave').onclick=function(){ flashBtn(this); addEvent('big_save'); };
 
-/* Offensive context */
-$('btnBreakawayFor').onclick=()=>{
-  lastBreakawayForTap = Date.now();
-  addEvent('breakaway_for');
-};
-$('btnOddManRushFor').onclick=()=>addEvent('odd_man_rush_for');
-$('btnForcedTurnover').onclick=()=>addEvent('forced_turnover');
+$('btnBreakawayFor').onclick=function(){ flashBtn(this); lastBreakawayForTap = Date.now(); addEvent('breakaway_for'); };
+$('btnOddManRushFor').onclick=function(){ flashBtn(this); addEvent('odd_man_rush_for'); };
+$('btnForcedTurnover').onclick=function(){ flashBtn(this); addEvent('forced_turnover'); };
 
-/* New buttons: D1-D2 + B4 */
-$('btnOMRAgainst').onclick=()=>addEvent('odd_man_rush_against');
-$('btnPenaltyFor').onclick=()=>addEvent('penalty_for');
-$('btnPenaltyAgainst').onclick=()=>addEvent('penalty_against');
-$('btnMissedChanceFor').onclick=()=>addEvent('missed_chance_for');
-$('btnMissedChanceAg').onclick=()=>addEvent('missed_chance_against');
+$('btnOMRAgainst').onclick=function(){ flashBtn(this); addEvent('odd_man_rush_against'); };
+$('btnPenaltyFor').onclick=function(){ flashBtn(this); addEvent('penalty_for'); };
+$('btnPenaltyAgainst').onclick=function(){ flashBtn(this); addEvent('penalty_against'); };
+$('btnMissedChanceFor').onclick=function(){ flashBtn(this); addEvent('missed_chance_for'); };
+$('btnMissedChanceAg').onclick=function(){ flashBtn(this); addEvent('missed_chance_against'); };
 
 $('periodChips').addEventListener('click',e=>{
   const c=e.target.closest('.p-opt');
@@ -3318,7 +3367,7 @@ $('btnNextPeriod').onclick=()=>{
   save();
   validateState('next period');
   highlightPeriod();
-  vibrate(20);
+  vibrate(HAPTIC.period);
 };
 
 $('btnEnd').onclick=endGame;
@@ -3377,6 +3426,8 @@ document.querySelectorAll('.modal').forEach(m=>
 $('opponent').oninput=e=>{state.opponent=e.target.value;save();}
 $('level').onchange=e=>{state.level=e.target.value;save();}
 $('date').onchange=e=>{state.date=sanitizeDateInput(e.target.value);$('date').value=state.date;save();validateState('date change');}
+$('togglePM').checked = prefs.trackPlusMinus;
+$('togglePM').addEventListener('change', e=>{ prefs.trackPlusMinus = e.target.checked; savePrefs(); });
 
 /* Copy Summary (now: compact, structured text) */
 $('btnCopySummary').addEventListener('click', ()=>{

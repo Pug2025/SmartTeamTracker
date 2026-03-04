@@ -112,11 +112,13 @@ function toggleSetup(showSetup){
     $('gameControls').style.display='none';
     $('btnEditSetup').style.display='none';
     $('btnUndo').style.display='none';
+    $('btnShareLive').style.display='none';
   } else {
     $('setupContainer').style.display='none';
     $('gameControls').style.display='block';
     $('btnEditSetup').style.display='block';
     $('btnUndo').style.display='flex';
+    $('btnShareLive').style.display='';
   }
 }
 $('btnStartGame').addEventListener('click', ()=>{
@@ -196,6 +198,8 @@ async function save(){
     localStorage.setItem(SAVE_KEY,json);
     await idbKV.set(SAVE_KEY,json);
   }catch(_){}
+  // Push to live spectator API if sharing
+  if(state.shareCode) pushLiveState();
 }
 async function load(){
   try{
@@ -1934,6 +1938,9 @@ function endGame(){
 
   gameData.gameId = state.gameId;
   saveGameToCloud(gameData);
+
+  // Stop live share if active
+  if(state.shareCode) stopLiveShare();
 }
 
 async function saveGameToCloud(game){
@@ -2874,5 +2881,124 @@ $('gameDetailDelete').addEventListener('click', async ()=>{
     console.error(e);
     showStatusToast('Error deleting game', 'error', 3500);
   }
+});
+
+/* ===== Live Spectator Sharing ===== */
+
+let _livePushPending = false;
+
+function generateShareCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
+
+function buildLiveState() {
+  // Build a minimal state object for spectators (score, shots, period, key events)
+  const keyEvents = state.events
+    .filter(e => ['goal','soft_goal','for_goal','penalty_for','penalty_against'].includes(e.type))
+    .slice(-20)
+    .map(e => ({
+      type: e.type,
+      period: e.period,
+      time: e.time,
+      player: e.player || null,
+      assist: e.assist || null
+    }));
+
+  return {
+    opponent: state.opponent || 'Opponent',
+    level: state.level || '',
+    date: state.date || '',
+    period: state.period,
+    goalsFor: state.countsF.goals,
+    goalsAgainst: state.countsA.goals,
+    shotsFor: state.countsF.shots,
+    shotsAgainst: state.countsA.shots,
+    penaltiesFor: state.team.penaltiesFor || 0,
+    penaltiesAgainst: state.team.penaltiesAgainst || 0,
+    events: keyEvents
+  };
+}
+
+async function pushLiveState() {
+  if (_livePushPending || !state.shareCode) return;
+  _livePushPending = true;
+  try {
+    const uid = typeof window.getAuthUserId === 'function' ? window.getAuthUserId() : null;
+    await fetch('/api/live-game', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        share_code: state.shareCode,
+        game_id: state.gameId,
+        user_id: uid,
+        state: buildLiveState()
+      })
+    });
+  } catch (_) { /* silent – spectators just see stale data briefly */ }
+  _livePushPending = false;
+}
+
+async function startLiveShare() {
+  const code = generateShareCode();
+  state.shareCode = code;
+  save();
+
+  // Show banner
+  $('liveShareBanner').style.display = 'flex';
+  $('liveShareCode').textContent = code;
+  $('btnShareLive').textContent = 'Sharing…';
+  $('btnShareLive').style.background = '#4caf50';
+  $('btnShareLive').style.color = '#fff';
+
+  // Initial push
+  await pushLiveState();
+  showStatusToast('Live share started! Code: ' + code, 'success', 4000);
+}
+
+async function stopLiveShare() {
+  const code = state.shareCode;
+  state.shareCode = null;
+  save();
+
+  // Hide banner
+  $('liveShareBanner').style.display = 'none';
+  $('btnShareLive').textContent = 'Share Live';
+  $('btnShareLive').style.background = '';
+  $('btnShareLive').style.color = '';
+
+  // Delete from server
+  if (code) {
+    try {
+      await fetch(`/api/live-game?code=${encodeURIComponent(code)}`, { method: 'DELETE' });
+    } catch (_) {}
+  }
+}
+
+// Wire up share buttons
+$('btnShareLive').addEventListener('click', () => {
+  if (state.shareCode) {
+    // Already sharing – confirm stop
+    showConfirm('Stop live sharing?').then(ok => { if (ok) stopLiveShare(); });
+  } else {
+    startLiveShare();
+  }
+});
+
+$('btnCopyShareLink').addEventListener('click', () => {
+  if (!state.shareCode) return;
+  const url = window.location.origin + window.location.pathname + '?live=' + state.shareCode;
+  navigator.clipboard.writeText(url).then(() => {
+    showStatusToast('Link copied!', 'success');
+  }).catch(() => {
+    // Fallback: show the URL
+    showStatusToast(url, 'success', 6000);
+  });
+});
+
+$('btnStopShare').addEventListener('click', () => {
+  showConfirm('Stop live sharing?').then(ok => { if (ok) stopLiveShare(); });
 });
 

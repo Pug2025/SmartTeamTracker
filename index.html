@@ -727,6 +727,128 @@
     border-color:var(--accent-them);
   }
 
+  /* Help button */
+  .btn-help{
+    width:28px;
+    height:28px;
+    border-radius:50%;
+    background:#222;
+    border:1px solid #444;
+    color:var(--muted);
+    font-size:14px;
+    font-weight:800;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+    transition:transform 0.08s, border-color 0.3s;
+    flex-shrink:0;
+  }
+  .btn-help:active{
+    transform:scale(0.9);
+  }
+  @keyframes help-pulse{
+    0%{border-color:#444; box-shadow:0 0 0 0 rgba(77,163,255,0.4);}
+    50%{border-color:var(--accent-us); box-shadow:0 0 8px 2px rgba(77,163,255,0.3);}
+    100%{border-color:#444; box-shadow:0 0 0 0 rgba(77,163,255,0);}
+  }
+  .btn-help.pulse{
+    animation:help-pulse 2s ease-in-out infinite;
+  }
+
+  /* Help modal content */
+  .help-scroll{
+    max-height:70vh;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    padding-right:4px;
+  }
+  .help-section{
+    margin-bottom:16px;
+  }
+  .help-section h3{
+    font-size:14px;
+    font-weight:800;
+    margin:0 0 8px 0;
+    color:var(--accent-us);
+  }
+  .help-section h4{
+    font-size:12px;
+    font-weight:700;
+    margin:10px 0 4px 0;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+  }
+  .help-section p,
+  .help-section li{
+    font-size:13px;
+    color:#ccc;
+    line-height:1.5;
+    margin:0 0 4px 0;
+  }
+  .help-section ul{
+    margin:0;
+    padding-left:18px;
+  }
+  .help-divider{
+    border:none;
+    border-top:1px solid #2a2a2a;
+    margin:14px 0;
+  }
+
+  /* Welcome modal */
+  .welcome-title{
+    font-size:20px;
+    font-weight:800;
+    text-align:center;
+    margin-bottom:4px;
+  }
+  .welcome-sub{
+    font-size:12px;
+    color:var(--muted);
+    text-align:center;
+    margin-bottom:16px;
+  }
+  .welcome-bullets{
+    list-style:none;
+    padding:0;
+    margin:0 0 16px 0;
+  }
+  .welcome-bullets li{
+    font-size:13px;
+    color:#ccc;
+    padding:8px 0;
+    border-bottom:1px solid #1a1a1a;
+    line-height:1.5;
+  }
+  .welcome-bullets li:last-child{
+    border-bottom:none;
+  }
+  .welcome-bullets .wb-icon{
+    display:inline-block;
+    width:20px;
+    text-align:center;
+    margin-right:6px;
+  }
+  .btn-welcome{
+    width:100%;
+    background:var(--accent-us);
+    color:#000;
+    border:none;
+    padding:14px;
+    font-size:16px;
+    font-weight:800;
+    border-radius:12px;
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .btn-welcome:active{
+    opacity:0.9;
+    transform:scale(0.98);
+  }
+
   /* Common utils */
   .rowbtn{
     display:flex;
@@ -931,6 +1053,7 @@
     <div class="inlineRow">
       <button class="btn-edit-setup" id="btnEditSetup" style="display:none;">Edit Info</button>
       <button class="btn-std" id="btnRoster" style="font-size:11px; padding:6px 10px;">Roster</button>
+      <button class="btn-help" id="btnHelp">?</button>
     </div>
   </div>
 
@@ -1348,6 +1471,135 @@
   <div id="gameDetailBody" class="small"></div>
   <div style="margin-top:16px; text-align:center;">
     <button class="btn-std" id="gameDetailDelete" style="border-color:var(--accent-them); color:var(--accent-them); font-size:12px;">Delete Game</button>
+  </div>
+</div></div>
+
+<!-- Welcome Modal (first launch only) -->
+<div class="modal" id="welcomeModal"><div class="box">
+  <div class="welcome-title">Welcome to Team Tracker</div>
+  <div class="welcome-sub">A real-time game tracking app for hockey coaches</div>
+  <ul class="welcome-bullets">
+    <li><span class="wb-icon" style="color:var(--accent-them);">&#9679;</span><strong>Left column (red)</strong> tracks what happens to your goalie &mdash; shots, goals, and defensive breakdowns</li>
+    <li><span class="wb-icon" style="color:var(--accent-us);">&#9679;</span><strong>Right column (blue)</strong> tracks your team's offense &mdash; shots for, goals for, and offensive chances</li>
+    <li><span class="wb-icon" style="color:var(--good);">&#10003;</span>A goal <strong>counts as a shot automatically</strong> &mdash; don't tap both</li>
+    <li><span class="wb-icon" style="color:var(--warn);">&#9888;</span>After each goal you'll be asked for <strong>context</strong> (screen, breakaway, etc.) &mdash; just tap what fits</li>
+    <li><span class="wb-icon" style="color:var(--muted);">?</span>Tap the <strong>?</strong> button anytime for the full guide</li>
+  </ul>
+  <button class="btn-welcome" id="btnWelcomeDismiss">Got It</button>
+</div></div>
+
+<!-- Help Modal (? button) -->
+<div class="modal" id="helpModal"><div class="box" style="max-height:85vh; padding:16px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+    <h2 style="margin:0; font-size:18px;">How to Use Team Tracker</h2>
+    <button class="btn-std" id="btnHelpClose" style="font-size:11px; padding:4px 10px;">Close</button>
+  </div>
+  <div class="help-scroll">
+
+    <div class="help-section">
+      <h3>Getting Started</h3>
+      <p>Enter the opponent name, select your level (U9&ndash;U18), and tap <strong>Start Game</strong>. The period selector at the top lets you switch periods &mdash; tap <strong>Next Period</strong> between periods to advance.</p>
+    </div>
+
+    <hr class="help-divider">
+
+    <div class="help-section">
+      <h3 style="color:var(--accent-them);">Left Column &mdash; Them (Defense / Goalie)</h3>
+      <p>Tap these when the opponent has the puck and creates a chance against your team.</p>
+      <h4>Primary Buttons</h4>
+      <ul>
+        <li><strong>Shot Against</strong> &mdash; Any shot on net. You'll be asked if it was a <em>High Danger</em> chance (slot area, close range). If you don't respond in 2 seconds it defaults to No.</li>
+        <li><strong>Goal Against</strong> &mdash; They scored. This counts as a shot automatically. You'll be asked for context (Screen, Deflection, Cross-Crease, etc.) and game situation (EV/PP/SH).</li>
+      </ul>
+      <h4>Goalie Buttons</h4>
+      <ul>
+        <li><strong>Soft Goal</strong> &mdash; A goal your goalie should have stopped. You'll be asked what went wrong: Misplay, Poor Positioning, or Other. Counts against the goalie score more heavily.</li>
+        <li><strong>Bad Rebound</strong> &mdash; Goalie gave up a loose rebound. If a goal follows within 5 seconds, the goal is auto-tagged as rebound-related.</li>
+      </ul>
+      <h4>Defensive Context</h4>
+      <ul>
+        <li><strong>Breakaway Ag</strong> &mdash; Opponent got a breakaway. If a goal follows within 10 seconds, it's auto-tagged. Reduces goalie blame.</li>
+        <li><strong>DZ Turnover</strong> &mdash; Your team turned it over in the defensive zone. If a goal follows within 10 seconds, it's auto-tagged.</li>
+        <li><strong>Odd Man Rush Ag</strong> &mdash; Opponent has a 2-on-1, 3-on-2, etc.</li>
+        <li><strong>Missed Chance Ag</strong> &mdash; They had a quality chance but didn't get a shot off. Counts toward their expected goals.</li>
+        <li><strong>Penalty Against</strong> &mdash; Your team took a penalty.</li>
+      </ul>
+    </div>
+
+    <hr class="help-divider">
+
+    <div class="help-section">
+      <h3 style="color:var(--accent-us);">Right Column &mdash; Us (Offense)</h3>
+      <p>Tap these when your team has the puck and creates chances.</p>
+      <h4>Primary Buttons</h4>
+      <ul>
+        <li><strong>Shot For</strong> &mdash; Your team shot on net. You'll be asked to select the shooter from your roster (or tap Unknown).</li>
+        <li><strong>Goal For</strong> &mdash; Your team scored! You'll select the scorer, then optionally an assist, game situation (EV/PP/SH), and +/- players on ice.</li>
+      </ul>
+      <h4>Goalie Positive</h4>
+      <ul>
+        <li><strong>Smother</strong> &mdash; Goalie covered the puck and froze play. Helps the goalie score.</li>
+        <li><strong>Big Save</strong> &mdash; A save your goalie probably shouldn't have made. Gives a bonus to the goalie score. Also counts as a shot against.</li>
+      </ul>
+      <h4>Offensive Context</h4>
+      <ul>
+        <li><strong>Odd Man Rush</strong> &mdash; Your team created a 2-on-1, 3-on-2, etc.</li>
+        <li><strong>Breakaway</strong> &mdash; Your player got in alone.</li>
+        <li><strong>Forced Turnover</strong> &mdash; Your team won the puck back through good pressure.</li>
+        <li><strong>Missed Chance</strong> &mdash; Your team had a quality chance but didn't get a shot off. Counts toward your expected goals.</li>
+        <li><strong>Penalty For</strong> &mdash; The other team took a penalty.</li>
+      </ul>
+    </div>
+
+    <hr class="help-divider">
+
+    <div class="help-section">
+      <h3>Automatic Tracking</h3>
+      <ul>
+        <li><strong>Good Rebounds</strong> &mdash; Awarded automatically. If 4 seconds pass after a shot/big save without another shot, bad rebound, or goal, the goalie gets credit for controlling the rebound.</li>
+        <li><strong>Goal Context</strong> &mdash; Breakaway and rebound goals are auto-tagged when a breakaway/bad rebound was logged within 10/5 seconds.</li>
+        <li><strong>High Danger</strong> &mdash; Only applies to shots against. After tapping Shot Against, you get a 2-second prompt. If you don't tap, it defaults to regular.</li>
+      </ul>
+    </div>
+
+    <hr class="help-divider">
+
+    <div class="help-section">
+      <h3>Understanding the Dashboard</h3>
+      <h4>Chance Quality Bar</h4>
+      <p>The bar under the scoreboard shows who's getting better scoring chances. Green tilting right = us. Red tilting left = them. Factors in shot danger, actual goals, and missed chances. Appears after 5+ total shots.</p>
+      <h4>Goalie Score (0&ndash;100)</h4>
+      <p>How well your goalie is playing relative to expected workload. Factors in: save percentage weighted by difficulty, big saves, rebound control (smothers + good rebounds vs bad rebounds), and soft goals. Context matters &mdash; goals off breakaways and screens hurt less than clean looks.</p>
+      <h4>Team Score (0&ndash;100)</h4>
+      <p>Overall team performance combining five areas:</p>
+      <ul>
+        <li><strong>Possession (20%)</strong> &mdash; Shot share (your shots vs total shots)</li>
+        <li><strong>Danger Control (20%)</strong> &mdash; Breakaways + odd man rushes + forced turnovers created vs given up</li>
+        <li><strong>Shot Quality (15%)</strong> &mdash; Are your chances better quality than theirs (xG differential)</li>
+        <li><strong>Result (35%)</strong> &mdash; Goal differential, with SH goals against weighted less</li>
+        <li><strong>Discipline (10%)</strong> &mdash; Penalties drawn vs penalties taken</li>
+      </ul>
+      <h4>Shot Quality Stats</h4>
+      <ul>
+        <li><strong>xGF / xGA</strong> &mdash; Expected goals for/against based on shot danger. HD shots = ~18% goal probability, regular = ~7%.</li>
+        <li><strong>xG Diff</strong> &mdash; Positive = you're generating better chances. Negative = they are.</li>
+        <li><strong>HD Chances</strong> &mdash; High danger shots (close range, slot area).</li>
+      </ul>
+    </div>
+
+    <hr class="help-divider">
+
+    <div class="help-section">
+      <h3>Other Features</h3>
+      <ul>
+        <li><strong>Undo</strong> &mdash; The floating UNDO button (bottom right) shows recent events. Tap any event to remove it. You'll get a brief chance to restore it.</li>
+        <li><strong>Roster</strong> &mdash; Tap Roster in the header to add player numbers (one per line). These appear as quick-pick buttons when logging shots/goals for.</li>
+        <li><strong>+/- Tracking</strong> &mdash; When enabled in setup, you'll be asked to select 5 players on ice after each goal (for and against) to track plus/minus.</li>
+        <li><strong>End Game</strong> &mdash; Tap End Game &amp; Score to see a full game summary with goalie/team scores, stats breakdown, and exportable data.</li>
+        <li><strong>Past Games</strong> &mdash; View and compare past game history from the setup screen. Games are saved to the cloud when connected.</li>
+      </ul>
+    </div>
+
   </div>
 </div></div>
 
@@ -2871,13 +3123,20 @@ function updateMeta(){
   }
 
   // Chance Quality slider
+  // Boost goals to 1.0 xG (certainty) — a goal proves the chance was dangerous
+  const GF = state.countsF.goals || 0;
+  const GA = state.countsA.goals || 0;
+  const goalBoostF = GF * (1.0 - XG_RATES.normal);  // extra xG beyond what xGF already counted
+  const goalBoostA = GA * (1.0 - XG_RATES.normal);
+  const qualF = sq.xGF + goalBoostF;
+  const qualA = sq.xGA + goalBoostA;
   const totalShots = (state.countsF.shots || 0) + (state.countsA.shots || 0);
   const qWrap = $('qualityBarWrap');
   const qFill = $('qualityFill');
   const qText = $('qualityText');
-  if(totalShots >= 5 && (sq.xGF + sq.xGA) > 0){
+  if(totalShots >= 5 && (qualF + qualA) > 0){
     qWrap.style.display = 'block';
-    const pct = Math.round(100 * sq.xGF / (sq.xGF + sq.xGA));
+    const pct = Math.round(100 * qualF / (qualF + qualA));
     // Fill from center: if pct > 50, fill right from 50%; if < 50, fill left toward 0
     if(pct >= 50){
       qFill.style.left = '50%';
@@ -3553,6 +3812,40 @@ return;
       pingCloud();
     }
   });
+
+  /* First-launch welcome modal */
+  const SEEN_KEY = 'team-tracker-welcome-seen';
+  const hasSeenWelcome = localStorage.getItem(SEEN_KEY);
+  if(!hasSeenWelcome){
+    $('welcomeModal').style.display = 'flex';
+    $('btnHelp').classList.add('pulse');
+  }
+  $('btnWelcomeDismiss').onclick = function(){
+    $('welcomeModal').style.display = 'none';
+    localStorage.setItem(SEEN_KEY, '1');
+  };
+  // Also dismiss on backdrop click
+  $('welcomeModal').addEventListener('click', function(e){
+    if(e.target === $('welcomeModal')){
+      $('welcomeModal').style.display = 'none';
+      localStorage.setItem(SEEN_KEY, '1');
+    }
+  });
+
+  /* Help button */
+  $('btnHelp').onclick = function(){
+    $('helpModal').style.display = 'flex';
+    // Stop pulsing after first open
+    $('btnHelp').classList.remove('pulse');
+    if(!hasSeenWelcome) localStorage.setItem(SEEN_KEY, '1');
+  };
+  $('btnHelpClose').onclick = function(){
+    $('helpModal').style.display = 'none';
+  };
+  $('helpModal').addEventListener('click', function(e){
+    if(e.target === $('helpModal')) $('helpModal').style.display = 'none';
+  });
+
 })();
 
 function renderAll(){

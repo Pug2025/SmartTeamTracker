@@ -2101,7 +2101,8 @@ function labelFor(ev){
 }
 
 /* GA Context */
-const GA_TAGS = ['Screen','Deflection/Tip','Cross-Crease','Odd-Man Rush','Net-Front Scramble','Clean Look','Other'];
+const GA_TAGS = [‘Screen’,’Deflection/Tip’,’Cross-Crease’,’Odd-Man Rush’,’Net-Front Scramble’,’Clean Look’,’Other’];
+const SOFT_GA_TAGS = [‘Misplay’,’Poor Positioning’,’Other’];
 let lastGAEvent = null;
 function openGAContext(ev){
   lastGAEvent = ev;
@@ -2110,8 +2111,9 @@ function openGAContext(ev){
   lastGAEvent.needsContext = false;
   save();
 
-  $('gaGrid').innerHTML = GA_TAGS.map(t=>`<div class="pickerBtn" data-t="${t}">${t}</div>`).join('');
-  $('gaOverlay').style.display = 'flex';
+  const tags = (ev.type === ‘soft_goal’) ? SOFT_GA_TAGS : GA_TAGS;
+  $(‘gaGrid’).innerHTML = tags.map(t=>`<div class="pickerBtn" data-t="${t}">${t}</div>`).join(‘’);
+  $(‘gaOverlay’).style.display = ‘flex’;
 }
 
 $('gaGrid').addEventListener('click', e=>{

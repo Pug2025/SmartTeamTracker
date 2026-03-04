@@ -2353,79 +2353,33 @@ return;
   });
 
   /* ===== Team Selector Init ===== */
-  initTeamSelector();
+  refreshTeamUI();
 
 })();
 
 /* ===== Multi-Team Management ===== */
-function initTeamSelector() {
-  const TM = window.TeamManager;
-  if (!TM) return;
 
-  populateTeamDropdown();
-
-  // Restore active team selection
-  const activeId = TM.getActiveTeamId();
-  if (activeId) $('teamSelect').value = activeId;
-
-  // Team switch
-  $('teamSelect').addEventListener('change', () => {
-    const id = $('teamSelect').value;
-    TM.setActiveTeamId(id || null);
-    applyActiveTeam();
-  });
-
-  // Open team manager modal
-  $('btnManageTeams').addEventListener('click', () => {
-    renderTeamList();
-    hideTeamForm();
-    $('teamModal').style.display = 'flex';
-  });
-  $('teamModalClose').addEventListener('click', () => {
-    $('teamModal').style.display = 'none';
-  });
-  $('teamModal').addEventListener('click', (e) => {
-    if (e.target === $('teamModal')) $('teamModal').style.display = 'none';
-  });
-
-  // Add team button
-  $('btnAddTeam').addEventListener('click', () => {
-    showTeamForm(null);
-  });
-
-  // Form save
-  $('teamFormSave').addEventListener('click', () => {
-    const name = $('teamNameInput').value.trim();
-    if (!name) { $('teamNameInput').focus(); return; }
-    const level = $('teamLevelInput').value;
-    const rosterRaw = $('teamRosterInput').value.split('\n').map(x => x.trim()).filter(Boolean);
-
-    const editId = $('teamForm').dataset.editId;
-    if (editId) {
-      TM.updateTeam(editId, { name, level, roster: rosterRaw });
-    } else {
-      const team = TM.createTeam(name, level, rosterRaw);
-      TM.setActiveTeamId(team.id);
-    }
-    populateTeamDropdown();
-    $('teamSelect').value = TM.getActiveTeamId() || '';
-    applyActiveTeam();
-    renderTeamList();
-    hideTeamForm();
-  });
-
-  $('teamFormCancel').addEventListener('click', hideTeamForm);
-}
-
-function populateTeamDropdown() {
+/* Show/hide the right section on the setup screen based on whether teams exist */
+function refreshTeamUI() {
   const TM = window.TeamManager;
   if (!TM) return;
   const teams = TM.loadTeams();
-  const sel = $('teamSelect');
-  const curVal = sel.value;
-  sel.innerHTML = '<option value="">— No Team —</option>' +
-    teams.map(t => `<option value="${t.id}">${t.name} (${t.level})</option>`).join('');
-  sel.value = curVal;
+  const activeId = TM.getActiveTeamId();
+
+  if (teams.length === 0) {
+    // No teams: show "Add Team" prompt, hide selector
+    $('teamEmpty').style.display = '';
+    $('teamHasTeams').style.display = 'none';
+  } else {
+    // Has teams: show selector, hide prompt
+    $('teamEmpty').style.display = 'none';
+    $('teamHasTeams').style.display = '';
+    // Populate dropdown
+    const sel = $('teamSelect');
+    sel.innerHTML = '<option value="">— Select Team —</option>' +
+      teams.map(t => `<option value="${t.id}">${t.name} (${t.level})</option>`).join('');
+    sel.value = activeId || '';
+  }
 }
 
 function applyActiveTeam() {
@@ -2433,13 +2387,24 @@ function applyActiveTeam() {
   if (!TM) return;
   const team = TM.getActiveTeam();
   if (team) {
-    // Load team's roster and level into state
     state.roster = Array.isArray(team.roster) ? [...team.roster] : [];
     state.level = team.level || state.level;
     $('level').value = state.level;
     try { localStorage.setItem(ROSTER_KEY, JSON.stringify(state.roster)); } catch (_) {}
     save();
   }
+}
+
+function openTeamModal(autoShowForm) {
+  const TM = window.TeamManager;
+  if (!TM) return;
+  renderTeamList();
+  if (autoShowForm) {
+    showTeamForm(null);
+  } else {
+    hideTeamForm();
+  }
+  $('teamModal').style.display = 'flex';
 }
 
 function renderTeamList() {
@@ -2449,10 +2414,12 @@ function renderTeamList() {
   const activeId = TM.getActiveTeamId();
 
   if (!teams.length) {
-    $('teamList').innerHTML = '<div class="small" style="text-align:center; color:#666; padding:12px;">No teams yet. Add one below.</div>';
+    $('teamList').innerHTML = '';
+    $('btnAddTeam').style.display = 'none';
     return;
   }
 
+  $('btnAddTeam').style.display = '';
   $('teamList').innerHTML = teams.map(t => {
     const isActive = t.id === activeId;
     const rosterCount = (t.roster || []).length;
@@ -2468,40 +2435,38 @@ function renderTeamList() {
     </div>`;
   }).join('');
 
-  // Edit buttons
-  $('teamList').querySelectorAll('.btn-edit').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+  // Delegated click handler for team list
+  $('teamList').onclick = function(e) {
+    const TM = window.TeamManager;
+    const editBtn = e.target.closest('.btn-edit');
+    const delBtn = e.target.closest('.btn-del');
+    const row = e.target.closest('.team-list-item');
+
+    if (editBtn) {
       e.stopPropagation();
-      const id = btn.dataset.id;
-      const team = TM.loadTeams().find(t => t.id === id);
+      const team = TM.loadTeams().find(t => t.id === editBtn.dataset.id);
       if (team) showTeamForm(team);
-    });
-  });
-
-  // Delete buttons
-  $('teamList').querySelectorAll('.btn-del').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
+      return;
+    }
+    if (delBtn) {
       e.stopPropagation();
-      const id = btn.dataset.id;
-      const ok = await showConfirm('Delete this team?');
-      if (!ok) return;
-      TM.deleteTeam(id);
-      populateTeamDropdown();
-      $('teamSelect').value = TM.getActiveTeamId() || '';
-      renderTeamList();
-    });
-  });
-
-  // Click row to select team
-  $('teamList').querySelectorAll('.team-list-item').forEach(item => {
-    item.addEventListener('click', () => {
-      const id = item.dataset.id;
-      TM.setActiveTeamId(id);
-      $('teamSelect').value = id;
+      showConfirm('Delete this team?').then(ok => {
+        if (!ok) return;
+        TM.deleteTeam(delBtn.dataset.id);
+        refreshTeamUI();
+        renderTeamList();
+      });
+      return;
+    }
+    if (row) {
+      TM.setActiveTeamId(row.dataset.id);
+      $('teamSelect').value = row.dataset.id;
       applyActiveTeam();
+      refreshTeamUI();
       renderTeamList();
-    });
-  });
+      showStatusToast('Team selected', 'success');
+    }
+  };
 }
 
 function showTeamForm(team) {
@@ -2522,12 +2487,36 @@ function showTeamForm(team) {
     $('teamRosterInput').value = '';
     form.dataset.editId = '';
   }
+  $('teamNameInput').focus();
 }
 
 function hideTeamForm() {
   $('teamForm').classList.remove('visible');
   $('teamForm').dataset.editId = '';
-  $('btnAddTeam').style.display = '';
+  const TM = window.TeamManager;
+  if (TM && TM.loadTeams().length) $('btnAddTeam').style.display = '';
+}
+
+function saveTeamFromForm() {
+  const TM = window.TeamManager;
+  if (!TM) return;
+  const name = $('teamNameInput').value.trim();
+  if (!name) { $('teamNameInput').focus(); return; }
+  const level = $('teamLevelInput').value;
+  const rosterRaw = $('teamRosterInput').value.split('\n').map(x => x.trim()).filter(Boolean);
+
+  const editId = $('teamForm').dataset.editId;
+  if (editId) {
+    TM.updateTeam(editId, { name, level, roster: rosterRaw });
+  } else {
+    const team = TM.createTeam(name, level, rosterRaw);
+    TM.setActiveTeamId(team.id);
+    applyActiveTeam();
+  }
+  refreshTeamUI();
+  renderTeamList();
+  hideTeamForm();
+  showStatusToast(editId ? 'Team updated' : 'Team added!', 'success');
 }
 
 function renderAll(){
@@ -2535,6 +2524,20 @@ function renderAll(){
   updateMeta();
   renderLog();
 }
+
+/* Button Wiring — Teams */
+$('btnAddFirstTeam').onclick = function(){ openTeamModal(true); };
+$('btnManageTeams').onclick = function(){ openTeamModal(false); };
+$('teamModalClose').onclick = function(){ $('teamModal').style.display='none'; };
+$('btnAddTeam').onclick = function(){ showTeamForm(null); };
+$('teamFormSave').onclick = saveTeamFromForm;
+$('teamFormCancel').onclick = hideTeamForm;
+$('teamSelect').onchange = function(){
+  const TM = window.TeamManager;
+  if(!TM) return;
+  TM.setActiveTeamId(this.value || null);
+  applyActiveTeam();
+};
 
 /* Button Wiring */
 $('btnRoster').onclick=openRoster;

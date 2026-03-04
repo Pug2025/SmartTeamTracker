@@ -2,7 +2,7 @@
 /* Uses Firebase v12 modular SDK via CDN */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signOut, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signOut, sendPasswordResetEmail, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDWbQt4aUEUUsA6rZ-dvWuFwKlNA4ozpb4",
@@ -110,6 +110,31 @@ async function handleGoogleAuth() {
   }
 }
 
+async function handlePasswordReset() {
+  clearAuthError();
+  const email = document.getElementById('authEmail').value.trim();
+  if (!email) {
+    showAuthError('Enter your email address, then tap "Reset Password".');
+    return;
+  }
+  try {
+    await sendPasswordResetEmail(auth, email);
+    showAuthError('');
+    const el = document.getElementById('authError');
+    if (el) {
+      el.textContent = 'Check your email for a password reset link.';
+      el.style.display = 'block';
+      el.style.color = '#4caf50';
+      setTimeout(() => { el.style.color = ''; }, 5000);
+    }
+  } catch (err) {
+    const msg = err.code === 'auth/user-not-found' ? 'No account with that email.'
+      : err.code === 'auth/invalid-email' ? 'Invalid email address.'
+      : err.message || 'Could not send reset email.';
+    showAuthError(msg);
+  }
+}
+
 async function handleSignOut() {
   try {
     await signOut(auth);
@@ -125,6 +150,9 @@ function initAuthUI() {
 
   const googleBtn = document.getElementById('authGoogleBtn');
   if (googleBtn) googleBtn.addEventListener('click', handleGoogleAuth);
+
+  const resetBtn = document.getElementById('authResetBtn');
+  if (resetBtn) resetBtn.addEventListener('click', handlePasswordReset);
 
   const toggle = document.getElementById('authToggle');
   if (toggle) {

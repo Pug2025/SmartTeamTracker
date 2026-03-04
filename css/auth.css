@@ -119,6 +119,21 @@
   opacity: 0.9;
 }
 
+.auth-reset-btn {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 12px;
+  padding: 8px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.auth-reset-btn:hover {
+  color: #4da3ff;
+}
+
 .auth-toggle {
   display: block;
   width: 100%;

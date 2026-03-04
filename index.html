@@ -32,6 +32,7 @@
       <button id="authSubmitBtn" type="submit" class="auth-submit-btn">Sign In</button>
     </form>
 
+    <button id="authResetBtn" class="auth-reset-btn" type="button">Forgot password?</button>
     <button id="authToggle" class="auth-toggle" data-mode="login">Don't have an account? Sign up</button>
 
     <div class="auth-guest-divider"></div>
@@ -54,9 +55,18 @@
     <div class="inlineRow">
       <button class="btn-edit-setup" id="btnEditSetup" style="display:none;">Edit Info</button>
       <button class="btn-std" id="btnRoster" style="font-size:11px; padding:6px 10px;">Roster</button>
+      <button class="btn-std btn-share-live" id="btnShareLive" style="display:none; font-size:11px; padding:6px 10px;">Share Live</button>
       <button class="btn-help" id="btnHelp">?</button>
       <button class="btn-std" id="btnSignOut" style="font-size:10px; padding:4px 8px; border-color:#555; color:#888;">Sign Out</button>
     </div>
+  </div>
+
+  <!-- Live share banner (shown when sharing is active) -->
+  <div id="liveShareBanner" class="live-share-banner" style="display:none;">
+    <span>LIVE</span>
+    <span id="liveShareCode" class="live-share-code"></span>
+    <button id="btnCopyShareLink" class="btn-copy-link">Copy Link</button>
+    <button id="btnStopShare" class="btn-stop-share">Stop</button>
   </div>
 
   <div class="scoreboard-row">
@@ -709,8 +719,37 @@
 
 </div><!-- End appShell -->
 
+<!-- Spectator View (shown when ?live=CODE is in URL) -->
+<div id="spectatorView" class="spectator-view" style="display:none;">
+  <div class="spectator-header">
+    <div class="spectator-badge">LIVE</div>
+    <div class="spectator-title" id="specTitle">Game</div>
+  </div>
+  <div class="spectator-scoreboard">
+    <div class="spec-score-block them">
+      <span class="spec-score-label" id="specThemLabel">THEM</span>
+      <span class="spec-score-val" id="specGA">0</span>
+      <span class="spec-score-sub" id="specSA">0 shots</span>
+    </div>
+    <div class="spec-period" id="specPeriod">P1</div>
+    <div class="spec-score-block us">
+      <span class="spec-score-label">US</span>
+      <span class="spec-score-val" id="specGF">0</span>
+      <span class="spec-score-sub" id="specSF">0 shots</span>
+    </div>
+  </div>
+  <div class="spectator-events" id="specEvents">
+    <div class="spec-event-placeholder">Waiting for game data...</div>
+  </div>
+  <div class="spectator-footer">
+    <div id="specStatus" class="spec-status">Connecting...</div>
+    <div class="spec-powered">Powered by Team Tracker</div>
+  </div>
+</div>
+
 <script type="module" src="js/auth.js"></script>
 <script src="js/teams.js"></script>
 <script src="js/app.js"></script>
+<script src="js/spectator.js"></script>
 </body>
 </html>

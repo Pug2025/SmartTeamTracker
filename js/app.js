@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.1.0';
+const APP_VERSION = '6.2.0';
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', ()=>navigator.serviceWorker.register('service-worker.js?v=6100'));
@@ -315,6 +315,7 @@ function ensureRosterNumber(num){
     roster.add(n);
     state.roster = sortRoster([...roster]);
     try{ localStorage.setItem(ROSTER_KEY, JSON.stringify(state.roster)); }catch(_){}
+    if (window.TeamManager) window.TeamManager.syncRosterToActiveTeam(state.roster);
     save();
   }
 }
@@ -1940,6 +1941,11 @@ async function saveGameToCloud(game){
   const uid = typeof window.getAuthUserId === 'function' ? window.getAuthUserId() : null;
   if (uid) game.user_id = uid;
 
+  // Attach team_id if a team is selected
+  const TM = window.TeamManager;
+  const teamId = TM ? TM.getActiveTeamId() : null;
+  if (teamId) game.team_id = teamId;
+
   try{
     setCloudStatus('Cloud: Saving…','warn');
     const res = await fetch('/api/save-game',{
@@ -2136,6 +2142,8 @@ function saveRosterFromArea(){
   const raw = $('rosterArea').value.split('\n').map(x=>x.trim()).filter(x=>x.length>0);
   state.roster = sortRoster(raw);
   localStorage.setItem(ROSTER_KEY, JSON.stringify(state.roster));
+  // Sync to active team
+  if (window.TeamManager) window.TeamManager.syncRosterToActiveTeam(state.roster);
   save();
   $('rosterModal').style.display='none';
 }
@@ -2344,7 +2352,183 @@ return;
     if(e.target === $('helpModal')) $('helpModal').style.display = 'none';
   });
 
+  /* ===== Team Selector Init ===== */
+  initTeamSelector();
+
 })();
+
+/* ===== Multi-Team Management ===== */
+function initTeamSelector() {
+  const TM = window.TeamManager;
+  if (!TM) return;
+
+  populateTeamDropdown();
+
+  // Restore active team selection
+  const activeId = TM.getActiveTeamId();
+  if (activeId) $('teamSelect').value = activeId;
+
+  // Team switch
+  $('teamSelect').addEventListener('change', () => {
+    const id = $('teamSelect').value;
+    TM.setActiveTeamId(id || null);
+    applyActiveTeam();
+  });
+
+  // Open team manager modal
+  $('btnManageTeams').addEventListener('click', () => {
+    renderTeamList();
+    hideTeamForm();
+    $('teamModal').style.display = 'flex';
+  });
+  $('teamModalClose').addEventListener('click', () => {
+    $('teamModal').style.display = 'none';
+  });
+  $('teamModal').addEventListener('click', (e) => {
+    if (e.target === $('teamModal')) $('teamModal').style.display = 'none';
+  });
+
+  // Add team button
+  $('btnAddTeam').addEventListener('click', () => {
+    showTeamForm(null);
+  });
+
+  // Form save
+  $('teamFormSave').addEventListener('click', () => {
+    const name = $('teamNameInput').value.trim();
+    if (!name) { $('teamNameInput').focus(); return; }
+    const level = $('teamLevelInput').value;
+    const rosterRaw = $('teamRosterInput').value.split('\n').map(x => x.trim()).filter(Boolean);
+
+    const editId = $('teamForm').dataset.editId;
+    if (editId) {
+      TM.updateTeam(editId, { name, level, roster: rosterRaw });
+    } else {
+      const team = TM.createTeam(name, level, rosterRaw);
+      TM.setActiveTeamId(team.id);
+    }
+    populateTeamDropdown();
+    $('teamSelect').value = TM.getActiveTeamId() || '';
+    applyActiveTeam();
+    renderTeamList();
+    hideTeamForm();
+  });
+
+  $('teamFormCancel').addEventListener('click', hideTeamForm);
+}
+
+function populateTeamDropdown() {
+  const TM = window.TeamManager;
+  if (!TM) return;
+  const teams = TM.loadTeams();
+  const sel = $('teamSelect');
+  const curVal = sel.value;
+  sel.innerHTML = '<option value="">— No Team —</option>' +
+    teams.map(t => `<option value="${t.id}">${t.name} (${t.level})</option>`).join('');
+  sel.value = curVal;
+}
+
+function applyActiveTeam() {
+  const TM = window.TeamManager;
+  if (!TM) return;
+  const team = TM.getActiveTeam();
+  if (team) {
+    // Load team's roster and level into state
+    state.roster = Array.isArray(team.roster) ? [...team.roster] : [];
+    state.level = team.level || state.level;
+    $('level').value = state.level;
+    try { localStorage.setItem(ROSTER_KEY, JSON.stringify(state.roster)); } catch (_) {}
+    save();
+  }
+}
+
+function renderTeamList() {
+  const TM = window.TeamManager;
+  if (!TM) return;
+  const teams = TM.loadTeams();
+  const activeId = TM.getActiveTeamId();
+
+  if (!teams.length) {
+    $('teamList').innerHTML = '<div class="small" style="text-align:center; color:#666; padding:12px;">No teams yet. Add one below.</div>';
+    return;
+  }
+
+  $('teamList').innerHTML = teams.map(t => {
+    const isActive = t.id === activeId;
+    const rosterCount = (t.roster || []).length;
+    return `<div class="team-list-item${isActive ? ' active' : ''}" data-id="${t.id}">
+      <div class="team-item-info">
+        <span class="team-item-name">${t.name}</span>
+        <span class="team-item-meta">${t.level} &bull; ${rosterCount} player${rosterCount !== 1 ? 's' : ''}</span>
+      </div>
+      <div class="team-item-actions">
+        <button class="btn-edit" data-id="${t.id}">Edit</button>
+        <button class="btn-del" data-id="${t.id}">Del</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Edit buttons
+  $('teamList').querySelectorAll('.btn-edit').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      const team = TM.loadTeams().find(t => t.id === id);
+      if (team) showTeamForm(team);
+    });
+  });
+
+  // Delete buttons
+  $('teamList').querySelectorAll('.btn-del').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      const ok = await showConfirm('Delete this team?');
+      if (!ok) return;
+      TM.deleteTeam(id);
+      populateTeamDropdown();
+      $('teamSelect').value = TM.getActiveTeamId() || '';
+      renderTeamList();
+    });
+  });
+
+  // Click row to select team
+  $('teamList').querySelectorAll('.team-list-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const id = item.dataset.id;
+      TM.setActiveTeamId(id);
+      $('teamSelect').value = id;
+      applyActiveTeam();
+      renderTeamList();
+    });
+  });
+}
+
+function showTeamForm(team) {
+  const form = $('teamForm');
+  form.classList.add('visible');
+  $('btnAddTeam').style.display = 'none';
+
+  if (team) {
+    $('teamFormTitle').textContent = 'Edit Team';
+    $('teamNameInput').value = team.name;
+    $('teamLevelInput').value = team.level || 'U11';
+    $('teamRosterInput').value = (team.roster || []).join('\n');
+    form.dataset.editId = team.id;
+  } else {
+    $('teamFormTitle').textContent = 'Add New Team';
+    $('teamNameInput').value = '';
+    $('teamLevelInput').value = 'U11';
+    $('teamRosterInput').value = '';
+    form.dataset.editId = '';
+  }
+}
+
+function hideTeamForm() {
+  $('teamForm').classList.remove('visible');
+  $('teamForm').dataset.editId = '';
+  $('btnAddTeam').style.display = '';
+}
 
 function renderAll(){
   rebuildFromEvents();
@@ -2557,7 +2741,14 @@ $('btnHistory').addEventListener('click', async ()=>{
   $('historyList').innerHTML = '<div style="text-align:center; padding:20px; color:var(--muted);">Loading...</div>';
   try{
     const uid = typeof window.getAuthUserId === 'function' ? window.getAuthUserId() : null;
-    const res = await fetch('/api/games' + (uid ? '?user_id=' + encodeURIComponent(uid) : ''));
+    const TM = window.TeamManager;
+    const tid = TM ? TM.getActiveTeamId() : null;
+    let histUrl = '/api/games';
+    const params = [];
+    if (uid) params.push('user_id=' + encodeURIComponent(uid));
+    if (tid) params.push('team_id=' + encodeURIComponent(tid));
+    if (params.length) histUrl += '?' + params.join('&');
+    const res = await fetch(histUrl);
     const d = await res.json();
     if(!d.success || !d.games || !d.games.length){
       $('historyList').innerHTML = '<div style="text-align:center; padding:20px;">No past games found.</div>';

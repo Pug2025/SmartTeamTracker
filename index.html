@@ -2871,13 +2871,20 @@ function updateMeta(){
   }
 
   // Chance Quality slider
+  // Boost goals to 1.0 xG (certainty) — a goal proves the chance was dangerous
+  const GF = state.countsF.goals || 0;
+  const GA = state.countsA.goals || 0;
+  const goalBoostF = GF * (1.0 - XG_RATES.normal);  // extra xG beyond what xGF already counted
+  const goalBoostA = GA * (1.0 - XG_RATES.normal);
+  const qualF = sq.xGF + goalBoostF;
+  const qualA = sq.xGA + goalBoostA;
   const totalShots = (state.countsF.shots || 0) + (state.countsA.shots || 0);
   const qWrap = $('qualityBarWrap');
   const qFill = $('qualityFill');
   const qText = $('qualityText');
-  if(totalShots >= 5 && (sq.xGF + sq.xGA) > 0){
+  if(totalShots >= 5 && (qualF + qualA) > 0){
     qWrap.style.display = 'block';
-    const pct = Math.round(100 * sq.xGF / (sq.xGF + sq.xGA));
+    const pct = Math.round(100 * qualF / (qualF + qualA));
     // Fill from center: if pct > 50, fill right from 50%; if < 50, fill left toward 0
     if(pct >= 50){
       qFill.style.left = '50%';

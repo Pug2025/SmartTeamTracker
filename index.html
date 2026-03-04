@@ -1448,11 +1448,11 @@
     <div class="sum-header">
       <div class="sum-meta" id="summaryTitle"></div>
       <div class="sum-score">
-        <div class="sum-score-num us" id="sumGF">0</div>
-        <div class="sum-score-dash">&ndash;</div>
         <div class="sum-score-num them" id="sumGA">0</div>
+        <div class="sum-score-dash">&ndash;</div>
+        <div class="sum-score-num us" id="sumGF">0</div>
       </div>
-      <div class="sum-score-labels"><span>Us</span><span>Them</span></div>
+      <div class="sum-score-labels"><span>Them</span><span>Us</span></div>
       <div id="sumResultTag"></div>
     </div>
 
@@ -1510,16 +1510,16 @@
       <div class="dashGrid" id="sumGoalieGrid"></div>
     </div>
 
-    <!-- Offensive Context -->
-    <div class="sum-section">
-      <div class="sum-section-label" style="color:var(--accent-us);">Offensive</div>
-      <div class="dashGrid" id="sumOffenseGrid"></div>
-    </div>
-
-    <!-- Defensive Context -->
+    <!-- Defensive Context (Them = left column) -->
     <div class="sum-section">
       <div class="sum-section-label" style="color:var(--accent-them);">Defensive</div>
       <div class="dashGrid" id="sumDefenseGrid"></div>
+    </div>
+
+    <!-- Offensive Context (Us = right column) -->
+    <div class="sum-section">
+      <div class="sum-section-label" style="color:var(--accent-us);">Offensive</div>
+      <div class="dashGrid" id="sumOffenseGrid"></div>
     </div>
 
     <!-- Goal Breakdowns (GF Context + GA Causes side by side) -->
@@ -3558,21 +3558,21 @@ function endGame(){
 
   // === Shots & Scoring ===
   $('sumShotsGrid').innerHTML =
-    tile('Goals For', GF, 'Scored') +
     tile('Goals Ag', GA, 'Allowed') +
-    tile('Shots For', SF, 'On net') +
-    tile('Shots Ag', SA, 'On net') +
+    tile('Goals For', GF, 'Scored') +
     tile('Saves', saves, `SV% ${svText}`) +
+    tile('Shots Ag', SA, 'On net') +
+    tile('Shots For', SF, 'On net') +
     tile('Shot Share', share, `SF / (SF+SA)`);
 
   // === Shot Quality ===
   $('sumQualityGrid').innerHTML =
-    tile('Shooting %', shootPct, 'GF / SF') +
-    tile('xGF', sq.xGF, 'Expected for') +
     tile('xGA', sq.xGA, 'Expected ag') +
+    tile('xGF', sq.xGF, 'Expected for') +
     tile('xG Diff', (sq.xGDiff>0?'+':'')+sq.xGDiff, sq.xGDiff>0?'Our edge':'Their edge') +
+    tile('HD Against', hdAg, sq.hdPctAg+'% of SA') +
     tile('HD For', hdFor, sq.hdPctFor+'% of SF') +
-    tile('HD Against', hdAg, sq.hdPctAg+'% of SA');
+    tile('Shooting %', shootPct, 'GF / SF');
 
   // === Goaltending ===
   $('sumGoalieGrid').innerHTML =
@@ -3605,17 +3605,7 @@ function endGame(){
   const totalGA = gaStats.BA + gaStats.DZ + gaStats.BR + (gaStats.OMRA||0) + gaStats.Other;
 
   let gbHTML = '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">';
-  if(totalGF > 0){
-    gbHTML += `<div class="card" style="padding:10px;">
-      <div class="small" style="font-weight:700; color:var(--accent-us); margin-bottom:6px;">Goals For (${totalGF})</div>
-      ${gfCtx.BA ? `<div class="small">Breakaway: ${gfCtx.BA}</div>` : ''}
-      ${gfCtx.OMR ? `<div class="small">Odd Man Rush: ${gfCtx.OMR}</div>` : ''}
-      ${(gfCtx.FT||0) ? `<div class="small">Forced TO: ${gfCtx.FT}</div>` : ''}
-      ${gfCtx.Other ? `<div class="small">Other: ${gfCtx.Other}</div>` : ''}
-    </div>`;
-  } else {
-    gbHTML += `<div class="card" style="padding:10px;"><div class="small" style="color:var(--muted);">No goals for</div></div>`;
-  }
+  // GA (them) on left, GF (us) on right — matches column layout
   if(totalGA > 0){
     gbHTML += `<div class="card" style="padding:10px;">
       <div class="small" style="font-weight:700; color:var(--accent-them); margin-bottom:6px;">Goals Against (${totalGA})</div>
@@ -3628,6 +3618,17 @@ function endGame(){
   } else {
     gbHTML += `<div class="card" style="padding:10px;"><div class="small" style="color:var(--muted);">No goals against</div></div>`;
   }
+  if(totalGF > 0){
+    gbHTML += `<div class="card" style="padding:10px;">
+      <div class="small" style="font-weight:700; color:var(--accent-us); margin-bottom:6px;">Goals For (${totalGF})</div>
+      ${gfCtx.BA ? `<div class="small">Breakaway: ${gfCtx.BA}</div>` : ''}
+      ${gfCtx.OMR ? `<div class="small">Odd Man Rush: ${gfCtx.OMR}</div>` : ''}
+      ${(gfCtx.FT||0) ? `<div class="small">Forced TO: ${gfCtx.FT}</div>` : ''}
+      ${gfCtx.Other ? `<div class="small">Other: ${gfCtx.Other}</div>` : ''}
+    </div>`;
+  } else {
+    gbHTML += `<div class="card" style="padding:10px;"><div class="small" style="color:var(--muted);">No goals for</div></div>`;
+  }
   gbHTML += '</div>';
   $('sumGoalBreakdowns').innerHTML = gbHTML;
 
@@ -3638,12 +3639,12 @@ function endGame(){
     $('sumStrengthWrap').style.display = '';
     $('sumStrengthGrid').innerHTML = `<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
       <div class="card" style="padding:10px;">
-        <div class="small" style="font-weight:700; color:var(--accent-us); margin-bottom:4px;">Goals For</div>
-        <div class="small">EV: ${sb.for.EV||0} &bull; PP: ${sb.for.PP||0} &bull; SH: ${sb.for.SH||0}${sb.for.UNK ? ' &bull; Unk: '+sb.for.UNK : ''}</div>
-      </div>
-      <div class="card" style="padding:10px;">
         <div class="small" style="font-weight:700; color:var(--accent-them); margin-bottom:4px;">Goals Against</div>
         <div class="small">EV: ${sb.against.EV||0} &bull; PP: ${sb.against.PP||0} &bull; SH: ${sb.against.SH||0}${sb.against.UNK ? ' &bull; Unk: '+sb.against.UNK : ''}</div>
+      </div>
+      <div class="card" style="padding:10px;">
+        <div class="small" style="font-weight:700; color:var(--accent-us); margin-bottom:4px;">Goals For</div>
+        <div class="small">EV: ${sb.for.EV||0} &bull; PP: ${sb.for.PP||0} &bull; SH: ${sb.for.SH||0}${sb.for.UNK ? ' &bull; Unk: '+sb.for.UNK : ''}</div>
       </div>
     </div>`;
   } else {

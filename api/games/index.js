@@ -11,9 +11,16 @@ export default async function handler(req, res) {
   if (req.method === "GET") {
     try {
       const limit = Math.min(Number(req.query.limit) || 50, 100);
+      const userId = req.query.user_id || null;
+
+      // Build query URL — filter by user_id if provided
+      let queryUrl = `${supabaseUrl}/rest/v1/games?select=id,game_id,date,opponent,level,data&order=created_at.desc&limit=${limit}`;
+      if (userId) {
+        queryUrl += `&user_id=eq.${encodeURIComponent(userId)}`;
+      }
 
       const response = await fetch(
-        `${supabaseUrl}/rest/v1/games?select=id,game_id,date,opponent,level,data&order=created_at.desc&limit=${limit}`,
+        queryUrl,
         {
           headers: {
             "apikey": supabaseKey,

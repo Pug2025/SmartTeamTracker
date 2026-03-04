@@ -1382,11 +1382,11 @@
       <div class="dash-section-label">Goaltending</div>
       <div class="dashGrid">
         <div class="dashTile"><div class="k">Saves</div><div class="v" id="savesVal">0</div><div class="s" id="svVal">SV% —</div></div>
-        <div class="dashTile"><div class="k">Big Saves</div><div class="v" id="bigSavesVal">0</div><div class="s">Key stops</div></div>
-        <div class="dashTile"><div class="k">Smothers</div><div class="v" id="smothersVal">0</div><div class="s">Play killed</div></div>
-        <div class="dashTile"><div class="k">Good Rebounds</div><div class="v" id="goodRebVal">0</div><div class="s">Controlled</div></div>
-        <div class="dashTile"><div class="k">Bad Rebounds</div><div class="v" id="badRebVal">0</div><div class="s">Loose puck</div></div>
-        <div class="dashTile"><div class="k">Soft Goals</div><div class="v" id="softVal">0</div><div class="s">Preventable</div></div>
+        <div class="dashTile"><div class="k">Big Saves</div><div class="v" id="bigSavesVal">0</div></div>
+        <div class="dashTile"><div class="k">Smothers</div><div class="v" id="smothersVal">0</div></div>
+        <div class="dashTile"><div class="k">Good Rebounds</div><div class="v" id="goodRebVal">0</div></div>
+        <div class="dashTile"><div class="k">Bad Rebounds</div><div class="v" id="badRebVal">0</div></div>
+        <div class="dashTile"><div class="k">Soft Goals</div><div class="v" id="softVal">0</div></div>
       </div>
 
       <!-- Shot Quality Analysis -->
@@ -1394,7 +1394,7 @@
       <div class="dashGrid">
         <div class="dashTile"><div class="k">Shooting %</div><div class="v" id="shootPctVal">—</div><div class="s">GF / SF</div></div>
         <div class="dashTile"><div class="k">Shot Share</div><div class="v" id="shotShareVal">—</div><div class="s">SF / (SF+SA)</div></div>
-        <div class="dashTile"><div class="k">Missed Chances</div><div class="v" id="missedChanceVal">0</div><div class="s">Chances w/o shot</div></div>
+        <div class="dashTile"><div class="k">Missed Chances</div><div class="v" id="missedChanceVal">0</div><div class="s" id="missedSub">For + Against</div></div>
         <div class="dashTile"><div class="k">xGF</div><div class="v" id="xgfVal">—</div><div class="s" id="xgfSub">Expected goals for</div></div>
         <div class="dashTile"><div class="k">xGA</div><div class="v" id="xgaVal">—</div><div class="s" id="xgaSub">Expected goals ag</div></div>
         <div class="dashTile"><div class="k">xG Diff</div><div class="v" id="xgDiffVal">—</div><div class="s" id="xgDiffSub">Quality edge</div></div>
@@ -1403,21 +1403,21 @@
       <!-- Offensive Context -->
       <div class="dash-section-label" style="color:var(--accent-us);">Offensive</div>
       <div class="dashGrid">
-        <div class="dashTile"><div class="k">Breakaways</div><div class="v" id="baForVal">0</div><div class="s">Created</div></div>
-        <div class="dashTile"><div class="k">Odd Man Rush</div><div class="v" id="omrForVal">0</div><div class="s">Created</div></div>
-        <div class="dashTile"><div class="k">Forced TO</div><div class="v" id="ftVal">0</div><div class="s">Won puck</div></div>
-        <div class="dashTile"><div class="k">HD Chances</div><div class="v" id="hdForVal">0</div><div class="s">High danger</div></div>
-        <div class="dashTile"><div class="k">Penalties Drawn</div><div class="v" id="penForVal">0</div><div class="s">They took</div></div>
+        <div class="dashTile"><div class="k">Breakaways</div><div class="v" id="baForVal">0</div></div>
+        <div class="dashTile"><div class="k">Odd Man Rush</div><div class="v" id="omrForVal">0</div></div>
+        <div class="dashTile"><div class="k">Forced TO</div><div class="v" id="ftVal">0</div></div>
+        <div class="dashTile"><div class="k">HD Chances</div><div class="v" id="hdForVal">0</div><div class="s" id="hdForSub"></div></div>
+        <div class="dashTile"><div class="k">Penalties Drawn</div><div class="v" id="penForVal">0</div></div>
       </div>
 
       <!-- Defensive Context -->
       <div class="dash-section-label" style="color:var(--accent-them);">Defensive</div>
       <div class="dashGrid">
-        <div class="dashTile"><div class="k">Breakaways Ag</div><div class="v" id="baAgVal">0</div><div class="s">Given up</div></div>
-        <div class="dashTile"><div class="k">D-Zone TO</div><div class="v" id="dzVal">0</div><div class="s">Turnovers</div></div>
-        <div class="dashTile"><div class="k">OMR Against</div><div class="v" id="omrAgVal">0</div><div class="s">Given up</div></div>
-        <div class="dashTile"><div class="k">HD Chances Ag</div><div class="v" id="hdAgVal">0</div><div class="s">High danger</div></div>
-        <div class="dashTile"><div class="k">Penalties Taken</div><div class="v" id="penAgVal">0</div><div class="s">We took</div></div>
+        <div class="dashTile"><div class="k">Breakaways Ag</div><div class="v" id="baAgVal">0</div></div>
+        <div class="dashTile"><div class="k">D-Zone TO</div><div class="v" id="dzVal">0</div></div>
+        <div class="dashTile"><div class="k">OMR Against</div><div class="v" id="omrAgVal">0</div></div>
+        <div class="dashTile"><div class="k">HD Chances Ag</div><div class="v" id="hdAgVal">0</div><div class="s" id="hdAgSub"></div></div>
+        <div class="dashTile"><div class="k">Penalties Taken</div><div class="v" id="penAgVal">0</div></div>
       </div>
 
       <div class="card" style="margin-top:10px;">
@@ -3304,7 +3304,11 @@ function updateMeta(){
   const hdAg = state.events.filter(e=>(e.type==='shot'||e.type==='goal'||e.type==='soft_goal'||e.type==='big_save')&&e.highDanger).length;
   $('hdForVal').textContent = hdFor;
   $('hdAgVal').textContent = hdAg;
-  $('missedChanceVal').textContent = (state.team.missedChancesFor||0) + (state.team.missedChancesAgainst||0);
+  if(F.shots > 0) $('hdForSub').textContent = Math.round(100*hdFor/F.shots)+'% of SF';
+  if(A.shots > 0) $('hdAgSub').textContent = Math.round(100*hdAg/A.shots)+'% of SA';
+  const mcFor = state.team.missedChancesFor||0, mcAg = state.team.missedChancesAgainst||0;
+  $('missedChanceVal').textContent = mcFor + mcAg;
+  $('missedSub').textContent = mcFor + ' for, ' + mcAg + ' ag';
 
   const shootPct = F.shots ? (F.goals/F.shots).toFixed(3).slice(1) : '—';
   $('shootPctVal').textContent = shootPct;
@@ -3490,7 +3494,7 @@ $('log').addEventListener('click', e=>{
 
 /* ===== Summary Building ===== */
 function tile(k, v, s){
-  return `<div class="dashTile"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`;
+  return `<div class="dashTile"><div class="k">${k}</div><div class="v">${v}</div>${s ? '<div class="s">'+s+'</div>' : ''}</div>`;
 }
 
 function compBar(label, score, color){
@@ -3558,17 +3562,17 @@ function endGame(){
 
   // === Shots & Scoring ===
   $('sumShotsGrid').innerHTML =
-    tile('Goals Ag', GA, 'Allowed') +
-    tile('Goals For', GF, 'Scored') +
+    tile('Goals Ag', GA) +
+    tile('Goals For', GF) +
     tile('Saves', saves, `SV% ${svText}`) +
-    tile('Shots Ag', SA, 'On net') +
-    tile('Shots For', SF, 'On net') +
+    tile('Shots Ag', SA) +
+    tile('Shots For', SF) +
     tile('Shot Share', share, `SF / (SF+SA)`);
 
   // === Shot Quality ===
   $('sumQualityGrid').innerHTML =
-    tile('xGA', sq.xGA, 'Expected ag') +
-    tile('xGF', sq.xGF, 'Expected for') +
+    tile('xGA', sq.xGA, sq.hdAg+' HD / '+sq.regAg+' reg') +
+    tile('xGF', sq.xGF, sq.hdFor+' HD / '+sq.regFor+' reg') +
     tile('xG Diff', (sq.xGDiff>0?'+':'')+sq.xGDiff, sq.xGDiff>0?'Our edge':'Their edge') +
     tile('HD Against', hdAg, sq.hdPctAg+'% of SA') +
     tile('HD For', hdFor, sq.hdPctFor+'% of SF') +
@@ -3576,27 +3580,27 @@ function endGame(){
 
   // === Goaltending ===
   $('sumGoalieGrid').innerHTML =
-    tile('Big Saves', state.countsA.bigSaves, 'Key stops') +
-    tile('Smothers', state.countsA.smothers, 'Play killed') +
-    tile('Good Reb', goodReb, 'Controlled') +
-    tile('Bad Reb', state.countsA.badRebounds, 'Loose puck') +
-    tile('Soft Goals', state.countsA.softGoals, 'Preventable') +
-    tile('Missed Ch', (state.team.missedChancesAgainst||0), 'Ag (no SOG)');
+    tile('Big Saves', state.countsA.bigSaves) +
+    tile('Smothers', state.countsA.smothers) +
+    tile('Good Reb', goodReb) +
+    tile('Bad Reb', state.countsA.badRebounds) +
+    tile('Soft Goals', state.countsA.softGoals) +
+    tile('Missed Ch', (state.team.missedChancesAgainst||0), 'Against');
 
   // === Offensive ===
   $('sumOffenseGrid').innerHTML =
-    tile('Breakaways', state.team.breakawaysFor, 'Created') +
-    tile('Odd Man Rush', state.team.oddManRushFor, 'Created') +
-    tile('Forced TO', state.team.forcedTurnovers||0, 'Won puck') +
-    tile('Penalties Drawn', state.team.penaltiesFor||0, 'They took') +
-    tile('Missed Ch', state.team.missedChancesFor||0, 'No SOG');
+    tile('Breakaways', state.team.breakawaysFor) +
+    tile('Odd Man Rush', state.team.oddManRushFor) +
+    tile('Forced TO', state.team.forcedTurnovers||0) +
+    tile('Penalties Drawn', state.team.penaltiesFor||0) +
+    tile('Missed Ch', state.team.missedChancesFor||0, 'For');
 
   // === Defensive ===
   $('sumDefenseGrid').innerHTML =
-    tile('Breakaways Ag', state.team.breakawaysAgainst, 'Given up') +
-    tile('D-Zone TO', state.team.dzTurnovers, 'Turnovers') +
-    tile('OMR Against', state.team.oddManRushAgainst||0, 'Given up') +
-    tile('Penalties Taken', state.team.penaltiesAgainst||0, 'We took');
+    tile('Breakaways Ag', state.team.breakawaysAgainst) +
+    tile('D-Zone TO', state.team.dzTurnovers) +
+    tile('OMR Against', state.team.oddManRushAgainst||0) +
+    tile('Penalties Taken', state.team.penaltiesAgainst||0);
 
   // === Goal Breakdowns ===
   const gfCtx = computeGFContextBreakdown();

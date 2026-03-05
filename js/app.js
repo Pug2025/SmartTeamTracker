@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.2.0';
+const APP_VERSION = '6.2.1';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -13,7 +13,23 @@ if ('serviceWorker' in navigator) {
       } catch (_) {}
       return;
     }
-    navigator.serviceWorker.register('service-worker.js?v=6100');
+
+    const swReloadKey = 'team-tracker-sw-version';
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      try {
+        if (sessionStorage.getItem(swReloadKey) === APP_VERSION) return;
+        sessionStorage.setItem(swReloadKey, APP_VERSION);
+      } catch (_) {}
+      window.location.reload();
+    });
+
+    try {
+      const reg = await navigator.serviceWorker.register(
+        `service-worker.js?v=${encodeURIComponent(APP_VERSION)}`,
+        { updateViaCache: 'none' }
+      );
+      reg.update().catch(() => {});
+    } catch (_) {}
   });
 }
 

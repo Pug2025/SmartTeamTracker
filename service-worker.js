@@ -1,22 +1,22 @@
 // -----------------------------
 // Team Tracker - Service Worker
-// Version: v5.1.1
+// Version: v6.2.1
 // -----------------------------
 
-const CACHE_VERSION = "team-tracker-cache-v7.1.0";
+const ASSET_VERSION = "6.2.1";
+const CACHE_VERSION = `team-tracker-cache-v${ASSET_VERSION}`;
 const CACHE_NAME = CACHE_VERSION;
 
 const ASSETS_TO_CACHE = [
   "/",
   "/index.html",
-  "/css/styles.css",
-  "/css/auth.css",
-  "/js/app.js",
-  "/js/auth.js",
-  "/js/spectator.js",
-  "/js/teams.js",
-  "/manifest.json",
-  "/service-worker.js",
+  `/css/styles.css?v=${ASSET_VERSION}`,
+  `/css/auth.css?v=${ASSET_VERSION}`,
+  `/js/app.js?v=${ASSET_VERSION}`,
+  `/js/auth.js?v=${ASSET_VERSION}`,
+  `/js/spectator.js?v=${ASSET_VERSION}`,
+  `/js/teams.js?v=${ASSET_VERSION}`,
+  `/manifest.json?v=${ASSET_VERSION}`,
   "/favicon.ico",
   "/icon-192.png",
   "/icon-512.png"
@@ -78,7 +78,7 @@ self.addEventListener("fetch", (event) => {
   // Network-first for navigations (HTML pages)
   if (request.mode === "navigate" || request.destination === "document") {
     event.respondWith(
-      fetch(request)
+      fetch(request, { cache: "no-store" })
         .then((response) => {
           const copy = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
@@ -91,7 +91,38 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Cache-first for static assets
+  // Network-first for versioned shell assets to avoid mixed old/new app bundles.
+  if (
+    url.origin === self.location.origin &&
+    (
+      request.destination === "script" ||
+      request.destination === "style" ||
+      request.destination === "worker" ||
+      request.destination === "manifest" ||
+      url.pathname === "/manifest.json" ||
+      url.pathname.startsWith("/js/") ||
+      url.pathname.startsWith("/css/")
+    )
+  ) {
+    event.respondWith(
+      fetch(request, { cache: "no-store" })
+        .then((response) => {
+          if (
+            response &&
+            response.status === 200 &&
+            response.type === "basic"
+          ) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request))
+    );
+    return;
+  }
+
+  // Cache-first for remaining static assets
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;

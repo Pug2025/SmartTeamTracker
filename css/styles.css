@@ -1473,9 +1473,9 @@
   gap:12px;
   min-height:100vh;
   background:
-    radial-gradient(circle at 12% -4%, rgba(77,163,255,0.22), transparent 36%),
-    radial-gradient(circle at 92% 0%, rgba(255,69,58,0.2), transparent 42%),
-    linear-gradient(180deg, #060912 0%, #05080f 48%, #06080e 100%);
+    radial-gradient(circle at 50% -8%, rgba(193, 214, 248, 0.14), transparent 28%),
+    radial-gradient(circle at 50% 115%, rgba(33, 58, 93, 0.22), transparent 44%),
+    linear-gradient(180deg, #08111c 0%, #060d16 44%, #04080e 100%);
   color:#fff;
   padding:14px 14px 18px;
   box-sizing:border-box;
@@ -1487,8 +1487,9 @@
   inset:0;
   pointer-events:none;
   background:
-    radial-gradient(circle at 25% 45%, rgba(49, 131, 214, 0.12), transparent 42%),
-    radial-gradient(circle at 80% 70%, rgba(220, 74, 68, 0.1), transparent 44%);
+    radial-gradient(circle at 50% 0%, rgba(255,255,255,0.05), transparent 18%),
+    radial-gradient(circle at 50% 18%, rgba(102, 137, 190, 0.08), transparent 34%),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 0%, transparent 16%, transparent 84%, rgba(255,255,255,0.02) 100%);
   z-index:0;
 }
 .spectator-header{
@@ -1523,7 +1524,7 @@
 .spectator-subtitle{
   margin-top:4px;
   font-size:12px;
-  color:#95a4c2;
+  color:#a7b6ce;
 }
 .spectator-scoreboard{
   position:relative;
@@ -1533,11 +1534,11 @@
   grid-template-columns:1fr auto 1fr;
   align-items:center;
   gap:8px;
-  background:rgba(9, 13, 22, 0.84);
-  border:1px solid #253149;
+  background:rgba(9, 14, 23, 0.88);
+  border:1px solid #203048;
   border-radius:18px;
   padding:12px 10px;
-  box-shadow:0 14px 30px rgba(0,0,0,0.32);
+  box-shadow:0 16px 34px rgba(0,0,0,0.26);
 }
 .spec-score-block{
   display:flex;
@@ -1562,6 +1563,7 @@
   font-weight:910;
   line-height:0.92;
   letter-spacing:-1px;
+  font-variant-numeric:tabular-nums;
   transition:transform 0.2s ease;
 }
 .spec-score-block.them .spec-score-val{ color:#ff5b55; }
@@ -1581,6 +1583,7 @@
   background:#0f1628;
   min-width:54px;
   text-align:center;
+  font-variant-numeric:tabular-nums;
 }
 
 .spec-intensity-card,
@@ -1595,8 +1598,8 @@
 .spec-intensity-card,
 .spec-momentum-card,
 .spectator-events-wrap{
-  border:1px solid #26334c;
-  background:rgba(9, 14, 24, 0.82);
+  border:1px solid #203149;
+  background:rgba(9, 14, 24, 0.84);
   border-radius:14px;
   padding:10px;
 }
@@ -1607,20 +1610,26 @@
   justify-content:space-between;
   align-items:center;
   font-size:12px;
-  color:#b8c6e0;
+  color:#d9e3f5;
   margin-bottom:8px;
   gap:8px;
 }
-.spec-intensity-head span:last-child,
-.spec-momentum-head span:last-child{
-  color:#dde7fb;
+.spec-card-kicker{
+  font-size:10px;
+  letter-spacing:0.8px;
+  text-transform:uppercase;
+  color:#8ea1c1;
+  border:1px solid #293955;
+  background:rgba(12, 20, 34, 0.8);
+  padding:3px 8px;
+  border-radius:999px;
   font-weight:700;
 }
 .spec-intensity-track{
   height:10px;
   border-radius:999px;
-  background:linear-gradient(90deg, rgba(255,91,85,0.28) 0%, rgba(180,194,221,0.2) 50%, rgba(91,209,132,0.3) 100%);
-  border:1px solid #2f3d5a;
+  background:linear-gradient(90deg, rgba(255,91,85,0.22) 0%, rgba(180,194,221,0.16) 50%, rgba(91,209,132,0.24) 100%);
+  border:1px solid #2a3a55;
   position:relative;
   overflow:hidden;
 }
@@ -1634,21 +1643,18 @@
 }
 .spec-intensity-text{
   margin-top:7px;
-  font-size:12px;
-  color:#9fb0cf;
-}
-.spec-intensity-note{
-  margin-top:3px;
-  font-size:10px;
-  color:#7689ac;
+  font-size:13px;
+  color:#d5deee;
+  font-weight:600;
+  line-height:1.35;
 }
 
 .spec-momentum-track{
   height:16px;
   border-radius:999px;
   overflow:hidden;
-  border:1px solid #2f3d5a;
-  background:linear-gradient(90deg, rgba(255,91,85,0.2) 0%, rgba(131,146,175,0.12) 50%, rgba(50,215,75,0.2) 100%);
+  border:1px solid #2a3a55;
+  background:linear-gradient(90deg, rgba(255,91,85,0.08) 0%, rgba(157,171,199,0.08) 50%, rgba(50,215,75,0.08) 100%);
   position:relative;
 }
 .spec-momentum-midline{
@@ -1679,11 +1685,7 @@
   letter-spacing:0.8px;
   color:#8293b6;
 }
-.spec-momentum-note{
-  margin-top:3px;
-  font-size:10px;
-  color:#7689ac;
-}
+.spec-momentum-text{ margin-top:7px; }
 
 .spec-kpi-grid{
   display:grid;
@@ -1691,37 +1693,57 @@
   gap:8px;
 }
 .spec-kpi-card{
-  border:1px solid #26344f;
+  border:1px solid #203149;
   border-radius:12px;
-  background:rgba(10, 15, 25, 0.85);
+  background:rgba(8, 13, 22, 0.9);
   padding:9px 10px;
 }
 .spec-kpi-label{
   font-size:10px;
-  color:#8a99b7;
+  color:#8396b7;
   letter-spacing:0.5px;
+  text-transform:uppercase;
 }
 .spec-kpi-value{
   margin-top:3px;
   font-size:16px;
   font-weight:780;
   color:#f2f6ff;
+  font-variant-numeric:tabular-nums;
+}
+.spec-split{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  letter-spacing:-0.15px;
+}
+.spec-split-us{
+  color:#5bb6ff;
+  font-weight:820;
+}
+.spec-split-sep{
+  color:#6b7d9e;
+}
+.spec-split-them{
+  color:#ff7b75;
+  font-weight:820;
 }
 
 .spec-events-head{
   display:flex;
   align-items:center;
-  justify-content:space-between;
+  justify-content:flex-start;
   margin-bottom:8px;
   font-size:12px;
-  color:#b8c6e0;
+  color:#d9e3f5;
+  font-weight:700;
 }
 .spectator-events{
   max-height:38vh;
   overflow-y:auto;
-  border:1px solid #212f48;
+  border:1px solid #1f3048;
   border-radius:11px;
-  background:rgba(5, 10, 17, 0.7);
+  background:rgba(6, 11, 18, 0.76);
 }
 .spec-event-placeholder{
   text-align:center;
@@ -1733,9 +1755,10 @@
   display:flex;
   align-items:center;
   gap:8px;
-  padding:10px 10px;
-  border-bottom:1px solid #1a2438;
+  padding:10px 12px 10px 10px;
+  border-bottom:1px solid #182336;
   font-size:13px;
+  border-left:3px solid transparent;
 }
 .spec-event-row:last-child{ border-bottom:none; }
 .spec-event-icon{
@@ -1749,21 +1772,19 @@
   font-size:16px;
   font-weight:900;
 }
-.spec-event-icon.chip{
-  width:auto;
-  min-width:40px;
-  font-size:9px;
-  font-weight:800;
-  letter-spacing:0.3px;
-  padding:2px 6px;
-  border-radius:999px;
-  border:1px solid #3b4b6b;
-  color:#c3d3f0;
-  background:rgba(13, 20, 34, 0.9);
+.spec-event-icon.dot{
+  width:8px;
+  min-width:8px;
+  height:8px;
+  border-radius:50%;
+  background:#788aa9;
+  margin-left:8px;
+  margin-right:8px;
+  box-shadow:0 0 0 4px rgba(120,138,169,0.08);
 }
 .spec-event-text{
   flex:1;
-  color:#e5edff;
+  color:#eef3fd;
   min-width:0;
   overflow:hidden;
   white-space:nowrap;
@@ -1771,30 +1792,51 @@
 }
 .spec-event-period{
   font-size:11px;
-  color:#8a99b7;
+  color:#7f91b2;
   font-weight:700;
 }
 .spec-event-time{
   font-size:10px;
-  color:#7485a6;
+  color:#6f83a7;
   font-weight:600;
+  font-variant-numeric:tabular-nums;
+}
+.spec-event-row.ev-goal-for{
+  border-left-color:#32d74b;
+}
+.spec-event-row.ev-goal-against{
+  border-left-color:#ff5b55;
+}
+.spec-event-row.ev-good{
+  border-left-color:rgba(91, 209, 132, 0.55);
+}
+.spec-event-row.ev-danger{
+  border-left-color:rgba(255, 123, 117, 0.55);
 }
 .spec-event-row.ev-goal-for .spec-event-icon,
-.spec-event-row.ev-good .spec-event-icon{ color:#5bd184; }
+.spec-event-row.ev-good .spec-event-icon.glyph{ color:#5bd184; }
 .spec-event-row.ev-goal-against .spec-event-icon,
-.spec-event-row.ev-danger .spec-event-icon{ color:#ff7b75; }
-.spec-event-row.ev-good .spec-event-icon.chip{
-  border-color:rgba(91,209,132,0.7);
-  color:#5bd184;
+.spec-event-row.ev-danger .spec-event-icon.glyph{ color:#ff7b75; }
+.spec-event-row.ev-good .spec-event-icon.dot{
+  background:#5bd184;
+  box-shadow:0 0 0 4px rgba(91, 209, 132, 0.12);
 }
-.spec-event-row.ev-danger .spec-event-icon.chip{
-  border-color:rgba(255,123,117,0.7);
-  color:#ff7b75;
+.spec-event-row.ev-danger .spec-event-icon.dot{
+  background:#ff7b75;
+  box-shadow:0 0 0 4px rgba(255, 123, 117, 0.12);
+}
+.spec-event-row.ev-goal-for .spec-event-icon.dot,
+.spec-event-row.ev-goal-against .spec-event-icon.dot{
+  background:currentColor;
+}
+.spec-event-row.ev-goal-for .spec-event-text,
+.spec-event-row.ev-goal-against .spec-event-text{
+  font-weight:700;
 }
 
 .spec-event-new{ animation: eventFlash 2s ease-out; }
 @keyframes eventFlash{
-  0%{ background:rgba(78, 152, 231, 0.22); }
+  0%{ background:rgba(102, 141, 201, 0.18); }
   100%{ background:transparent; }
 }
 .spectator-footer{
@@ -1803,13 +1845,14 @@
 }
 .spec-status{
   font-size:12px;
-  color:#6fda8e;
+  color:#7dd59a;
   margin-bottom:4px;
 }
 .spec-ended .spec-status{ color:#ff9f0a; }
 .spec-meta{
   font-size:11px;
-  color:#7f90b3;
+  color:#8091b2;
+  font-variant-numeric:tabular-nums;
 }
 
 @media (max-width: 380px){

@@ -264,10 +264,7 @@
     const title = (s.opponent || 'Opponent') + (s.level ? ' • ' + s.level : '');
     if ($('specTitle')) $('specTitle').textContent = title;
     if ($('specSubtitle')) {
-      const parts = [];
-      if (s.date) parts.push(s.date);
-      if (Number.isFinite(s.shotSharePct)) parts.push(`Shot share ${fmtPct(s.shotSharePct)}`);
-      $('specSubtitle').textContent = parts.length ? parts.join(' • ') : 'Live game in progress';
+      $('specSubtitle').textContent = formatGameDate(s.date) || 'Live now';
     }
 
     if ($('specThemLabel')) $('specThemLabel').textContent = (s.opponent || 'THEM').toUpperCase();
@@ -285,18 +282,17 @@
 
     if ($('specPeriod')) $('specPeriod').textContent = periodLabel(s.period);
 
-    if ($('specShotLine')) $('specShotLine').textContent = `${s.shotsFor}-${s.shotsAgainst}`;
-    if ($('specSvPct')) $('specSvPct').textContent = Number.isFinite(s.svPct) ? `${fmtPct(s.svPct)}` : '-';
-    if ($('specPenaltyLine')) $('specPenaltyLine').textContent = `${s.penaltiesFor}-${s.penaltiesAgainst}`;
-    if ($('specDangerLine')) {
-      const df = Number.isFinite(s.dangerFor)
-        ? s.dangerFor
-        : (s.quality && Number.isFinite(s.quality.hdFor) ? s.quality.hdFor : 0);
-      const da = Number.isFinite(s.dangerAgainst)
-        ? s.dangerAgainst
-        : (s.quality && Number.isFinite(s.quality.hdAgainst) ? s.quality.hdAgainst : 0);
-      $('specDangerLine').textContent = `${df}-${da}`;
-    }
+    renderSplitValue('specShotLine', s.shotsFor, s.shotsAgainst);
+    if ($('specSaves')) $('specSaves').textContent = Number.isFinite(s.saves) ? `${Math.round(s.saves)}` : '0';
+    renderSplitValue('specPenaltyLine', s.penaltiesFor, s.penaltiesAgainst);
+
+    const df = Number.isFinite(s.dangerFor)
+      ? s.dangerFor
+      : (s.quality && Number.isFinite(s.quality.hdFor) ? s.quality.hdFor : 0);
+    const da = Number.isFinite(s.dangerAgainst)
+      ? s.dangerAgainst
+      : (s.quality && Number.isFinite(s.quality.hdAgainst) ? s.quality.hdAgainst : 0);
+    renderSplitValue('specDangerLine', df, da);
 
     renderQuality(s.quality);
     renderMomentum(s.momentum);
@@ -304,37 +300,30 @@
 
     if ($('specMetaLine')) {
       const updated = s.updatedAt ? new Date(s.updatedAt) : new Date();
-      const stamp = Number.isNaN(updated.getTime())
-        ? ''
-        : `Updated ${updated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-      const teamBits = [];
-      if (Number.isFinite(s.teamScore)) teamBits.push(`Team ${Math.round(s.teamScore)}`);
-      if (Number.isFinite(s.goalieScore)) teamBits.push(`Goalie ${Math.round(s.goalieScore)}`);
-      const right = teamBits.join(' • ');
-      $('specMetaLine').textContent = [stamp, right].filter(Boolean).join(' • ') || 'Live updates';
+      $('specMetaLine').textContent = Number.isNaN(updated.getTime())
+        ? 'Live updates'
+        : `Updated ${updated.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
     }
   }
 
   function renderQuality(q) {
     const pctFor = q && Number.isFinite(q.pctFor) ? q.pctFor : 50;
-    if ($('specQualityLabel')) $('specQualityLabel').textContent = 'Chance Quality (full game xG)';
-
-    if ($('specQualityPct')) $('specQualityPct').textContent = `${Math.round(pctFor)}% us`;
+    if ($('specQualityLabel')) $('specQualityLabel').textContent = 'Chance Quality';
     if ($('specQualityText')) {
-      if (pctFor >= 58) {
-        $('specQualityText').textContent = 'Strong chance edge: us';
+      if (pctFor >= 61) {
+        $('specQualityText').textContent = 'We are getting the better looks';
         $('specQualityText').style.color = '#6fda8e';
-      } else if (pctFor >= 53) {
-        $('specQualityText').textContent = 'Slight chance edge: us';
+      } else if (pctFor >= 54) {
+        $('specQualityText').textContent = 'Small edge for us';
         $('specQualityText').style.color = '#6fda8e';
-      } else if (pctFor <= 42) {
-        $('specQualityText').textContent = 'Strong chance edge: them';
+      } else if (pctFor <= 39) {
+        $('specQualityText').textContent = 'They are getting the better looks';
         $('specQualityText').style.color = '#ff7b75';
-      } else if (pctFor <= 47) {
-        $('specQualityText').textContent = 'Slight chance edge: them';
+      } else if (pctFor <= 46) {
+        $('specQualityText').textContent = 'Small edge for them';
         $('specQualityText').style.color = '#ff7b75';
       } else {
-        $('specQualityText').textContent = 'Chances are balanced';
+        $('specQualityText').textContent = 'The chances have been pretty even';
         $('specQualityText').style.color = '#9fb0cf';
       }
     }
@@ -355,11 +344,10 @@
 
   function renderMomentum(m) {
     const usPct = m && Number.isFinite(m.usPct) ? m.usPct : 50;
-    const windowEvents = m && Number.isFinite(m.windowEvents) ? m.windowEvents : 8;
     const eventCount = m && Number.isFinite(m.eventCount) ? m.eventCount : 0;
     const tilt = Math.round(usPct - 50);
 
-    if ($('specMomentumLabel')) $('specMomentumLabel').textContent = `Recent Tilt (last ${windowEvents} actions)`;
+    if ($('specMomentumLabel')) $('specMomentumLabel').textContent = 'Momentum';
     if ($('specMomentumNeedle')) {
       const needle = $('specMomentumNeedle');
       needle.style.left = `${usPct}%`;
@@ -376,31 +364,31 @@
     }
 
     if ($('specMomentumText')) {
-      if (eventCount === 0) {
-        $('specMomentumText').textContent = 'Awaiting enough events';
-      } else if (m && m.text) {
-        const sign = tilt > 0 ? '+' : '';
-        $('specMomentumText').textContent = `${m.text} (${sign}${tilt})`;
-      } else if (usPct >= 58) {
-        $('specMomentumText').textContent = `Recent tilt: us (+${Math.abs(tilt)})`;
-      } else if (usPct <= 42) {
-        $('specMomentumText').textContent = `Recent tilt: them (-${Math.abs(tilt)})`;
+      if (eventCount <= 1) {
+        $('specMomentumText').textContent = 'Still settling in';
+        $('specMomentumText').style.color = '#9fb0cf';
+      } else if (usPct >= 64) {
+        $('specMomentumText').textContent = 'We have had the push lately';
+        $('specMomentumText').style.color = '#6fda8e';
+      } else if (usPct >= 56) {
+        $('specMomentumText').textContent = 'Momentum is leaning our way';
+        $('specMomentumText').style.color = '#6fda8e';
+      } else if (usPct <= 36) {
+        $('specMomentumText').textContent = 'They have had the push lately';
+        $('specMomentumText').style.color = '#ff7b75';
+      } else if (usPct <= 44) {
+        $('specMomentumText').textContent = 'Momentum is leaning their way';
+        $('specMomentumText').style.color = '#ff7b75';
       } else {
-        $('specMomentumText').textContent = 'Recent tilt is even';
+        $('specMomentumText').textContent = 'It has been back and forth lately';
+        $('specMomentumText').style.color = '#9fb0cf';
       }
-    }
-
-    if ($('specMomentumNote')) {
-      $('specMomentumNote').textContent =
-        `Based on latest weighted actions (${eventCount}/${windowEvents} captured), not game clock time`;
     }
   }
 
   function renderEvents(events) {
-    if ($('specEventCount')) $('specEventCount').textContent = String(events.length || 0);
-
     if (!events.length) {
-      if ($('specEvents')) $('specEvents').innerHTML = '<div class="spec-event-placeholder">No key events yet</div>';
+      if ($('specEvents')) $('specEvents').innerHTML = '<div class="spec-event-placeholder">The game feed will appear here</div>';
       lastEventFingerprint = '';
       return;
     }
@@ -441,36 +429,28 @@
       case 'soft_goal': return { label: '▼', kind: 'glyph' };
       case 'penalty_for':
       case 'penalty_against': return { label: '!', kind: 'glyph' };
-      case 'breakaway_for':
-      case 'breakaway_against': return { label: 'BRK', kind: 'chip' };
-      case 'odd_man_rush_for':
-      case 'odd_man_rush_against': return { label: 'RUSH', kind: 'chip' };
-      case 'missed_chance_for':
-      case 'missed_chance_against': return { label: 'CHANCE', kind: 'chip' };
-      case 'big_save': return { label: 'SAVE', kind: 'chip' };
-      case 'bad_rebound': return { label: 'REBOUND', kind: 'chip' };
-      default: return { label: 'EVENT', kind: 'chip' };
+      default: return { label: '', kind: 'dot' };
     }
   }
 
   function eventLabel(ev) {
     const player = ev.player ? ` #${ev.player}` : '';
-    const assist = ev.assist ? ` (A #${ev.assist})` : '';
+    const assist = ev.assist ? ` • A #${ev.assist}` : '';
 
     switch (ev.type) {
-      case 'for_goal': return `Goal For${player}${assist}`;
-      case 'goal': return `Goal Against${player}`;
-      case 'soft_goal': return `Soft Goal Against${player}`;
-      case 'penalty_for': return 'Penalty for Them';
-      case 'penalty_against': return 'Penalty for Us';
-      case 'breakaway_for': return 'Breakaway For';
-      case 'breakaway_against': return 'Breakaway Against';
-      case 'odd_man_rush_for': return 'Odd-Man Rush For';
-      case 'odd_man_rush_against': return 'Odd-Man Rush Against';
-      case 'missed_chance_for': return 'Missed Chance (No Shot) For';
-      case 'missed_chance_against': return 'Missed Chance (No Shot) Against';
-      case 'big_save': return 'Big Save';
-      case 'bad_rebound': return 'Bad Rebound';
+      case 'for_goal': return `We score${player}${assist}`;
+      case 'goal': return `They score${player}`;
+      case 'soft_goal': return `One slips through${player}`;
+      case 'penalty_for': return 'Penalty on them';
+      case 'penalty_against': return 'Penalty on us';
+      case 'breakaway_for': return 'Our breakaway';
+      case 'breakaway_against': return 'Their breakaway';
+      case 'odd_man_rush_for': return 'Our rush chance';
+      case 'odd_man_rush_against': return 'Their rush chance';
+      case 'missed_chance_for': return 'Our big chance';
+      case 'missed_chance_against': return 'Their big chance';
+      case 'big_save': return 'Big save';
+      case 'bad_rebound': return 'Loose rebound';
       default: return ev.type || 'Event';
     }
   }
@@ -507,7 +487,7 @@
       badge.textContent = 'FINAL';
       badge.classList.add('spec-badge-final');
     }
-    if ($('specMetaLine')) $('specMetaLine').textContent = 'The coach has ended live sharing';
+    if ($('specMetaLine')) $('specMetaLine').textContent = 'Live sharing has ended';
   }
 
   function periodLabel(p) {
@@ -522,6 +502,23 @@
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return '';
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function formatGameDate(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(`${dateStr}T12:00:00`);
+    if (Number.isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  }
+
+  function renderSplitValue(id, us, them) {
+    const el = $(id);
+    if (!el) return;
+    const safeUs = Number.isFinite(us) ? Math.round(us) : 0;
+    const safeThem = Number.isFinite(them) ? Math.round(them) : 0;
+    el.innerHTML =
+      `<span class="spec-split"><span class="spec-split-them">${safeThem}</span>` +
+      `<span class="spec-split-sep">-</span><span class="spec-split-us">${safeUs}</span></span>`;
   }
 
   function pulseScore(id) {
@@ -551,10 +548,6 @@
     const n = Number(p);
     if (!Number.isFinite(n)) return 1;
     return Math.max(1, Math.min(9, Math.round(n)));
-  }
-
-  function fmtPct(n) {
-    return Number.isFinite(n) ? `${n.toFixed(1)}%` : '-';
   }
 
   function escapeHtml(v) {

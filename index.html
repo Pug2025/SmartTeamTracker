@@ -740,7 +740,7 @@
   <div class="spectator-header">
     <div class="spectator-badge">LIVE</div>
     <div class="spectator-title" id="specTitle">Game</div>
-    <div class="spectator-subtitle" id="specSubtitle">Waiting for game details...</div>
+    <div class="spectator-subtitle" id="specSubtitle">Live now</div>
   </div>
   <div class="spectator-scoreboard">
     <div class="spec-score-block them">
@@ -758,55 +758,53 @@
 
   <div class="spec-intensity-card">
     <div class="spec-intensity-head">
-      <span id="specQualityLabel">Chance Quality (full game xG)</span>
-      <span id="specQualityPct">50% us</span>
+      <span id="specQualityLabel">Chance Quality</span>
+      <span class="spec-card-kicker">Overall</span>
     </div>
     <div class="spec-intensity-track">
       <div id="specQualityFill" class="spec-intensity-fill"></div>
     </div>
-    <div class="spec-intensity-text" id="specQualityText">Not enough data yet</div>
-    <div class="spec-intensity-note">Built from expected-goals share across the entire game</div>
+    <div class="spec-intensity-text" id="specQualityText">Still settling in</div>
   </div>
 
   <div class="spec-momentum-card">
     <div class="spec-momentum-head">
-      <span id="specMomentumLabel">Recent Tilt (last 8 actions)</span>
-      <span id="specMomentumText">Even</span>
+      <span id="specMomentumLabel">Momentum</span>
+      <span class="spec-card-kicker">Lately</span>
     </div>
     <div class="spec-momentum-track">
       <div class="spec-momentum-midline" aria-hidden="true"></div>
       <div class="spec-momentum-needle" id="specMomentumNeedle" aria-hidden="true"></div>
     </div>
     <div class="spec-momentum-axis">
-      <span>THEM PUSH</span>
-      <span>US PUSH</span>
+      <span>THEM</span>
+      <span>US</span>
     </div>
-    <div class="spec-momentum-note" id="specMomentumNote">Based on the latest weighted actions (not game clock time)</div>
+    <div class="spec-intensity-text spec-momentum-text" id="specMomentumText">Still settling in</div>
   </div>
 
   <div class="spec-kpi-grid">
     <div class="spec-kpi-card">
-      <div class="spec-kpi-label">Shots (Us-Them)</div>
+      <div class="spec-kpi-label">Shots</div>
       <div class="spec-kpi-value" id="specShotLine">0-0</div>
     </div>
     <div class="spec-kpi-card">
-      <div class="spec-kpi-label">SV%</div>
-      <div class="spec-kpi-value" id="specSvPct">-</div>
-    </div>
-    <div class="spec-kpi-card">
-      <div class="spec-kpi-label">Danger Chances (Us-Them)</div>
+      <div class="spec-kpi-label">Chances</div>
       <div class="spec-kpi-value" id="specDangerLine">0-0</div>
     </div>
     <div class="spec-kpi-card">
-      <div class="spec-kpi-label">Penalties (Us-Them)</div>
+      <div class="spec-kpi-label">Penalties</div>
       <div class="spec-kpi-value" id="specPenaltyLine">0-0</div>
+    </div>
+    <div class="spec-kpi-card">
+      <div class="spec-kpi-label">Saves</div>
+      <div class="spec-kpi-value" id="specSaves">0</div>
     </div>
   </div>
 
   <div class="spectator-events-wrap">
     <div class="spec-events-head">
-      <span>Key Events</span>
-      <span id="specEventCount">0</span>
+      <span>Game Feed</span>
     </div>
     <div class="spectator-events" id="specEvents">
       <div class="spec-event-placeholder">Waiting for game data...</div>
@@ -815,7 +813,7 @@
 
   <div class="spectator-footer">
     <div id="specStatus" class="spec-status">Connecting...</div>
-    <div class="spec-meta" id="specMetaLine">Live updates every few seconds</div>
+    <div class="spec-meta" id="specMetaLine">Live updates</div>
   </div>
 </div>
 

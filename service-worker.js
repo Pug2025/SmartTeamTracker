@@ -3,7 +3,7 @@
 // Version: v5.1.1
 // -----------------------------
 
-const CACHE_VERSION = "team-tracker-cache-v7.0.0";
+const CACHE_VERSION = "team-tracker-cache-v7.1.0";
 const CACHE_NAME = CACHE_VERSION;
 
 const ASSETS_TO_CACHE = [

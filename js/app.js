@@ -179,6 +179,18 @@ function toggleSetup(showSetup){
     setInGameHeader(true);
   }
 }
+
+function scrollGameplayIntoView(){
+  const controls = $('gameControls');
+  const header = document.querySelector('.sticky-header');
+  if(!controls) return;
+
+  const headerHeight = header ? header.getBoundingClientRect().height : 0;
+  const top = controls.getBoundingClientRect().top + window.scrollY;
+  const target = Math.max(0, top - headerHeight - 8);
+  window.scrollTo({ top: target, behavior: 'auto' });
+}
+
 $('btnStartGame').addEventListener('click', ()=>{
   // Always pull current setup values (prevents stale state issues)
   state.opponent = ($('opponent').value || '').trim();
@@ -187,9 +199,17 @@ $('btnStartGame').addEventListener('click', ()=>{
   state.date = sanitizeDateInput($('date').value);
   $('date').value = state.date;
 
+  // Starting from setup must not carry an existing live share session forward.
+  if(state.shareCode) stopLiveShare();
+
   save();
   validateState('start game');
   toggleSetup(false);
+  renderAll();
+  highlightPeriod();
+  requestAnimationFrame(() => {
+    requestAnimationFrame(scrollGameplayIntoView);
+  });
   vibrate(HAPTIC.tap);
 });
 

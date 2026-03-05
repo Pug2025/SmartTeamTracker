@@ -139,7 +139,7 @@ function setInGameHeader(inGame){
 
   if(!inGame){
     $('qualityBarWrap').style.display = 'none';
-    $('liveShareBanner').style.display = 'none';
+    hideLiveShareBanner();
   }
 
   document.body.classList.toggle('in-game', inGame);
@@ -2405,6 +2405,14 @@ return;
     validateState('init load');
     refreshCloudStatus();
 
+    // Restore live-share button state after loading saved game.
+    if (state.shareCode) {
+      setLiveShareUi(true);
+      hideLiveShareBanner();
+    } else {
+      setLiveShareUi(false);
+    }
+
     // If not saved, show cloud OK/offline
     const last = localStorage.getItem(LAST_SAVED_KEY);
     if(!last || last !== state.gameId){
@@ -3159,6 +3167,7 @@ function renderSeasonDashboard(games){
 
 let _livePushPending = false;
 let _livePushQueued = false;
+let _liveShareBannerTimer = null;
 
 function generateShareCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -3375,6 +3384,54 @@ function buildLiveState() {
   };
 }
 
+function hideLiveShareBanner() {
+  const banner = $('liveShareBanner');
+  if (banner) banner.style.display = 'none';
+  if (_liveShareBannerTimer) {
+    clearTimeout(_liveShareBannerTimer);
+    _liveShareBannerTimer = null;
+  }
+}
+
+function showLiveShareBanner(autoHideMs = 0) {
+  const banner = $('liveShareBanner');
+  if (!banner) return;
+  banner.style.display = 'flex';
+  if (_liveShareBannerTimer) {
+    clearTimeout(_liveShareBannerTimer);
+    _liveShareBannerTimer = null;
+  }
+  if (autoHideMs > 0) {
+    _liveShareBannerTimer = setTimeout(() => {
+      banner.style.display = 'none';
+      _liveShareBannerTimer = null;
+    }, autoHideMs);
+  }
+}
+
+function setLiveShareUi(isSharing) {
+  const btn = $('btnShareLive');
+  if (!btn) return;
+  if (isSharing) {
+    btn.textContent = 'Live On';
+    btn.classList.add('toolbar-btn-live-active');
+  } else {
+    btn.textContent = 'Share Live';
+    btn.classList.remove('toolbar-btn-live-active');
+    hideLiveShareBanner();
+  }
+}
+
+function toggleLiveShareBanner() {
+  const banner = $('liveShareBanner');
+  if (!banner) return;
+  if (banner.style.display === 'none' || !banner.style.display) {
+    showLiveShareBanner(0);
+  } else {
+    hideLiveShareBanner();
+  }
+}
+
 async function pushLiveState() {
   if (!state.shareCode) return;
   if (_livePushPending) {
@@ -3408,14 +3465,13 @@ async function startLiveShare() {
   state.shareCode = code;
   save();
 
-  // Show banner & update button state
-  $('liveShareBanner').style.display = 'flex';
-  $('btnShareLive').textContent = 'Sharing';
-  $('btnShareLive').classList.add('toolbar-btn-live-active');
+  // Show controls briefly; they can be reopened via the "Live On" button.
+  setLiveShareUi(true);
+  showLiveShareBanner(6000);
 
   // Initial push
   await pushLiveState();
-  showStatusToast('Live share started! Code: ' + code, 'success', 4000);
+  showStatusToast('Live share started. Tap "Live On" for link/stop.', 'success', 4000);
 }
 
 async function endLiveShare() {
@@ -3441,9 +3497,7 @@ async function endLiveShare() {
   // Clear local share state & UI
   state.shareCode = null;
   save();
-  $('liveShareBanner').style.display = 'none';
-  $('btnShareLive').textContent = 'Share Live';
-  $('btnShareLive').classList.remove('toolbar-btn-live-active');
+  setLiveShareUi(false);
 
   // Delete the record after 5 minutes so spectators have time to see final score
   setTimeout(async () => {
@@ -3458,10 +3512,8 @@ async function stopLiveShare() {
   state.shareCode = null;
   save();
 
-  // Hide banner & reset button state
-  $('liveShareBanner').style.display = 'none';
-  $('btnShareLive').textContent = 'Share Live';
-  $('btnShareLive').classList.remove('toolbar-btn-live-active');
+  // Hide controls & reset button state
+  setLiveShareUi(false);
 
   // Delete from server immediately (manual stop = no need to linger)
   if (code) {
@@ -3474,8 +3526,8 @@ async function stopLiveShare() {
 // Wire up share buttons
 $('btnShareLive').addEventListener('click', () => {
   if (state.shareCode) {
-    // Already sharing – confirm stop
-    showConfirm('Stop live sharing?').then(ok => { if (ok) stopLiveShare(); });
+    // Already sharing – toggle the controls panel.
+    toggleLiveShareBanner();
   } else {
     startLiveShare();
   }
@@ -3486,6 +3538,7 @@ $('btnCopyShareLink').addEventListener('click', () => {
   const url = window.location.origin + window.location.pathname + '?live=' + state.shareCode;
   navigator.clipboard.writeText(url).then(() => {
     showStatusToast('Link copied!', 'success');
+    showLiveShareBanner(2500);
   }).catch(() => {
     // Fallback: show the URL
     showStatusToast(url, 'success', 6000);

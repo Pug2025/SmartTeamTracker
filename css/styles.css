@@ -742,6 +742,23 @@
     opacity:0.9;
     transform:scale(0.98);
   }
+  .sum-new-btn{
+    width:100%;
+    padding:14px;
+    background:transparent;
+    color:var(--good);
+    border:2px solid var(--good);
+    border-radius:12px;
+    font-size:16px;
+    font-weight:800;
+    cursor:pointer;
+    margin-top:8px;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .sum-new-btn:active{
+    opacity:0.9;
+    transform:scale(0.98);
+  }
 
   .dashWide{
     grid-column:1/-1;

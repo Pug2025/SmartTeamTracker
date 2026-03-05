@@ -2702,6 +2702,43 @@ $('btnBackToGame').onclick=()=>{
   $('btnUndo').style.display='flex';
 };
 
+$('btnNewFromSummary').onclick=async()=>{
+  const ok = await showConfirm('Start a new game?');
+  if(!ok) return;
+
+  // Stop live share if active
+  if(state.shareCode) stopLiveShare();
+
+  $('resumeBanner').classList.add('hidden');
+
+  state.events=[];
+  cancelRecentGoodCredit();
+  lastRemoved = null;
+  state.date = getLocalTodayYMD();
+  $('date').value = state.date;
+  state.period = 1;
+  state.opponent='';
+  $('opponent').value = '';
+  state.countsA={shots:0,goals:0,softGoals:0,smothers:0,badRebounds:0,bigSaves:0};
+  state.countsF={shots:0,goals:0};
+  state.team={breakawaysAgainst:0,dzTurnovers:0,breakawaysFor:0,oddManRushFor:0,oddManRushAgainst:0,penaltiesFor:0,penaltiesAgainst:0,missedChancesFor:0,missedChancesAgainst:0,forcedTurnovers:0};
+  per={1:initP(),2:initP(),3:initP(),4:initP()};
+
+  state.gameId = Math.random().toString(36).slice(2);
+  state.startedAt = new Date().toISOString();
+  state.lastEventId = 0;
+
+  save();
+  validateState('new game from summary');
+  toggleSetup(true);
+  highlightPeriod();
+  renderAll();
+  $('summaryPanel').classList.add('hidden');
+
+  try{ localStorage.removeItem(LAST_SAVED_KEY); }catch(_){}
+  pingCloud();
+};
+
 $('btnReset').onclick=async()=>{
   const ok = await showConfirm('Clear current game and start fresh?');
   if(!ok) return;

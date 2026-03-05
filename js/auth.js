@@ -27,6 +27,9 @@ onAuthStateChanged(auth, (user) => {
   currentUser = user;
   authReadyResolve();
 
+  // Skip auth UI when in spectator mode – spectators don't need to log in
+  if (window.__spectatorMode) return;
+
   if (user) {
     hideAuthScreen();
     if (typeof window.onAuthReady === 'function') window.onAuthReady(user);

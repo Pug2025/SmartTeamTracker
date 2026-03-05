@@ -2479,10 +2479,84 @@ return;
 
 /* ===== Multi-Team Management ===== */
 
+/* Team manager accessor with local fallback in case teams.js is delayed/missing. */
+function getTeamManager() {
+  if (window.TeamManager && typeof window.TeamManager.loadTeams === 'function') {
+    return window.TeamManager;
+  }
+
+  const TEAMS_KEY = 'team-tracker-teams';
+  const ACTIVE_TEAM_KEY = 'team-tracker-active-team';
+
+  const safeParse = (v) => {
+    try { return JSON.parse(v); } catch (_) { return null; }
+  };
+  const loadTeams = () => {
+    const parsed = safeParse(localStorage.getItem(TEAMS_KEY));
+    return Array.isArray(parsed) ? parsed : [];
+  };
+  const saveTeams = (teams) => localStorage.setItem(TEAMS_KEY, JSON.stringify(Array.isArray(teams) ? teams : []));
+  const getActiveTeamId = () => localStorage.getItem(ACTIVE_TEAM_KEY) || null;
+  const setActiveTeamId = (id) => {
+    if (id) localStorage.setItem(ACTIVE_TEAM_KEY, id);
+    else localStorage.removeItem(ACTIVE_TEAM_KEY);
+  };
+  const getActiveTeam = () => {
+    const id = getActiveTeamId();
+    return id ? (loadTeams().find(t => t.id === id) || null) : null;
+  };
+  const makeId = () => 't_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+  const createTeam = (name, level, roster) => {
+    const teams = loadTeams();
+    const team = {
+      id: makeId(),
+      name: String(name || '').trim(),
+      level: level || 'U11',
+      roster: Array.isArray(roster) ? roster : []
+    };
+    teams.push(team);
+    saveTeams(teams);
+    return team;
+  };
+  const updateTeam = (id, updates) => {
+    const teams = loadTeams();
+    const i = teams.findIndex(t => t.id === id);
+    if (i === -1) return null;
+    if (updates.name !== undefined) teams[i].name = String(updates.name || '').trim();
+    if (updates.level !== undefined) teams[i].level = updates.level;
+    if (updates.roster !== undefined) teams[i].roster = updates.roster;
+    saveTeams(teams);
+    return teams[i];
+  };
+  const deleteTeam = (id) => {
+    let teams = loadTeams();
+    teams = teams.filter(t => t.id !== id);
+    saveTeams(teams);
+    if (getActiveTeamId() === id) setActiveTeamId(teams.length ? teams[0].id : null);
+  };
+  const syncRosterToActiveTeam = (roster) => {
+    const id = getActiveTeamId();
+    if (!id) return;
+    updateTeam(id, { roster });
+  };
+
+  window.TeamManager = {
+    loadTeams,
+    saveTeams,
+    getActiveTeamId,
+    setActiveTeamId,
+    getActiveTeam,
+    createTeam,
+    updateTeam,
+    deleteTeam,
+    syncRosterToActiveTeam
+  };
+  return window.TeamManager;
+}
+
 /* Show/hide the right section on the setup screen based on whether teams exist */
 function refreshTeamUI() {
-  const TM = window.TeamManager;
-  if (!TM) return;
+  const TM = getTeamManager();
   const teams = TM.loadTeams();
   const activeId = TM.getActiveTeamId();
   const activeTeam = activeId ? teams.find(t => t.id === activeId) : null;
@@ -2517,8 +2591,7 @@ function refreshTeamUI() {
 }
 
 function applyActiveTeam() {
-  const TM = window.TeamManager;
-  if (!TM) return;
+  const TM = getTeamManager();
   const team = TM.getActiveTeam();
   if (team) {
     state.roster = Array.isArray(team.roster) ? [...team.roster] : [];
@@ -2531,8 +2604,7 @@ function applyActiveTeam() {
 }
 
 function openTeamModal(autoShowForm) {
-  const TM = window.TeamManager;
-  if (!TM) return;
+  const TM = getTeamManager();
   renderTeamList();
   if (autoShowForm) {
     showTeamForm(null);
@@ -2543,8 +2615,7 @@ function openTeamModal(autoShowForm) {
 }
 
 function renderTeamList() {
-  const TM = window.TeamManager;
-  if (!TM) return;
+  const TM = getTeamManager();
   const teams = TM.loadTeams();
   const activeId = TM.getActiveTeamId();
 
@@ -2572,7 +2643,7 @@ function renderTeamList() {
 
   // Delegated click handler for team list
   $('teamList').onclick = function(e) {
-    const TM = window.TeamManager;
+    const TM = getTeamManager();
     const editBtn = e.target.closest('.btn-edit');
     const delBtn = e.target.closest('.btn-del');
     const row = e.target.closest('.team-list-item');
@@ -2628,13 +2699,12 @@ function showTeamForm(team) {
 function hideTeamForm() {
   $('teamForm').classList.remove('visible');
   $('teamForm').dataset.editId = '';
-  const TM = window.TeamManager;
-  if (TM && TM.loadTeams().length) $('btnAddTeam').style.display = '';
+  const TM = getTeamManager();
+  if (TM.loadTeams().length) $('btnAddTeam').style.display = '';
 }
 
 function saveTeamFromForm() {
-  const TM = window.TeamManager;
-  if (!TM) return;
+  const TM = getTeamManager();
   const name = $('teamNameInput').value.trim();
   if (!name) { $('teamNameInput').focus(); return; }
   const level = $('teamLevelInput').value;
@@ -2661,18 +2731,38 @@ function renderAll(){
 }
 
 /* Button Wiring — Teams */
-$('btnAddFirstTeam').onclick = function(){ openTeamModal(true); };
-$('btnManageTeams').onclick = function(){ openTeamModal(false); };
+$('btnAddFirstTeam').onclick = function(e){
+  if (e) e.preventDefault();
+  openTeamModal(true);
+};
+$('btnManageTeams').onclick = function(e){
+  if (e) e.preventDefault();
+  openTeamModal(false);
+};
 $('teamModalClose').onclick = function(){ $('teamModal').style.display='none'; };
 $('btnAddTeam').onclick = function(){ showTeamForm(null); };
 $('teamFormSave').onclick = saveTeamFromForm;
 $('teamFormCancel').onclick = hideTeamForm;
 $('teamSelect').onchange = function(){
-  const TM = window.TeamManager;
-  if(!TM) return;
+  const TM = getTeamManager();
   TM.setActiveTeamId(this.value || null);
   applyActiveTeam();
 };
+
+// Extra delegated safety wiring for dynamic/late-rendered setup controls.
+document.addEventListener('click', (e) => {
+  const addFirst = e.target.closest('#btnAddFirstTeam');
+  if (addFirst) {
+    e.preventDefault();
+    openTeamModal(true);
+    return;
+  }
+  const manage = e.target.closest('#btnManageTeams');
+  if (manage) {
+    e.preventDefault();
+    openTeamModal(false);
+  }
+});
 
 /* Button Wiring */
 $('btnRoster').onclick=openRoster;

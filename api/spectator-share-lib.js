@@ -99,14 +99,13 @@ export function buildShareModel(snapshot, code) {
     code,
     opponent,
     opponentUpper: clampLabel(sanitizeForFont(opponentRaw).toUpperCase() || "OPPONENT", 22),
-    opponentShort: clampLabel(sanitizeForFont(opponentRaw).toUpperCase() || "OPPONENT", 14),
     goalsFor,
     goalsAgainst,
     period,
     updatedAt,
     version,
-    title: `Live vs ${titleOpponent} | ${goalsAgainst}-${goalsFor}`,
-    description: `Spectator view | ${period}`
+    title: `${titleOpponent} • ${goalsAgainst}-${goalsFor}`,
+    description: `Live spectator view • ${period}`
   };
 }
 
@@ -155,9 +154,9 @@ export function renderShareHtml({ model, baseUrl }) {
 </head>
 <body>
   <main class="card">
-    <div class="eyebrow">Live Game</div>
-    <h1>Live vs ${escapeHtml(model.opponent)}</h1>
-    <p>${escapeHtml(model.goalsAgainst)}-${escapeHtml(model.goalsFor)} in ${escapeHtml(model.period)}</p>
+    <div class="eyebrow">Live Spectator</div>
+    <h1>${escapeHtml(model.opponent)} &bull; ${escapeHtml(model.goalsAgainst)}-${escapeHtml(model.goalsFor)}</h1>
+    <p>${escapeHtml(model.period)} live spectator view</p>
     <div class="preview"><img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(`${model.opponent} spectator preview`)}" /></div>
     <div class="fallback"><a href="${escapeHtml(openUrl)}">Open spectator view</a></div>
   </main>
@@ -169,47 +168,34 @@ export function renderShareHtml({ model, baseUrl }) {
 export function renderPreviewPng(model) {
   const width = 1200;
   const height = 630;
-  const aa = 2;
+  const aa = 3;
   const hiWidth = width * aa;
   const hiHeight = height * aa;
   const pixels = Buffer.alloc(hiWidth * hiHeight * 4);
   const s = (value) => Math.round(value * aa);
-  const spacing = aa * 2;
 
   fillVerticalGradient(pixels, hiWidth, hiHeight, [6, 11, 18, 255], [2, 5, 10, 255]);
-  fillRect(pixels, hiWidth, hiHeight, 0, 0, hiWidth, s(176), [8, 15, 24, 255]);
-  fillRect(pixels, hiWidth, hiHeight, s(56), s(44), s(1088), s(542), [10, 17, 27, 255]);
-  strokeRect(pixels, hiWidth, hiHeight, s(56), s(44), s(1088), s(542), [33, 52, 79, 255], s(2));
+  fillCircle(pixels, hiWidth, hiHeight, s(600), s(24), s(260), [17, 34, 58, 48]);
+  fillRoundedRect(pixels, hiWidth, hiHeight, s(58), s(40), s(1084), s(548), s(28), [33, 52, 79, 255]);
+  fillRoundedRect(pixels, hiWidth, hiHeight, s(60), s(42), s(1080), s(544), s(26), [10, 17, 27, 255]);
 
-  fillCircle(pixels, hiWidth, hiHeight, s(106), s(106), s(9), [121, 215, 155, 255]);
-  drawText(pixels, hiWidth, hiHeight, "LIVE", s(130), s(90), s(4), [143, 227, 173, 255], spacing);
-  drawCenteredText(pixels, hiWidth, hiHeight, "LIVE SCORE", s(600), s(90), s(4), [188, 199, 215, 255], spacing);
-  drawText(pixels, hiWidth, hiHeight, "SMARTTEAMTRACKER", s(820), s(92), s(3), [112, 128, 149, 255], spacing);
+  fillCircle(pixels, hiWidth, hiHeight, s(108), s(106), s(8), [121, 215, 155, 255]);
 
-  fillRect(pixels, hiWidth, hiHeight, s(952), s(78), s(136), s(66), [18, 28, 43, 255]);
-  strokeRect(pixels, hiWidth, hiHeight, s(952), s(78), s(136), s(66), [52, 73, 103, 255], s(2));
-  drawCenteredText(pixels, hiWidth, hiHeight, model.period, s(1020), s(96), s(5), [241, 244, 249, 255], spacing);
+  fillRoundedRect(pixels, hiWidth, hiHeight, s(92), s(166), s(1016), s(300), s(24), [34, 52, 78, 255]);
+  fillRoundedRect(pixels, hiWidth, hiHeight, s(94), s(168), s(1012), s(296), s(22), [7, 12, 20, 255]);
 
-  fillRect(pixels, hiWidth, hiHeight, s(96), s(164), s(1008), s(314), [8, 13, 20, 255]);
-  strokeRect(pixels, hiWidth, hiHeight, s(96), s(164), s(1008), s(314), [35, 54, 82, 255], s(2));
-  fillRect(pixels, hiWidth, hiHeight, s(124), s(194), s(306), s(250), [22, 27, 34, 255]);
-  strokeRect(pixels, hiWidth, hiHeight, s(124), s(194), s(306), s(250), [57, 61, 68, 255], s(2));
-  fillRect(pixels, hiWidth, hiHeight, s(462), s(224), s(276), s(88), [18, 28, 42, 255]);
-  strokeRect(pixels, hiWidth, hiHeight, s(462), s(224), s(276), s(88), [48, 70, 98, 255], s(2));
-  fillRect(pixels, hiWidth, hiHeight, s(770), s(194), s(306), s(250), [17, 27, 40, 255]);
-  strokeRect(pixels, hiWidth, hiHeight, s(770), s(194), s(306), s(250), [48, 70, 98, 255], s(2));
+  fillRoundedRect(pixels, hiWidth, hiHeight, s(118), s(194), s(300), s(244), s(18), [28, 29, 33, 255]);
+  fillRoundedRect(pixels, hiWidth, hiHeight, s(448), s(224), s(304), s(92), s(16), [18, 28, 42, 255]);
+  fillRoundedRect(pixels, hiWidth, hiHeight, s(782), s(194), s(300), s(244), s(18), [16, 25, 38, 255]);
 
-  const opponentScale = pickScale(model.opponentShort, s(250), s(4), s(2), spacing);
-  drawCenteredText(pixels, hiWidth, hiHeight, model.opponentShort, s(277), s(220), opponentScale, [194, 178, 167, 255], spacing);
-  drawCenteredText(pixels, hiWidth, hiHeight, "US", s(923), s(220), s(4), [191, 206, 222, 255], spacing);
+  fillRoundedRect(pixels, hiWidth, hiHeight, s(132), s(194), s(272), s(4), s(2), [177, 154, 141, 255]);
+  fillRoundedRect(pixels, hiWidth, hiHeight, s(796), s(194), s(272), s(4), s(2), [167, 187, 205, 255]);
 
-  drawCenteredText(pixels, hiWidth, hiHeight, String(model.goalsAgainst), s(277), s(270), s(18), [244, 246, 251, 255], spacing);
-  drawCenteredText(pixels, hiWidth, hiHeight, String(model.goalsFor), s(923), s(270), s(18), [244, 246, 251, 255], spacing);
-  drawCenteredText(pixels, hiWidth, hiHeight, model.period, s(600), s(246), s(7), [224, 232, 243, 255], spacing);
-
-  const detailLine = pickScale("TAP FOR LIVE UPDATES", s(370), s(3), s(2), spacing);
-  drawText(pixels, hiWidth, hiHeight, "TAP FOR LIVE UPDATES", s(98), s(520), detailLine, [125, 146, 176, 255], spacing);
-  fillRect(pixels, hiWidth, hiHeight, s(98), s(492), s(220), s(4), [121, 215, 155, 255]);
+  drawScoreGlyphTextCentered(pixels, hiWidth, hiHeight, "OPP", s(268), s(216), s(30), [193, 177, 168, 255], s(8));
+  drawScoreGlyphTextCentered(pixels, hiWidth, hiHeight, "US", s(932), s(216), s(30), [184, 201, 220, 255], s(8));
+  drawScoreGlyphTextCentered(pixels, hiWidth, hiHeight, String(model.goalsAgainst), s(268), s(274), s(88), [244, 246, 251, 255], s(18));
+  drawScoreGlyphTextCentered(pixels, hiWidth, hiHeight, String(model.goalsFor), s(932), s(274), s(88), [244, 246, 251, 255], s(18));
+  drawScoreGlyphTextCentered(pixels, hiWidth, hiHeight, model.period, s(600), s(246), s(40), [214, 223, 237, 255], s(10));
 
   return encodePng(width, height, downsampleRgba(pixels, hiWidth, hiHeight, aa));
 }
@@ -320,6 +306,20 @@ function strokeRect(pixels, width, height, x, y, rectWidth, rectHeight, color, t
   fillRect(pixels, width, height, x + rectWidth - thickness, y, thickness, rectHeight, color);
 }
 
+function fillRoundedRect(pixels, width, height, x, y, rectWidth, rectHeight, radius, color) {
+  const r = Math.max(0, Math.min(radius, rectWidth / 2, rectHeight / 2));
+  if (r <= 0) {
+    fillRect(pixels, width, height, x, y, rectWidth, rectHeight, color);
+    return;
+  }
+  fillRect(pixels, width, height, x + r, y, rectWidth - (2 * r), rectHeight, color);
+  fillRect(pixels, width, height, x, y + r, rectWidth, rectHeight - (2 * r), color);
+  fillCircle(pixels, width, height, x + r, y + r, r, color);
+  fillCircle(pixels, width, height, x + rectWidth - r, y + r, r, color);
+  fillCircle(pixels, width, height, x + r, y + rectHeight - r, r, color);
+  fillCircle(pixels, width, height, x + rectWidth - r, y + rectHeight - r, r, color);
+}
+
 function fillCircle(pixels, width, height, centerX, centerY, radius, color) {
   const rSquared = radius * radius;
   const startX = Math.max(0, Math.floor(centerX - radius));
@@ -332,12 +332,75 @@ function fillCircle(pixels, width, height, centerX, centerY, radius, color) {
       const dy = py - centerY;
       if ((dx * dx) + (dy * dy) > rSquared) continue;
       const idx = (py * width + px) * 4;
-      pixels[idx] = color[0];
-      pixels[idx + 1] = color[1];
-      pixels[idx + 2] = color[2];
-      pixels[idx + 3] = color[3];
+      blendPixel(pixels, idx, color);
     }
   }
+}
+
+function drawScoreGlyphTextCentered(pixels, width, height, text, centerX, y, size, color, gap) {
+  const glyphHeight = Math.round(size * 1.16);
+  const totalWidth = measureScoreGlyphText(text, size, gap);
+  const x = Math.round(centerX - (totalWidth / 2));
+  drawScoreGlyphText(pixels, width, height, text, x, y, size, color, gap, glyphHeight);
+}
+
+function drawScoreGlyphText(pixels, width, height, text, x, y, size, color, gap, glyphHeight = Math.round(size * 1.16)) {
+  let cursor = x;
+  for (const rawChar of String(text || "").toUpperCase()) {
+    const glyph = SCORE_GLYPHS[rawChar];
+    if (!glyph) {
+      cursor += Math.round(size * 0.56) + gap;
+      continue;
+    }
+    drawScoreGlyph(pixels, width, height, glyph, cursor, y, size, glyphHeight, color);
+    cursor += glyphAdvance(glyph, size) + gap;
+  }
+}
+
+function drawScoreGlyph(pixels, width, height, glyph, x, y, size, glyphHeight, color) {
+  const thickness = Math.max(4, Math.round(size * 0.18));
+  const verticalHeight = Math.max(thickness, Math.round((glyphHeight - (3 * thickness)) / 2));
+  const left = x;
+  const top = y;
+  const rightX = left + size - thickness;
+  const upperY = top + thickness;
+  const middleY = top + thickness + verticalHeight;
+  const lowerY = middleY + thickness;
+  const bottomY = top + glyphHeight - thickness;
+  const centerX = left + Math.round((size - thickness) / 2);
+  const radius = Math.max(2, Math.round(thickness / 2));
+
+  const segments = {
+    a: [left + thickness, top, size - (2 * thickness), thickness],
+    d: [left + thickness, bottomY, size - (2 * thickness), thickness],
+    g: [left + thickness, middleY, size - (2 * thickness), thickness],
+    f: [left, upperY, thickness, verticalHeight],
+    b: [rightX, upperY, thickness, verticalHeight],
+    e: [left, lowerY, thickness, verticalHeight],
+    c: [rightX, lowerY, thickness, verticalHeight],
+    i: [centerX, upperY, thickness, glyphHeight - (2 * thickness)],
+  };
+
+  for (const key of glyph) {
+    const segment = segments[key];
+    if (!segment) continue;
+    fillRoundedRect(pixels, width, height, segment[0], segment[1], segment[2], segment[3], radius, color);
+  }
+}
+
+function measureScoreGlyphText(text, size, gap) {
+  let total = 0;
+  const chars = String(text || "").toUpperCase().split("");
+  chars.forEach((char, index) => {
+    total += glyphAdvance(SCORE_GLYPHS[char], size);
+    if (index < chars.length - 1) total += gap;
+  });
+  return total;
+}
+
+function glyphAdvance(glyph, size) {
+  if (!glyph) return Math.round(size * 0.56);
+  return glyph.includes("narrow") ? Math.round(size * 0.72) : size;
 }
 
 function downsampleRgba(source, srcWidth, srcHeight, factor) {
@@ -419,6 +482,23 @@ function lerp(a, b, t) {
   return Math.round(a + ((b - a) * t));
 }
 
+function blendPixel(pixels, idx, color) {
+  const alpha = (color[3] ?? 255) / 255;
+  if (alpha >= 1) {
+    pixels[idx] = color[0];
+    pixels[idx + 1] = color[1];
+    pixels[idx + 2] = color[2];
+    pixels[idx + 3] = 255;
+    return;
+  }
+
+  const inv = 1 - alpha;
+  pixels[idx] = Math.round((color[0] * alpha) + (pixels[idx] * inv));
+  pixels[idx + 1] = Math.round((color[1] * alpha) + (pixels[idx + 1] * inv));
+  pixels[idx + 2] = Math.round((color[2] * alpha) + (pixels[idx + 2] * inv));
+  pixels[idx + 3] = 255;
+}
+
 function escapeHtml(value) {
   return String(value || "")
     .replace(/&/g, "&amp;")
@@ -427,3 +507,21 @@ function escapeHtml(value) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
+
+const SCORE_GLYPHS = {
+  "0": ["a", "b", "c", "d", "e", "f"],
+  "1": ["b", "c", "narrow"],
+  "2": ["a", "b", "g", "e", "d"],
+  "3": ["a", "b", "g", "c", "d"],
+  "4": ["f", "g", "b", "c"],
+  "5": ["a", "f", "g", "c", "d"],
+  "6": ["a", "f", "g", "e", "c", "d"],
+  "7": ["a", "b", "c"],
+  "8": ["a", "b", "c", "d", "e", "f", "g"],
+  "9": ["a", "b", "c", "d", "f", "g"],
+  "O": ["a", "b", "c", "d", "e", "f"],
+  "P": ["a", "b", "e", "f", "g"],
+  "U": ["b", "c", "d", "e", "f"],
+  "S": ["a", "f", "g", "c", "d"],
+  "T": ["a", "i"],
+};

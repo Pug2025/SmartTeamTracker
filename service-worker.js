@@ -1,15 +1,16 @@
 // -----------------------------
 // Team Tracker - Service Worker
-// Version: v6.2.1
+// Version: v6.2.2
 // -----------------------------
 
-const ASSET_VERSION = "6.2.1";
+const ASSET_VERSION = "6.2.2";
 const CACHE_VERSION = `team-tracker-cache-v${ASSET_VERSION}`;
 const CACHE_NAME = CACHE_VERSION;
 
 const ASSETS_TO_CACHE = [
   "/",
   "/index.html",
+  "/spectator-share.html",
   `/css/styles.css?v=${ASSET_VERSION}`,
   `/css/auth.css?v=${ASSET_VERSION}`,
   `/js/app.js?v=${ASSET_VERSION}`,
@@ -17,6 +18,7 @@ const ASSETS_TO_CACHE = [
   `/js/spectator.js?v=${ASSET_VERSION}`,
   `/js/teams.js?v=${ASSET_VERSION}`,
   `/manifest.json?v=${ASSET_VERSION}`,
+  "/spectator-preview.svg",
   "/favicon.ico",
   "/icon-192.png",
   "/icon-512.png"

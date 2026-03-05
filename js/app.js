@@ -61,6 +61,10 @@ let prefs = { trackPlusMinus: true };
 try { const p = JSON.parse(localStorage.getItem(PREFS_KEY)); if(p) prefs = {...prefs, ...p}; } catch(_){}
 function savePrefs(){ try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch(_){} }
 
+// Shared with the live-share helpers; it must exist before init() runs because
+// the setup header now hides live-share UI on first paint.
+let _liveShareBannerTimer = null;
+
 function getLocalTodayYMD(){
   const d = new Date();
   const y = d.getFullYear();
@@ -3257,7 +3261,6 @@ function renderSeasonDashboard(games){
 
 let _livePushPending = false;
 let _livePushQueued = false;
-let _liveShareBannerTimer = null;
 
 function generateShareCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';

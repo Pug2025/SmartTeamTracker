@@ -3,7 +3,7 @@
 // Version: v5.1.1
 // -----------------------------
 
-const CACHE_VERSION = "team-tracker-cache-v6.5.0";
+const CACHE_VERSION = "team-tracker-cache-v7.0.0";
 const CACHE_NAME = CACHE_VERSION;
 
 const ASSETS_TO_CACHE = [
@@ -70,10 +70,9 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(request.url);
 
-  // Never cache API calls (keeps behavior clean, avoids weird stale JSON)
+  // Never cache API calls — pass through to network
   if (url.pathname.startsWith("/api/")) {
-    event.respondWith(fetch(request));
-    return;
+    return; // let the browser handle it (app-level offline queue catches errors)
   }
 
   // Network-first for navigations (HTML pages)

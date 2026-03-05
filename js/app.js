@@ -41,6 +41,7 @@ const $ = id => document.getElementById(id);
 const SAVE_KEY = 'team-tracker-state';
 const ROSTER_KEY = 'team-tracker-roster';
 const LAST_SAVED_KEY = 'team-tracker-last-saved-gameId';
+const OFFLINE_QUEUE_KEY = 'team-tracker-offline-queue';
 const PREFS_KEY = 'team-tracker-prefs';
 const MAX_PERIOD = 4;
 
@@ -172,6 +173,7 @@ async function pingCloud(){
 
     if(res.ok){
       setCloudStatus('Cloud: OK','good');
+      flushOfflineQueue();
     } else {
       setCloudStatus('Cloud: Offline','bad');
     }
@@ -1966,13 +1968,56 @@ async function saveGameToCloud(game){
     }else{
       setCloudStatus('Cloud: Error','bad');
       showStatusToast('Save failed', 'error', 3500);
+      queueOfflineSave(game);
     }
   }catch(e){
     console.error(e);
-    setCloudStatus('Cloud: Error','bad');
-    showStatusToast('Error saving game', 'error', 3500);
+    setCloudStatus('Cloud: Queued','warn');
+    showStatusToast('Offline — game queued for sync', 'warn', 3500);
+    queueOfflineSave(game);
   }
 }
+
+/* ===== Offline Queue ===== */
+function getOfflineQueue(){
+  try{ return JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY)) || []; }catch(_){ return []; }
+}
+function saveOfflineQueue(q){
+  try{ localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(q)); }catch(_){}
+}
+function queueOfflineSave(game){
+  const q = getOfflineQueue();
+  // Avoid duplicates by gameId
+  const idx = q.findIndex(g => g.gameId === game.gameId);
+  if(idx >= 0) q[idx] = game; else q.push(game);
+  saveOfflineQueue(q);
+}
+async function flushOfflineQueue(){
+  const q = getOfflineQueue();
+  if(!q.length) return;
+  const remaining = [];
+  for(const game of q){
+    try{
+      const res = await fetch('/api/save-game',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({game})
+      });
+      const d = await res.json();
+      if(!d.success) remaining.push(game);
+    }catch(_){
+      remaining.push(game);
+      break; // still offline, stop trying
+    }
+  }
+  saveOfflineQueue(remaining);
+  if(remaining.length === 0 && q.length > 0){
+    setCloudStatus('Cloud: Synced','good');
+    showStatusToast('Queued games synced!', 'success');
+  }
+}
+// Flush queue when we come back online
+window.addEventListener('online', ()=>{ setTimeout(flushOfflineQueue, 2000); });
 
 /* CSV Helpers: game row + per-player block */
 function computePlayerStats(){
@@ -2883,6 +2928,133 @@ $('gameDetailDelete').addEventListener('click', async ()=>{
     showStatusToast('Error deleting game', 'error', 3500);
   }
 });
+
+/* ===== Season Dashboard ===== */
+$('btnSeason').addEventListener('click', async ()=>{
+  $('seasonPanel').style.display = 'block';
+  $('seasonBody').innerHTML = '<div style="text-align:center; padding:20px; color:var(--muted);">Loading...</div>';
+  try{
+    const uid = typeof window.getAuthUserId === 'function' ? window.getAuthUserId() : null;
+    const TM = window.TeamManager;
+    const teamId = TM ? TM.getActiveTeamId() : null;
+    let histUrl = '/api/games?limit=100';
+    if(uid) histUrl += '&user_id=' + encodeURIComponent(uid);
+    if(teamId) histUrl += '&team_id=' + encodeURIComponent(teamId);
+    const res = await fetch(histUrl);
+    const d = await res.json();
+    if(!d.success || !d.games || !d.games.length){
+      $('seasonBody').innerHTML = '<div style="text-align:center; padding:20px;">No games yet — play some games first!</div>';
+      return;
+    }
+    renderSeasonDashboard(d.games);
+  }catch(e){
+    console.error(e);
+    $('seasonBody').innerHTML = '<div style="text-align:center; padding:20px; color:var(--accent-them);">Failed to load. Check your connection.</div>';
+  }
+});
+$('btnSeasonClose').addEventListener('click', ()=>{ $('seasonPanel').style.display='none'; });
+
+function renderSeasonDashboard(games){
+  // Extract data from all games
+  const stats = games.map(g => g.data || {}).filter(d => d.GF != null);
+  if(!stats.length){
+    $('seasonBody').innerHTML = '<div style="text-align:center; padding:20px;">No game data to analyze.</div>';
+    return;
+  }
+
+  const n = stats.length;
+  let wins=0, losses=0, ties=0;
+  let totalGF=0, totalGA=0, totalSF=0, totalSA=0;
+  let totalGK=0, totalTM=0, gkCount=0, tmCount=0;
+  const gkTrend=[], tmTrend=[], gfTrend=[], gaTrend=[], labels=[];
+
+  // Process in chronological order (API returns newest first)
+  const chrono = stats.slice().reverse();
+  for(const d of chrono){
+    const gf = Number(d.GF)||0, ga = Number(d.GA)||0;
+    if(gf > ga) wins++; else if(ga > gf) losses++; else ties++;
+    totalGF += gf;
+    totalGA += ga;
+    totalSF += Number(d.SF)||0;
+    totalSA += Number(d.SA)||0;
+    if(d.GoalieScore != null){ totalGK += d.GoalieScore; gkCount++; gkTrend.push(d.GoalieScore); }
+    if(d.TeamScore != null){ totalTM += d.TeamScore; tmCount++; tmTrend.push(d.TeamScore); }
+    gfTrend.push(gf);
+    gaTrend.push(ga);
+    labels.push(d.Opponent ? d.Opponent.substring(0,8) : '?');
+  }
+
+  const avgGK = gkCount ? Math.round(totalGK/gkCount) : '—';
+  const avgTM = tmCount ? Math.round(totalTM/tmCount) : '—';
+  const avgGF = (totalGF/n).toFixed(1);
+  const avgGA = (totalGA/n).toFixed(1);
+  const svPct = totalSA ? (((totalSA - totalGA)/totalSA)*100).toFixed(1) : '—';
+  const shotPct = totalSF ? ((totalGF/totalSF)*100).toFixed(1) : '—';
+  const shotShare = (totalSF+totalSA) ? Math.round((totalSF/(totalSF+totalSA))*100) : '—';
+
+  // Recent form (last 5)
+  const recent5 = chrono.slice(-5);
+  const form = recent5.map(d => {
+    const gf = Number(d.GF)||0, ga = Number(d.GA)||0;
+    if(gf > ga) return '<span class="season-form-w">W</span>';
+    if(ga > gf) return '<span class="season-form-l">L</span>';
+    return '<span class="season-form-t">T</span>';
+  }).join('');
+
+  // Trend arrows (compare last 3 avg to previous 3 avg)
+  function trendArrow(arr){
+    if(arr.length < 4) return '';
+    const recent = arr.slice(-3).reduce((a,b)=>a+b,0)/3;
+    const prev = arr.slice(-6,-3).reduce((a,b)=>a+b,0)/Math.min(3, arr.slice(-6,-3).length||1);
+    if(!prev) return '';
+    const diff = recent - prev;
+    if(Math.abs(diff) < 2) return '<span class="trend-flat">—</span>';
+    return diff > 0 ? '<span class="trend-up">&#9650;</span>' : '<span class="trend-down">&#9660;</span>';
+  }
+
+  // Build sparkline SVG
+  function sparkline(data, color, maxH){
+    if(data.length < 2) return '';
+    const max = Math.max(...data, 1);
+    const w = 100, h = maxH || 30;
+    const step = w / (data.length - 1);
+    const pts = data.map((v,i) => `${i*step},${h - (v/max)*h}`).join(' ');
+    return `<svg class="sparkline" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5"/></svg>`;
+  }
+
+  let html = '';
+
+  // Record
+  html += `<div class="season-record">
+    <div class="season-record-main">${wins}W – ${losses}L${ties?' – '+ties+'T':''}</div>
+    <div class="season-record-sub">${n} game${n>1?'s':''} played</div>
+    <div class="season-form-row">Form: ${form}</div>
+  </div>`;
+
+  // Key stats grid
+  html += `<div class="dashGrid" style="margin-top:10px;">
+    <div class="dashTile"><div class="k">Avg Goalie</div><div class="v">${avgGK}</div><div class="s">${trendArrow(gkTrend)}</div></div>
+    <div class="dashTile"><div class="k">Avg Team</div><div class="v">${avgTM}</div><div class="s">${trendArrow(tmTrend)}</div></div>
+    <div class="dashTile"><div class="k">Goals For/G</div><div class="v">${avgGF}</div><div class="s">Total: ${totalGF}</div></div>
+    <div class="dashTile"><div class="k">Goals Ag/G</div><div class="v">${avgGA}</div><div class="s">Total: ${totalGA}</div></div>
+    <div class="dashTile"><div class="k">SV%</div><div class="v">${svPct}%</div><div class="s">${totalSA-totalGA}/${totalSA}</div></div>
+    <div class="dashTile"><div class="k">Shooting%</div><div class="v">${shotPct}%</div><div class="s">${totalGF}/${totalSF}</div></div>
+    <div class="dashTile"><div class="k">Shot Share</div><div class="v">${shotShare}%</div><div class="s">SF/(SF+SA)</div></div>
+    <div class="dashTile"><div class="k">Goal Diff</div><div class="v" style="color:${totalGF-totalGA>=0?'var(--good)':'var(--accent-them)'}">${totalGF-totalGA>=0?'+':''}${totalGF-totalGA}</div></div>
+  </div>`;
+
+  // Sparklines
+  if(gkTrend.length >= 3){
+    html += `<div class="season-spark-section">
+      <div class="season-spark-label">Goalie Score Trend</div>${sparkline(gkTrend,'#4da3ff',30)}
+      <div class="season-spark-label" style="margin-top:8px;">Team Score Trend</div>${sparkline(tmTrend,'#4caf50',30)}
+      <div class="season-spark-label" style="margin-top:8px;">Goals (green=for, red=against)</div>
+      <div class="spark-overlay">${sparkline(gfTrend,'#4caf50',24)}${sparkline(gaTrend,'#ff453a',24)}</div>
+    </div>`;
+  }
+
+  $('seasonBody').innerHTML = html;
+}
 
 /* ===== Live Spectator Sharing ===== */
 

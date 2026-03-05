@@ -155,7 +155,10 @@
       </div>
       <div id="resumeBanner" class="banner hidden" style="font-size:12px; color:var(--warn); margin-bottom:10px;">Resumed saved game.</div>
       <button id="btnStartGame" class="btn-start">Start Game</button>
-      <button id="btnHistory" class="btn-start" style="background:transparent; color:var(--accent-us); border:2px solid var(--accent-us); margin-top:8px; font-size:15px;">Past Games</button>
+      <div style="display:flex; gap:8px; margin-top:8px;">
+        <button id="btnHistory" class="btn-start" style="background:transparent; color:var(--accent-us); border:2px solid var(--accent-us); flex:1; font-size:14px;">Past Games</button>
+        <button id="btnSeason" class="btn-start" style="background:transparent; color:var(--good); border:2px solid var(--good); flex:1; font-size:14px;">Season Stats</button>
+      </div>
     </div>
 
     <!-- Game History Panel -->
@@ -165,6 +168,15 @@
         <button class="btn-std" id="btnHistoryClose" style="font-size:11px; padding:4px 10px;">Close</button>
       </div>
       <div id="historyList" class="small" style="color:#aaa;">Loading...</div>
+    </div>
+
+    <!-- Season Dashboard Panel -->
+    <div id="seasonPanel" class="card" style="display:none; margin-top:14px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h3 style="margin:0; font-size:16px;">Season Dashboard</h3>
+        <button class="btn-std" id="btnSeasonClose" style="font-size:11px; padding:4px 10px;">Close</button>
+      </div>
+      <div id="seasonBody" class="small" style="color:#aaa;">Loading...</div>
     </div>
   </div>
 

@@ -63,6 +63,10 @@
       const d = await res.json();
       if (d.success && d.game && d.game.state) {
         renderState(d.game.state);
+        if (d.game.state.final) {
+          renderFinal();
+          clearInterval(pollInterval);
+        }
         return true;
       } else {
         renderEnded();
@@ -139,6 +143,16 @@
       case 'penalty_for': return 'Power Play' + player;
       case 'penalty_against': return 'Penalty' + player;
       default: return ev.type + player;
+    }
+  }
+
+  function renderFinal() {
+    $('specStatus').textContent = 'Final score';
+    $('spectatorView').classList.add('spec-ended');
+    const badge = $('spectatorView').querySelector('.spectator-badge');
+    if (badge) {
+      badge.textContent = 'FINAL';
+      badge.classList.add('spec-badge-final');
     }
   }
 

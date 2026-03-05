@@ -3522,7 +3522,7 @@ function setLiveShareUi(isSharing) {
   const btn = $('btnShareLive');
   if (!btn) return;
   if (isSharing) {
-    btn.textContent = 'Live On';
+    btn.textContent = 'Sharing Live';
     btn.classList.add('toolbar-btn-live-active');
   } else {
     btn.textContent = 'Share Live';
@@ -3574,13 +3574,12 @@ async function startLiveShare() {
   state.shareCode = code;
   save();
 
-  // Show controls briefly; they can be reopened via the "Live On" button.
+  // Open the controls immediately so copy/stop is the next obvious action.
   setLiveShareUi(true);
-  showLiveShareBanner(6000);
+  showLiveShareBanner(0);
 
   // Initial push
   await pushLiveState();
-  showStatusToast('Live share started. Tap "Live On" for link/stop.', 'success', 4000);
 }
 
 async function endLiveShare() {

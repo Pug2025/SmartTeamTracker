@@ -28,7 +28,7 @@ export default async function handler(req, res) {
 
     try {
       const response = await fetch(
-        `${supabaseUrl}/rest/v1/live_games?share_code=eq.${encodeURIComponent(code)}&select=share_code,game_id,state,updated_at`,
+        `${supabaseUrl}/rest/v1/live_games?share_code=eq.${encodeURIComponent(code)}&select=share_code,game_id,state,updated_at&order=updated_at.desc&limit=1`,
         { headers }
       );
       const data = await response.json();

@@ -6,7 +6,7 @@
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Team Tracker – iPhone (v6.2.0)</title>
+<title>Team Tracker</title>
 <link rel="stylesheet" href="css/styles.css">
 <link rel="stylesheet" href="css/auth.css">
 </head>
@@ -49,18 +49,19 @@
   <div class="top-row">
     <div class="top-title-group">
       <h1>Team Tracker</h1>
-      <div class="pill" id="verPill">v—</div>
-      <div class="pill" id="cloudStatus">Cloud: —</div>
+      <div class="pill warn" id="cloudStatus">Checking</div>
     </div>
     <div class="top-actions">
-      <button class="btn-icon" id="btnHelp" title="Help">?</button>
-      <button class="btn-icon btn-icon-signout" id="btnSignOut" title="Sign Out">&#x2192;</button>
+      <button class="toolbar-btn toolbar-btn-live" id="btnShareLive" style="display:none;">Share Live</button>
+      <button class="btn-icon" id="btnHeaderMenu" title="Menu">&#9776;</button>
     </div>
   </div>
-  <div class="top-toolbar" id="gameToolbar" style="display:none;">
-    <button class="toolbar-btn" id="btnEditSetup">Edit Info</button>
-    <button class="toolbar-btn" id="btnRoster">Roster</button>
-    <button class="toolbar-btn toolbar-btn-live" id="btnShareLive">Share Live</button>
+
+  <div class="header-menu" id="headerMenu">
+    <button class="header-menu-btn" id="btnEditSetup" type="button">Edit Info</button>
+    <button class="header-menu-btn" id="btnRoster" type="button">Roster</button>
+    <button class="header-menu-btn" id="btnHelp" type="button">Help</button>
+    <button class="header-menu-btn header-menu-btn-danger" id="btnSignOut" type="button">Sign Out</button>
   </div>
 
   <!-- Live share banner (shown when sharing is active) -->
@@ -70,7 +71,7 @@
     <button id="btnStopShare" class="btn-stop-share">Stop</button>
   </div>
 
-  <div class="scoreboard-row">
+  <div class="scoreboard-row" id="scoreboardRow" style="display:none;">
     <!-- THEM LEFT, US RIGHT -->
     <div class="score-block them">
       <span class="score-label">THEM</span>
@@ -197,14 +198,14 @@
 
         <div class="def-context-label">Defensive Context</div>
         <div class="context-row">
-          <div class="g-btn ctx h-md" id="btnBreakaway">Breakaway Ag</div>
+          <div class="g-btn ctx h-md" id="btnBreakaway">Breakaway</div>
           <div class="g-btn ctx h-md" id="btnDZTurnover">DZ Turnover</div>
         </div>
         <div class="context-row">
-          <div class="g-btn ctx h-md" id="btnOMRAgainst">Odd Man Rush Ag</div>
-          <div class="g-btn ctx h-md" id="btnMissedChanceAg">Missed Chance Ag</div>
+          <div class="g-btn ctx h-md" id="btnOMRAgainst">Odd-Man Rush</div>
+          <div class="g-btn ctx h-md" id="btnMissedChanceAg">Missed Chance (No Shot)</div>
         </div>
-        <div class="g-btn ctx h-md" id="btnPenaltyAgainst">Penalty Against (We took)</div>
+        <div class="g-btn ctx h-md" id="btnPenaltyAgainst">Penalty for Us</div>
       </div>
 
       <!-- RIGHT COLUMN: US / GOOD (Blue) -->
@@ -224,9 +225,9 @@
         </div>
         <div class="context-row">
           <div class="g-btn ctx h-md" id="btnForcedTurnover">Forced Turnover</div>
-          <div class="g-btn ctx h-md" id="btnMissedChanceFor">Missed Chance</div>
+          <div class="g-btn ctx h-md" id="btnMissedChanceFor">Missed Chance (No Shot)</div>
         </div>
-        <div class="g-btn ctx h-md" id="btnPenaltyFor">Penalty For (They took)</div>
+        <div class="g-btn ctx h-md" id="btnPenaltyFor">Penalty for Them</div>
       </div>
 
     </div>
@@ -618,11 +619,11 @@
       </ul>
       <h4>Defensive Context</h4>
       <ul>
-        <li><strong>Breakaway Ag</strong> &mdash; Opponent got a breakaway. If a goal follows within 10 seconds, it's auto-tagged. Reduces goalie blame.</li>
+        <li><strong>Breakaway</strong> &mdash; Opponent got a breakaway. If a goal follows within 10 seconds, it's auto-tagged. Reduces goalie blame.</li>
         <li><strong>DZ Turnover</strong> &mdash; Your team turned it over in the defensive zone. If a goal follows within 10 seconds, it's auto-tagged.</li>
-        <li><strong>Odd Man Rush Ag</strong> &mdash; Opponent has a 2-on-1, 3-on-2, etc.</li>
-        <li><strong>Missed Chance Ag</strong> &mdash; They had a quality scoring chance but no shot on net (e.g. hit the post, went wide, fanned on it). Counts toward their expected goals at a 12% probability.</li>
-        <li><strong>Penalty Against</strong> &mdash; Your team took a penalty.</li>
+        <li><strong>Odd-Man Rush</strong> &mdash; Opponent has a 2-on-1, 3-on-2, etc.</li>
+        <li><strong>Missed Chance (No Shot)</strong> &mdash; They had a quality scoring chance but no shot on net (e.g. hit the post, went wide, fanned on it). Counts toward their expected goals at a 12% probability.</li>
+        <li><strong>Penalty for Us</strong> &mdash; Your team took a penalty.</li>
       </ul>
     </div>
 
@@ -646,8 +647,8 @@
         <li><strong>Odd Man Rush</strong> &mdash; Your team created a 2-on-1, 3-on-2, etc.</li>
         <li><strong>Breakaway</strong> &mdash; Your player got in alone.</li>
         <li><strong>Forced Turnover</strong> &mdash; Your team won the puck back through good pressure.</li>
-        <li><strong>Missed Chance</strong> &mdash; Your team had a quality scoring chance but no shot on net (e.g. hit the post, went wide, fanned on it). Counts toward your expected goals at a 12% probability.</li>
-        <li><strong>Penalty For</strong> &mdash; The other team took a penalty.</li>
+        <li><strong>Missed Chance (No Shot)</strong> &mdash; Your team had a quality scoring chance but no shot on net (e.g. hit the post, went wide, fanned on it). Counts toward your expected goals at a 12% probability.</li>
+        <li><strong>Penalty for Them</strong> &mdash; The other team took a penalty.</li>
       </ul>
     </div>
 
@@ -735,9 +736,11 @@
 
 <!-- Spectator View (shown when ?live=CODE is in URL) -->
 <div id="spectatorView" class="spectator-view" style="display:none;">
+  <div class="spectator-bg-glow" aria-hidden="true"></div>
   <div class="spectator-header">
     <div class="spectator-badge">LIVE</div>
     <div class="spectator-title" id="specTitle">Game</div>
+    <div class="spectator-subtitle" id="specSubtitle">Waiting for game details...</div>
   </div>
   <div class="spectator-scoreboard">
     <div class="spec-score-block them">
@@ -752,12 +755,67 @@
       <span class="spec-score-sub" id="specSF">0 shots</span>
     </div>
   </div>
-  <div class="spectator-events" id="specEvents">
-    <div class="spec-event-placeholder">Waiting for game data...</div>
+
+  <div class="spec-intensity-card">
+    <div class="spec-intensity-head">
+      <span id="specQualityLabel">Chance Quality (full game xG)</span>
+      <span id="specQualityPct">50% us</span>
+    </div>
+    <div class="spec-intensity-track">
+      <div id="specQualityFill" class="spec-intensity-fill"></div>
+    </div>
+    <div class="spec-intensity-text" id="specQualityText">Not enough data yet</div>
+    <div class="spec-intensity-note">Built from expected-goals share across the entire game</div>
   </div>
+
+  <div class="spec-momentum-card">
+    <div class="spec-momentum-head">
+      <span id="specMomentumLabel">Recent Tilt (last 8 actions)</span>
+      <span id="specMomentumText">Even</span>
+    </div>
+    <div class="spec-momentum-track">
+      <div class="spec-momentum-midline" aria-hidden="true"></div>
+      <div class="spec-momentum-needle" id="specMomentumNeedle" aria-hidden="true"></div>
+    </div>
+    <div class="spec-momentum-axis">
+      <span>THEM PUSH</span>
+      <span>US PUSH</span>
+    </div>
+    <div class="spec-momentum-note" id="specMomentumNote">Based on the latest weighted actions (not game clock time)</div>
+  </div>
+
+  <div class="spec-kpi-grid">
+    <div class="spec-kpi-card">
+      <div class="spec-kpi-label">Shots (Us-Them)</div>
+      <div class="spec-kpi-value" id="specShotLine">0-0</div>
+    </div>
+    <div class="spec-kpi-card">
+      <div class="spec-kpi-label">SV%</div>
+      <div class="spec-kpi-value" id="specSvPct">-</div>
+    </div>
+    <div class="spec-kpi-card">
+      <div class="spec-kpi-label">Danger Chances (Us-Them)</div>
+      <div class="spec-kpi-value" id="specDangerLine">0-0</div>
+    </div>
+    <div class="spec-kpi-card">
+      <div class="spec-kpi-label">Penalties (Us-Them)</div>
+      <div class="spec-kpi-value" id="specPenaltyLine">0-0</div>
+    </div>
+  </div>
+
+  <div class="spectator-events-wrap">
+    <div class="spec-events-head">
+      <span>Key Events</span>
+      <span id="specEventCount">0</span>
+    </div>
+    <div class="spectator-events" id="specEvents">
+      <div class="spec-event-placeholder">Waiting for game data...</div>
+    </div>
+  </div>
+
   <div class="spectator-footer">
     <div id="specStatus" class="spec-status">Connecting...</div>
-    <div class="spec-powered">Powered by Team Tracker</div>
+    <div class="spec-meta" id="specMetaLine">Live updates every few seconds</div>
   </div>
 </div>
 

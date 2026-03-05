@@ -140,6 +140,11 @@ async function handlePasswordReset() {
 
 async function handleSignOut() {
   try {
+    const ask = typeof window.showAppConfirm === 'function'
+      ? window.showAppConfirm('Sign out now?')
+      : Promise.resolve(window.confirm('Sign out now?'));
+    const ok = await ask;
+    if (!ok) return;
     await signOut(auth);
   } catch (err) {
     console.error('Sign out error:', err);

@@ -1,8 +1,20 @@
 /* ===== App Version ===== */
 const APP_VERSION = '6.2.0';
 
+const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+const IS_SPECTATOR_MODE = !!window.__spectatorMode;
+
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', ()=>navigator.serviceWorker.register('service-worker.js?v=6100'));
+  window.addEventListener('load', async () => {
+    if (IS_LOCAL_DEV_HOST) {
+      try {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map((reg) => reg.unregister()));
+      } catch (_) {}
+      return;
+    }
+    navigator.serviceWorker.register('service-worker.js?v=6100');
+  });
 }
 
 /* ===== IndexedDB KV helper ===== */
@@ -107,17 +119,44 @@ function initP(){
 }
 
 /* ===== UI Logic for Start/Setup ===== */
+function closeHeaderMenu(){
+  const menu = $('headerMenu');
+  if(menu) menu.classList.remove('open');
+}
+
+function setInGameHeader(inGame){
+  const scoreboardRow = $('scoreboardRow');
+  if(scoreboardRow) scoreboardRow.style.display = inGame ? 'grid' : 'none';
+
+  const shareBtn = $('btnShareLive');
+  if(shareBtn) shareBtn.style.display = inGame ? 'inline-flex' : 'none';
+
+  const editBtn = $('btnEditSetup');
+  if(editBtn) editBtn.style.display = inGame ? '' : 'none';
+
+  const rosterBtn = $('btnRoster');
+  if(rosterBtn) rosterBtn.style.display = inGame ? '' : 'none';
+
+  if(!inGame){
+    $('qualityBarWrap').style.display = 'none';
+    $('liveShareBanner').style.display = 'none';
+  }
+
+  document.body.classList.toggle('in-game', inGame);
+  closeHeaderMenu();
+}
+
 function toggleSetup(showSetup){
   if(showSetup){
     $('setupContainer').style.display='block';
     $('gameControls').style.display='none';
-    $('gameToolbar').style.display='none';
     $('btnUndo').style.display='none';
+    setInGameHeader(false);
   } else {
     $('setupContainer').style.display='none';
     $('gameControls').style.display='block';
-    $('gameToolbar').style.display='';
     $('btnUndo').style.display='flex';
+    setInGameHeader(true);
   }
 }
 $('btnStartGame').addEventListener('click', ()=>{
@@ -142,13 +181,14 @@ function setCloudStatus(text, tone){
   if(!el) return;
   el.textContent = text;
   el.classList.remove('good','warn','bad');
+  el.dataset.tone = tone || '';
   if(tone) el.classList.add(tone);
 }
 function refreshCloudStatus(){
   try{
     const last = localStorage.getItem(LAST_SAVED_KEY);
     if(last && last === state.gameId){
-      setCloudStatus('Cloud: Saved','good');
+      setCloudStatus('Synced','good');
     } else {
       // default to connectivity status (set by ping)
       // no-op here; pingCloud will set it
@@ -159,12 +199,12 @@ function refreshCloudStatus(){
 /* Make cloud pill useful: ping /api/ping to show online/offline */
 let lastCloudPingAt = 0;
 async function pingCloud(){
-  // If a "Saved" for this game is showing, keep it (don't overwrite with OK).
+  // If this game is already synced, keep that status.
   const el = $('cloudStatus');
-  if(el && /Cloud:\s*Saved/i.test(el.textContent)) return;
+  if(el && /Synced/i.test(el.textContent)) return;
 
   try{
-    setCloudStatus('Cloud: Checking…','warn');
+    setCloudStatus('Checking','warn');
     const ctrl = new AbortController();
     const to = setTimeout(()=>ctrl.abort(), 2500);
 
@@ -172,13 +212,13 @@ async function pingCloud(){
     clearTimeout(to);
 
     if(res.ok){
-      setCloudStatus('Cloud: OK','good');
+      setCloudStatus('Online','good');
       flushOfflineQueue();
     } else {
-      setCloudStatus('Cloud: Offline','bad');
+      setCloudStatus('Offline','bad');
     }
   }catch(_){
-    setCloudStatus('Cloud: Offline','bad');
+    setCloudStatus('Offline','bad');
   } finally {
     lastCloudPingAt = Date.now();
   }
@@ -193,6 +233,7 @@ async function persistStorage(){
   }catch(_){}
 }
 async function save(){
+  if(IS_SPECTATOR_MODE) return;
   try{
     const json = JSON.stringify(state);
     localStorage.setItem(SAVE_KEY,json);
@@ -214,20 +255,24 @@ async function load(){
 }
 
 /* Autosave & lifecycle saves (crash safety) */
-setInterval(()=>save(), 4000);
-window.addEventListener('pagehide', ()=>save());
-document.addEventListener('visibilitychange', ()=>{
-  if(document.visibilityState === 'hidden') save();
-});
+if(!IS_SPECTATOR_MODE){
+  setInterval(()=>save(), 4000);
+  window.addEventListener('pagehide', ()=>save());
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.visibilityState === 'hidden') save();
+  });
+}
 
 /* Periodic cloud ping (lightweight) */
-setInterval(()=>{
-  // ping more often during a live game; otherwise just leave whatever state is shown
-  const live = (state.events && state.events.length>0) || ($('gameControls') && $('gameControls').style.display==='block');
-  if(!live) return;
-  if(Date.now() - lastCloudPingAt < 30000) return;
-  pingCloud();
-}, 5000);
+if(!IS_SPECTATOR_MODE){
+  setInterval(()=>{
+    // ping more often during a live game; otherwise just leave whatever state is shown
+    const live = (state.events && state.events.length>0) || ($('gameControls') && $('gameControls').style.display==='block');
+    if(!live) return;
+    if(Date.now() - lastCloudPingAt < 30000) return;
+    pingCloud();
+  }, 5000);
+}
 
 /* ===== Helpers ===== */
 const HAPTIC = {
@@ -286,6 +331,7 @@ function showConfirm(msg){
     $('confirmOverlay').onclick = (e)=>{ if(e.target === $('confirmOverlay')){ cleanup(); resolve(false); }};
   });
 }
+window.showAppConfirm = showConfirm;
 
 function highlightPeriod(){
   [...$('periodChips').children].forEach(ch=>{
@@ -1897,7 +1943,6 @@ function endGame(){
 
   // === Show summary, hide game controls ===
   $('gameControls').style.display = 'none';
-  $('gameToolbar').style.display = 'none';
   $('btnUndo').style.display = 'none';
   $('summaryPanel').classList.remove('hidden');
   window.scrollTo({top:0,behavior:'smooth'});
@@ -1954,7 +1999,7 @@ async function saveGameToCloud(game){
   if (teamId) game.team_id = teamId;
 
   try{
-    setCloudStatus('Cloud: Saving…','warn');
+    setCloudStatus('Saving','warn');
     const res = await fetch('/api/save-game',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
@@ -1963,16 +2008,16 @@ async function saveGameToCloud(game){
     const d=await res.json();
     if(d.success){
       localStorage.setItem(LAST_SAVED_KEY, state.gameId);
-      setCloudStatus('Cloud: Saved','good');
+      setCloudStatus('Synced','good');
       showStatusToast('Game saved!', 'success');
     }else{
-      setCloudStatus('Cloud: Error','bad');
+      setCloudStatus('Error','bad');
       showStatusToast('Save failed', 'error', 3500);
       queueOfflineSave(game);
     }
   }catch(e){
     console.error(e);
-    setCloudStatus('Cloud: Queued','warn');
+    setCloudStatus('Queued','warn');
     showStatusToast('Offline — game queued for sync', 'warn', 3500);
     queueOfflineSave(game);
   }
@@ -2012,7 +2057,7 @@ async function flushOfflineQueue(){
   }
   saveOfflineQueue(remaining);
   if(remaining.length === 0 && q.length > 0){
-    setCloudStatus('Cloud: Synced','good');
+    setCloudStatus('Synced','good');
     showStatusToast('Queued games synced!', 'success');
   }
 }
@@ -2305,12 +2350,10 @@ return;
 
 /* Init */
 (function init(){
-  // Version pill
-  $('verPill').textContent = `v${APP_VERSION}`;
-
   // Date input default (iOS-safe: set string, not valueAsDate)
   const todayStr = getLocalTodayYMD();
   $('date').value = todayStr;
+  setInGameHeader(false);
 
   // Keep state date aligned initially
   state.date = todayStr;
@@ -2400,6 +2443,25 @@ return;
   };
   $('helpModal').addEventListener('click', function(e){
     if(e.target === $('helpModal')) $('helpModal').style.display = 'none';
+  });
+
+  /* Header menu */
+  const headerMenu = $('headerMenu');
+  $('btnHeaderMenu').onclick = function(e){
+    e.stopPropagation();
+    if (!headerMenu) return;
+    headerMenu.classList.toggle('open');
+  };
+  if (headerMenu) {
+    headerMenu.addEventListener('click', (e) => {
+      if (e.target.closest('button')) closeHeaderMenu();
+    });
+  }
+  document.addEventListener('click', (e) => {
+    if (!headerMenu || !headerMenu.classList.contains('open')) return;
+    if (e.target === $('btnHeaderMenu') || $('btnHeaderMenu').contains(e.target)) return;
+    if (headerMenu.contains(e.target)) return;
+    closeHeaderMenu();
   });
 
   /* ===== Team Selector Init ===== */
@@ -2698,7 +2760,7 @@ $('btnEnd').onclick=endGame;
 $('btnBackToGame').onclick=()=>{
   $('summaryPanel').classList.add('hidden');
   $('gameControls').style.display='block';
-  $('gameToolbar').style.display='';
+  setInGameHeader(true);
   $('btnUndo').style.display='flex';
 };
 
@@ -2893,13 +2955,13 @@ function renderHistoryList(games){
   // Store games for detail view
   $('historyList')._games = games;
 
-  $('historyList').addEventListener('click', (e) => {
+  $('historyList').onclick = (e) => {
     const item = e.target.closest('.history-item');
     if(!item) return;
     const idx = Number(item.dataset.idx);
     const game = $('historyList')._games[idx];
     if(game) showGameDetail(game);
-  });
+  };
 }
 
 let currentDetailGameId = null;
@@ -3096,6 +3158,7 @@ function renderSeasonDashboard(games){
 /* ===== Live Spectator Sharing ===== */
 
 let _livePushPending = false;
+let _livePushQueued = false;
 
 function generateShareCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -3104,20 +3167,189 @@ function generateShareCode() {
   return code;
 }
 
+function classifyLiveEventSide(type){
+  switch(type){
+    case 'for_shot':
+    case 'for_goal':
+    case 'smother':
+    case 'big_save':
+    case 'breakaway_for':
+    case 'odd_man_rush_for':
+    case 'forced_turnover':
+    case 'penalty_for':
+    case 'missed_chance_for':
+      return 'us';
+    case 'shot':
+    case 'goal':
+    case 'soft_goal':
+    case 'bad_rebound':
+    case 'breakaway_against':
+    case 'odd_man_rush_against':
+    case 'dz_turnover':
+    case 'penalty_against':
+    case 'missed_chance_against':
+      return 'them';
+    default:
+      return null;
+  }
+}
+
+function computeLiveQualitySummary(){
+  const sq = computeShotQuality();
+  const GF = state.countsF.goals || 0;
+  const GA = state.countsA.goals || 0;
+  const qualF = sq.xGF + (GF * (1.0 - XG_RATES.normal));
+  const qualA = sq.xGA + (GA * (1.0 - XG_RATES.normal));
+  const total = qualF + qualA;
+  const pctFor = total > 0 ? Math.round(100 * qualF / total) : 50;
+  const pctAgainst = 100 - pctFor;
+
+  let edge = 'even';
+  let text = 'Chances are balanced';
+  if(pctFor >= 58){
+    edge = 'us';
+    text = "Strong chance edge: us";
+  }else if(pctFor >= 53){
+    edge = 'us';
+    text = "Slight chance edge: us";
+  }else if(pctFor <= 47 && pctFor >= 43){
+    edge = 'them';
+    text = "Slight chance edge: them";
+  }else if(pctFor <= 42){
+    edge = 'them';
+    text = "Strong chance edge: them";
+  }
+
+  return {
+    pctFor,
+    pctAgainst,
+    edge,
+    text,
+    xGF: sq.xGF,
+    xGA: sq.xGA,
+    xGDiff: sq.xGDiff,
+    hdFor: sq.hdFor,
+    hdAgainst: sq.hdAg,
+    missedFor: sq.mcFor,
+    missedAgainst: sq.mcAg
+  };
+}
+
+function computeLiveMomentumSummary(){
+  const WINDOW_EVENTS = 8;
+  const weightByType = {
+    shot: 1,
+    for_shot: 1,
+    goal: 3.4,
+    soft_goal: 3.8,
+    for_goal: 3.4,
+    breakaway_against: 1.5,
+    breakaway_for: 1.5,
+    odd_man_rush_against: 1.3,
+    odd_man_rush_for: 1.3,
+    missed_chance_against: 1.1,
+    missed_chance_for: 1.1,
+    penalty_against: 1.1,
+    penalty_for: 1.1,
+    big_save: 1.2,
+    bad_rebound: 1.2,
+    forced_turnover: 1.1,
+    dz_turnover: 1.1
+  };
+
+  const recent = [];
+  for(let i = state.events.length - 1; i >= 0; i--){
+    const ev = state.events[i];
+    if(!ev) continue;
+    if(!weightByType[ev.type]) continue;
+    recent.push(ev);
+    if(recent.length >= WINDOW_EVENTS) break;
+  }
+
+  let us = 0;
+  let them = 0;
+  for(const ev of recent){
+    const w = weightByType[ev.type] || 0;
+    if(!w) continue;
+
+    const side = classifyLiveEventSide(ev.type);
+    if(side === 'us') us += w;
+    else if(side === 'them') them += w;
+  }
+
+  const total = us + them;
+  const usPct = total > 0 ? Math.round((us / total) * 100) : 50;
+  const themPct = 100 - usPct;
+
+  let edge = 'even';
+  let text = 'Recent tilt is even';
+  if(usPct >= 58){
+    edge = 'us';
+    text = 'Recent tilt: us';
+  }else if(usPct <= 42){
+    edge = 'them';
+    text = 'Recent tilt: them';
+  }
+
+  return {
+    windowEvents: WINDOW_EVENTS,
+    eventCount: recent.length,
+    us: Math.round(us * 10) / 10,
+    them: Math.round(them * 10) / 10,
+    usPct,
+    themPct,
+    edge,
+    text
+  };
+}
+
 function buildLiveState() {
-  // Build a minimal state object for spectators (score, shots, period, key events)
+  // Build a compact state object for spectators (score, quality, momentum, key events)
+  const quality = computeLiveQualitySummary();
+  const momentum = computeLiveMomentumSummary();
+
+  const goalieScore = state.events.length ? computeGoalieScore().total : null;
+  const teamScore = state.events.length ? computeTeamScore().total : null;
+
+  const saves = Math.max(0, (state.countsA.shots || 0) - (state.countsA.goals || 0));
+  const svPct = state.countsA.shots ? Math.round((saves / state.countsA.shots) * 1000) / 10 : null;
+  const shotSharePct = (state.countsF.shots + state.countsA.shots)
+    ? Math.round((1000 * state.countsF.shots) / (state.countsF.shots + state.countsA.shots)) / 10
+    : null;
+
   const keyEvents = state.events
-    .filter(e => ['goal','soft_goal','for_goal','penalty_for','penalty_against'].includes(e.type))
-    .slice(-20)
+    .filter(e => [
+      'goal',
+      'soft_goal',
+      'for_goal',
+      'penalty_for',
+      'penalty_against',
+      'breakaway_for',
+      'breakaway_against',
+      'odd_man_rush_for',
+      'odd_man_rush_against',
+      'missed_chance_for',
+      'missed_chance_against',
+      'big_save',
+      'bad_rebound'
+    ].includes(e.type))
+    .slice(-24)
     .map(e => ({
+      id: e.id || null,
       type: e.type,
-      period: e.period,
-      time: e.time,
+      side: classifyLiveEventSide(e.type),
+      period: sanitizePeriod(e.period || state.period),
+      tISO: e.tISO || null,
+      timeLabel: e.tISO ? fmtTime(e.tISO) : '',
       player: e.player || null,
-      assist: e.assist || null
+      assist: e.assist || null,
+      strength: e.strength || null,
+      highDanger: !!e.highDanger
     }));
 
   return {
+    schema: 2,
+    updatedAt: new Date().toISOString(),
     opponent: state.opponent || 'Opponent',
     level: state.level || '',
     date: state.date || '',
@@ -3126,27 +3358,47 @@ function buildLiveState() {
     goalsAgainst: state.countsA.goals,
     shotsFor: state.countsF.shots,
     shotsAgainst: state.countsA.shots,
+    saves,
+    svPct,
+    shotSharePct,
+    goalieScore,
+    teamScore,
+    dangerFor: (state.team.breakawaysFor || 0) + (state.team.oddManRushFor || 0) + (state.team.forcedTurnovers || 0),
+    dangerAgainst: (state.team.breakawaysAgainst || 0) + (state.team.oddManRushAgainst || 0) + (state.team.dzTurnovers || 0),
+    missedFor: state.team.missedChancesFor || 0,
+    missedAgainst: state.team.missedChancesAgainst || 0,
     penaltiesFor: state.team.penaltiesFor || 0,
     penaltiesAgainst: state.team.penaltiesAgainst || 0,
+    quality,
+    momentum,
     events: keyEvents
   };
 }
 
 async function pushLiveState() {
-  if (_livePushPending || !state.shareCode) return;
+  if (!state.shareCode) return;
+  if (_livePushPending) {
+    _livePushQueued = true;
+    return;
+  }
+
   _livePushPending = true;
   try {
-    const uid = typeof window.getAuthUserId === 'function' ? window.getAuthUserId() : null;
-    await fetch('/api/live-game', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        share_code: state.shareCode,
-        game_id: state.gameId,
-        user_id: uid,
-        state: buildLiveState()
-      })
-    });
+    do {
+      _livePushQueued = false;
+      const uid = typeof window.getAuthUserId === 'function' ? window.getAuthUserId() : null;
+      const res = await fetch('/api/live-game', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          share_code: state.shareCode,
+          game_id: state.gameId,
+          user_id: uid,
+          state: buildLiveState()
+        })
+      });
+      if(!res.ok) throw new Error('live push failed');
+    } while (_livePushQueued && state.shareCode);
   } catch (_) { /* silent – spectators just see stale data briefly */ }
   _livePushPending = false;
 }
@@ -3243,4 +3495,3 @@ $('btnCopyShareLink').addEventListener('click', () => {
 $('btnStopShare').addEventListener('click', () => {
   showConfirm('Stop live sharing?').then(ok => { if (ok) stopLiveShare(); });
 });
-

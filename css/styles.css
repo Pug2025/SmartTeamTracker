@@ -67,13 +67,77 @@
     display:flex;
     justify-content:space-between;
     align-items:center;
-    padding:8px 14px;
+    padding:8px 14px 4px;
   }
   .top-row h1{
     font-size:18px;
     margin:0;
     font-weight:700;
     letter-spacing:-0.5px;
+  }
+  .top-title-group{
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .top-actions{
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .btn-icon{
+    width:28px;
+    height:28px;
+    border-radius:50%;
+    border:1px solid #444;
+    background:transparent;
+    color:#aaa;
+    font-size:13px;
+    font-weight:700;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    flex-shrink:0;
+    -webkit-tap-highlight-color:transparent;
+    transition:transform 0.08s;
+  }
+  .btn-icon:active{ transform:scale(0.9); }
+  .btn-icon-signout{
+    font-size:15px;
+    color:#666;
+    border-color:#333;
+  }
+  .top-toolbar{
+    display:flex;
+    gap:6px;
+    padding:0 14px 4px;
+  }
+  .toolbar-btn{
+    font-family:inherit;
+    font-size:11px;
+    font-weight:600;
+    padding:5px 10px;
+    border-radius:8px;
+    border:1px solid #333;
+    background:#1a1a1a;
+    color:#aaa;
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+    transition:transform 0.08s, opacity 0.1s;
+  }
+  .toolbar-btn:active{
+    transform:scale(0.97);
+    opacity:0.85;
+  }
+  .toolbar-btn-live{
+    border-color:#4caf50;
+    color:#4caf50;
+  }
+  .toolbar-btn-live-active{
+    background:#4caf50;
+    color:#000;
+    border-color:#4caf50;
   }
 
   .scoreboard-row{
@@ -272,14 +336,7 @@
     opacity:0.9;
   }
   .btn-edit-setup{
-    background:none;
-    border:none;
-    color:var(--muted);
-    font-size:12px;
-    text-decoration:underline;
-    padding:0;
-    margin:0;
-    cursor:pointer;
+    /* legacy — now handled by .toolbar-btn */
   }
 
   /* ===== Split Brain Controls ===== */
@@ -880,33 +937,13 @@
     border-color:var(--accent-them);
   }
 
-  /* Help button */
-  .btn-help{
-    width:28px;
-    height:28px;
-    border-radius:50%;
-    background:#222;
-    border:1px solid #444;
-    color:var(--muted);
-    font-size:14px;
-    font-weight:800;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    cursor:pointer;
-    -webkit-tap-highlight-color:transparent;
-    transition:transform 0.08s, border-color 0.3s;
-    flex-shrink:0;
-  }
-  .btn-help:active{
-    transform:scale(0.9);
-  }
+  /* Help button pulse (btn-icon is base style) */
   @keyframes help-pulse{
     0%{border-color:#444; box-shadow:0 0 0 0 rgba(77,163,255,0.4);}
     50%{border-color:var(--accent-us); box-shadow:0 0 8px 2px rgba(77,163,255,0.3);}
     100%{border-color:#444; box-shadow:0 0 0 0 rgba(77,163,255,0);}
   }
-  .btn-help.pulse{
+  .btn-icon.pulse{
     animation:help-pulse 2s ease-in-out infinite;
   }
 
@@ -1255,10 +1292,10 @@
 .live-share-banner{
   display:flex; align-items:center; gap:8px;
   background:#1a2e1a; border:1px solid #2d5a2d;
-  border-radius:8px; padding:6px 12px; margin:4px 0;
+  border-radius:8px; padding:5px 10px; margin:2px 14px 0;
   font-size:12px; color:#4caf50; font-weight:700;
 }
-.live-share-banner span:first-child{
+.live-badge{
   background:#4caf50; color:#000; padding:2px 6px;
   border-radius:4px; font-size:10px; letter-spacing:1px;
   animation: livePulse 2s infinite;
@@ -1267,22 +1304,16 @@
   0%,100%{ opacity:1; }
   50%{ opacity:0.5; }
 }
-.live-share-code{
-  font-family:monospace; font-size:16px; letter-spacing:2px;
-  color:#fff; flex:1;
-}
 .btn-copy-link{
   background:none; border:1px solid #4caf50; color:#4caf50;
   border-radius:6px; padding:4px 10px; font-size:11px;
   font-weight:700; cursor:pointer; font-family:inherit;
+  margin-left:auto;
 }
 .btn-stop-share{
   background:none; border:1px solid #ff453a; color:#ff453a;
   border-radius:6px; padding:4px 10px; font-size:11px;
   font-weight:700; cursor:pointer; font-family:inherit;
-}
-.btn-share-live{
-  border-color:#4caf50 !important; color:#4caf50 !important;
 }
 
 /* ===== Spectator View ===== */

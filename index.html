@@ -47,24 +47,25 @@
 <!-- Sticky Header -->
 <header class="sticky-header">
   <div class="top-row">
-    <div class="inlineRow">
+    <div class="top-title-group">
       <h1>Team Tracker</h1>
       <div class="pill" id="verPill">v—</div>
       <div class="pill" id="cloudStatus">Cloud: —</div>
     </div>
-    <div class="inlineRow">
-      <button class="btn-edit-setup" id="btnEditSetup" style="display:none;">Edit Info</button>
-      <button class="btn-std" id="btnRoster" style="font-size:11px; padding:6px 10px;">Roster</button>
-      <button class="btn-std btn-share-live" id="btnShareLive" style="display:none; font-size:11px; padding:6px 10px;">Share Live</button>
-      <button class="btn-help" id="btnHelp">?</button>
-      <button class="btn-std" id="btnSignOut" style="font-size:10px; padding:4px 8px; border-color:#555; color:#888;">Sign Out</button>
+    <div class="top-actions">
+      <button class="btn-icon" id="btnHelp" title="Help">?</button>
+      <button class="btn-icon btn-icon-signout" id="btnSignOut" title="Sign Out">&#x2192;</button>
     </div>
+  </div>
+  <div class="top-toolbar" id="gameToolbar" style="display:none;">
+    <button class="toolbar-btn" id="btnEditSetup">Edit Info</button>
+    <button class="toolbar-btn" id="btnRoster">Roster</button>
+    <button class="toolbar-btn toolbar-btn-live" id="btnShareLive">Share Live</button>
   </div>
 
   <!-- Live share banner (shown when sharing is active) -->
   <div id="liveShareBanner" class="live-share-banner" style="display:none;">
-    <span>LIVE</span>
-    <span id="liveShareCode" class="live-share-code"></span>
+    <span class="live-badge">LIVE</span>
     <button id="btnCopyShareLink" class="btn-copy-link">Copy Link</button>
     <button id="btnStopShare" class="btn-stop-share">Stop</button>
   </div>

@@ -1,1 +1,4 @@
 .claude/
+.env.local
+.dev-data.json
+*.log

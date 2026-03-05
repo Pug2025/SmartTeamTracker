@@ -445,8 +445,8 @@
       case 'penalty_against': return 'Penalty on us';
       case 'breakaway_for': return 'Our breakaway';
       case 'breakaway_against': return 'Their breakaway';
-      case 'odd_man_rush_for': return 'Our rush chance';
-      case 'odd_man_rush_against': return 'Their rush chance';
+      case 'odd_man_rush_for': return 'Odd-man rush for us';
+      case 'odd_man_rush_against': return 'Odd-man rush for them';
       case 'missed_chance_for': return 'Our big chance';
       case 'missed_chance_against': return 'Their big chance';
       case 'big_save': return 'Big save';

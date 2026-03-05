@@ -6,6 +6,8 @@ Serves static files and emulates the Vercel /api routes:
 - /api/save-game
 - /api/games
 - /api/live-game
+- /api/spectator-share
+- /api/spectator-preview
 
 Modes:
 - Supabase mode: when SUPABASE_URL and SUPABASE_ANON_KEY are set.
@@ -15,6 +17,7 @@ Modes:
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import os
 import threading
@@ -48,6 +51,156 @@ def load_env_file(path: Path) -> None:
 
 def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def safe_int(value: Any) -> int:
+    try:
+        return max(0, int(round(float(value))))
+    except (TypeError, ValueError):
+        return 0
+
+
+def period_label(value: Any) -> str:
+    try:
+        period = int(round(float(value)))
+    except (TypeError, ValueError):
+        return "LIVE"
+    if period <= 0:
+        return "LIVE"
+    if period <= 3:
+        return f"P{period}"
+    if period == 4:
+        return "OT"
+    return f"P{period}"
+
+
+def title_case(value: Any) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return "Opponent"
+    return " ".join(part[:1].upper() + part[1:].lower() for part in text.split())
+
+
+def build_share_model(snapshot: dict[str, Any] | None, code: str) -> dict[str, Any]:
+    state = snapshot.get("state") if isinstance(snapshot, dict) and isinstance(snapshot.get("state"), dict) else {}
+    opponent_raw = state.get("opponent") if isinstance(state.get("opponent"), str) else ""
+    opponent = title_case(opponent_raw)
+    goals_for = safe_int(state.get("goalsFor"))
+    goals_against = safe_int(state.get("goalsAgainst"))
+    period = period_label(state.get("period"))
+    updated_at = snapshot.get("updated_at") if isinstance(snapshot, dict) else None
+    version = str(updated_at or utc_now_iso()).replace(":", "").replace("-", "")
+    return {
+        "code": code,
+        "opponent": opponent,
+        "opponent_upper": str(opponent_raw or "Opponent").upper(),
+        "goals_for": goals_for,
+        "goals_against": goals_against,
+        "period": period,
+        "version": version,
+        "title": f"Live Spectator View: {opponent} vs Us",
+        "description": f"{period} • {opponent} {goals_against}, Us {goals_for} • Open the live spectator view.",
+    }
+
+
+def render_share_html(model: dict[str, Any], base_url: str) -> str:
+    code = quote(model.get("code") or "", safe="")
+    image_url = f"{base_url}/api/spectator-preview?live={code}&v={quote(model.get('version') or '0', safe='')}"
+    open_url = f"{base_url}/?live={code}" if code else f"{base_url}/"
+    title = html.escape(str(model.get("title") or "Live Spectator View"))
+    description = html.escape(str(model.get("description") or "Open the live spectator view."))
+    opponent = html.escape(str(model.get("opponent") or "Opponent"))
+    goals_against = html.escape(str(model.get("goals_against", 0)))
+    goals_for = html.escape(str(model.get("goals_for", 0)))
+    period = html.escape(str(model.get("period") or "LIVE"))
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>{title}</title>
+<meta name="theme-color" content="#07111b" />
+<meta name="description" content="{description}" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="SmartTeamTracker" />
+<meta property="og:title" content="{title}" />
+<meta property="og:description" content="{description}" />
+<meta property="og:url" content="{html.escape(f'{base_url}/api/spectator-share?live={code}')}" />
+<meta property="og:image" content="{html.escape(image_url)}" />
+<meta property="og:image:secure_url" content="{html.escape(image_url)}" />
+<meta property="og:image:type" content="image/svg+xml" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="{html.escape(f'{model.get("opponent") or "Opponent"} live spectator preview')}" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="{title}" />
+<meta name="twitter:description" content="{description}" />
+<meta name="twitter:image" content="{html.escape(image_url)}" />
+<style>
+  :root{{color-scheme:dark}}
+  body{{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(circle at 50% -10%, rgba(145,188,236,0.18), transparent 28%),linear-gradient(180deg,#08111b 0%,#04090f 100%);color:#f4f6fb;font-family:"Avenir Next","SF Pro Display",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}}
+  .card{{width:min(100%,520px);background:rgba(12,19,30,0.96);border:1px solid #27415d;border-radius:24px;padding:28px 24px 24px;box-shadow:0 24px 60px rgba(0,0,0,0.36),inset 0 1px 0 rgba(255,255,255,0.03);text-align:center}}
+  .eyebrow{{color:#8fe3ad;font-size:12px;font-weight:800;letter-spacing:3px;text-transform:uppercase}}
+  h1{{margin:14px 0 10px;font-size:32px;line-height:1.08;letter-spacing:-0.7px}}
+  p{{margin:0;color:#aab8cc;font-size:15px;line-height:1.5}}
+  .preview{{margin:22px auto 0;width:100%;border-radius:18px;border:1px solid rgba(135,155,187,0.16);overflow:hidden;background:#0a121d}}
+  .preview img{{display:block;width:100%;height:auto}}
+  .fallback{{margin-top:18px;font-size:14px}}
+  .fallback a{{color:#d8e6f6}}
+</style>
+</head>
+<body>
+  <main class="card">
+    <div class="eyebrow">Live Spectator View</div>
+    <h1>{opponent} {goals_against}-{goals_for} Us</h1>
+    <p>{period} • Opening the live spectator screen for this game.</p>
+    <div class="preview"><img src="{html.escape(image_url)}" alt="{html.escape(f'{model.get("opponent") or "Opponent"} spectator preview')}" /></div>
+    <div class="fallback"><a href="{html.escape(open_url)}">Open spectator view</a></div>
+  </main>
+  <script>window.location.replace({json.dumps(open_url)});</script>
+</body>
+</html>"""
+
+
+def render_preview_svg(model: dict[str, Any]) -> str:
+    opponent = html.escape(str(model.get("opponent") or "Opponent"))
+    opponent_upper = html.escape(str(model.get("opponent_upper") or "OPPONENT"))
+    period = html.escape(str(model.get("period") or "LIVE"))
+    goals_against = html.escape(str(model.get("goals_against", 0)))
+    goals_for = html.escape(str(model.get("goals_for", 0)))
+    title = html.escape(str(model.get("title") or "Live Spectator View"))
+    description = html.escape(str(model.get("description") or "Open the live spectator view."))
+    return f"""<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="{title}">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#08111b" />
+      <stop offset="100%" stop-color="#04090f" />
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="0%" r="70%">
+      <stop offset="0%" stop-color="#91bcec" stop-opacity="0.22" />
+      <stop offset="100%" stop-color="#91bcec" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)" />
+  <rect width="1200" height="630" fill="url(#glow)" />
+  <rect x="42" y="38" width="1116" height="554" rx="28" fill="#0f1825" stroke="#273b55" stroke-width="2" />
+  <rect x="92" y="329" width="302" height="6" rx="3" fill="#79d79a" />
+  <text x="92" y="110" fill="#8fe3ad" font-size="28" font-family="Avenir Next, SF Pro Display, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-weight="800" letter-spacing="4">LIVE SPECTATOR VIEW</text>
+  <text x="92" y="188" fill="#f4f6fb" font-size="64" font-family="Avenir Next, SF Pro Display, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-weight="800" letter-spacing="-1.5">{opponent_upper}</text>
+  <text x="92" y="250" fill="#aab8cc" font-size="30" font-family="Avenir Next, SF Pro Display, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-weight="600">{period}  |  LIVE SCORE</text>
+  <rect x="92" y="356" width="1016" height="144" rx="24" fill="#0a121d" stroke="#2a415f" stroke-width="2" />
+  <rect x="118" y="383" width="286" height="90" rx="20" fill="#1a1f26" stroke="#393d43" stroke-width="2" />
+  <rect x="447" y="383" width="306" height="90" rx="20" fill="#132031" stroke="#30455f" stroke-width="2" />
+  <rect x="796" y="383" width="286" height="90" rx="20" fill="#132031" stroke="#30455f" stroke-width="2" />
+  <text x="261" y="409" text-anchor="middle" fill="#bda99e" font-size="22" font-family="Avenir Next, SF Pro Display, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-weight="700" letter-spacing="2">THEM</text>
+  <text x="261" y="458" text-anchor="middle" fill="#f4f6fb" font-size="64" font-family="Avenir Next, SF Pro Display, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-weight="800">{goals_against}</text>
+  <text x="600" y="438" text-anchor="middle" fill="#d6dfed" font-size="42" font-family="Avenir Next, SF Pro Display, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-weight="800">{period}</text>
+  <text x="939" y="409" text-anchor="middle" fill="#b9c8d8" font-size="22" font-family="Avenir Next, SF Pro Display, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-weight="700" letter-spacing="2">US</text>
+  <text x="939" y="458" text-anchor="middle" fill="#f4f6fb" font-size="64" font-family="Avenir Next, SF Pro Display, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-weight="800">{goals_for}</text>
+  <text x="92" y="548" fill="#7f94b4" font-size="24" font-family="Avenir Next, SF Pro Display, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-weight="700" letter-spacing="2">SMARTTEAMTRACKER</text>
+  <title>{title}</title>
+  <desc>{description}</desc>
+</svg>"""
 
 
 class Backend:
@@ -352,6 +505,22 @@ class AppHandler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _send_body(self, status: int, body: bytes, content_type: str, cache_control: str = "no-store") -> None:
+        self.send_response(status)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Cache-Control", cache_control)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _base_url(self) -> str:
+        proto = self.headers.get("X-Forwarded-Proto", "http")
+        host = self.headers.get("Host", f"{self.server.server_name}:{self.server.server_port}")
+        return f"{proto}://{host}"
+
     def _read_json_body(self) -> dict[str, Any]:
         length_header = self.headers.get("Content-Length")
         if not length_header:
@@ -464,6 +633,35 @@ class AppHandler(SimpleHTTPRequestHandler):
                 return
 
             self._method_not_allowed()
+            return
+
+        if route == "/api/spectator-share":
+            if method != "GET":
+                self._method_not_allowed()
+                return
+            code = (query.get("live") or query.get("code") or [""])[0]
+            status, body = self.backend.get_live_game(code) if code else (200, {"game": None})
+            snapshot = body.get("game") if status == 200 and isinstance(body, dict) else None
+            model = build_share_model(snapshot, code)
+            document = render_share_html(model, self._base_url()).encode("utf-8")
+            self._send_body(200 if snapshot or not code else 404, document, "text/html; charset=utf-8")
+            return
+
+        if route == "/api/spectator-preview":
+            if method != "GET":
+                self._method_not_allowed()
+                return
+            code = (query.get("live") or query.get("code") or [""])[0]
+            status, body = self.backend.get_live_game(code) if code else (200, {"game": None})
+            snapshot = body.get("game") if status == 200 and isinstance(body, dict) else None
+            model = build_share_model(snapshot, code)
+            image = render_preview_svg(model).encode("utf-8")
+            self._send_body(
+                200 if snapshot or not code else 404,
+                image,
+                "image/svg+xml; charset=utf-8",
+                cache_control="no-store, max-age=0",
+            )
             return
 
         self._send_json(404, {"error": "Not Found"})

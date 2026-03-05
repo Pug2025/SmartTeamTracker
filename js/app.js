@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.2.2';
+const APP_VERSION = '6.2.3';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -3643,14 +3643,15 @@ $('btnShareLive').addEventListener('click', () => {
 
 $('btnCopyShareLink').addEventListener('click', () => {
   if (!state.shareCode) return;
-  const url = new URL('spectator-share.html', window.location.href);
+  const url = new URL('/api/spectator-share', window.location.origin);
   url.searchParams.set('live', state.shareCode);
-  navigator.clipboard.writeText(url).then(() => {
+  const shareUrl = String(url);
+  navigator.clipboard.writeText(shareUrl).then(() => {
     showStatusToast('Link copied!', 'success');
     showLiveShareBanner(2500);
   }).catch(() => {
     // Fallback: show the URL
-    showStatusToast(String(url), 'success', 6000);
+    showStatusToast(shareUrl, 'success', 6000);
   });
 });
 

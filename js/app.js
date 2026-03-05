@@ -110,15 +110,13 @@ function toggleSetup(showSetup){
   if(showSetup){
     $('setupContainer').style.display='block';
     $('gameControls').style.display='none';
-    $('btnEditSetup').style.display='none';
+    $('gameToolbar').style.display='none';
     $('btnUndo').style.display='none';
-    $('btnShareLive').style.display='none';
   } else {
     $('setupContainer').style.display='none';
     $('gameControls').style.display='block';
-    $('btnEditSetup').style.display='block';
+    $('gameToolbar').style.display='';
     $('btnUndo').style.display='flex';
-    $('btnShareLive').style.display='';
   }
 }
 $('btnStartGame').addEventListener('click', ()=>{
@@ -1897,7 +1895,7 @@ function endGame(){
 
   // === Show summary, hide game controls ===
   $('gameControls').style.display = 'none';
-  $('btnEditSetup').style.display = 'none';
+  $('gameToolbar').style.display = 'none';
   $('btnUndo').style.display = 'none';
   $('summaryPanel').classList.remove('hidden');
   window.scrollTo({top:0,behavior:'smooth'});
@@ -2655,13 +2653,16 @@ $('btnEnd').onclick=endGame;
 $('btnBackToGame').onclick=()=>{
   $('summaryPanel').classList.add('hidden');
   $('gameControls').style.display='block';
-  $('btnEditSetup').style.display='block';
+  $('gameToolbar').style.display='';
   $('btnUndo').style.display='flex';
 };
 
 $('btnReset').onclick=async()=>{
   const ok = await showConfirm('Clear current game and start fresh?');
   if(!ok) return;
+
+  // Stop live share if active
+  if(state.shareCode) stopLiveShare();
 
   // Hide "Resumed saved game" banner when starting a truly new game
   $('resumeBanner').classList.add('hidden');
@@ -2946,12 +2947,10 @@ async function startLiveShare() {
   state.shareCode = code;
   save();
 
-  // Show banner
+  // Show banner & update button state
   $('liveShareBanner').style.display = 'flex';
-  $('liveShareCode').textContent = code;
-  $('btnShareLive').textContent = 'Sharing…';
-  $('btnShareLive').style.background = '#4caf50';
-  $('btnShareLive').style.color = '#fff';
+  $('btnShareLive').textContent = 'Sharing';
+  $('btnShareLive').classList.add('toolbar-btn-live-active');
 
   // Initial push
   await pushLiveState();
@@ -2963,11 +2962,10 @@ async function stopLiveShare() {
   state.shareCode = null;
   save();
 
-  // Hide banner
+  // Hide banner & reset button state
   $('liveShareBanner').style.display = 'none';
   $('btnShareLive').textContent = 'Share Live';
-  $('btnShareLive').style.background = '';
-  $('btnShareLive').style.color = '';
+  $('btnShareLive').classList.remove('toolbar-btn-live-active');
 
   // Delete from server
   if (code) {

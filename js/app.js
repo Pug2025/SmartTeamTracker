@@ -1937,8 +1937,8 @@ function endGame(){
   gameData.gameId = state.gameId;
   saveGameToCloud(gameData);
 
-  // Stop live share if active
-  if(state.shareCode) stopLiveShare();
+  // Push final state to spectators (keeps the record so they see the final score)
+  if(state.shareCode) endLiveShare();
 }
 
 async function saveGameToCloud(game){
@@ -2957,6 +2957,41 @@ async function startLiveShare() {
   showStatusToast('Live share started! Code: ' + code, 'success', 4000);
 }
 
+async function endLiveShare() {
+  // Push final state so spectators see the final score, then clean up after 5 min
+  const code = state.shareCode;
+  if (!code) return;
+
+  // Push one last update with final flag
+  try {
+    const uid = typeof window.getAuthUserId === 'function' ? window.getAuthUserId() : null;
+    await fetch('/api/live-game', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        share_code: code,
+        game_id: state.gameId,
+        user_id: uid,
+        state: { ...buildLiveState(), final: true }
+      })
+    });
+  } catch (_) {}
+
+  // Clear local share state & UI
+  state.shareCode = null;
+  save();
+  $('liveShareBanner').style.display = 'none';
+  $('btnShareLive').textContent = 'Share Live';
+  $('btnShareLive').classList.remove('toolbar-btn-live-active');
+
+  // Delete the record after 5 minutes so spectators have time to see final score
+  setTimeout(async () => {
+    try {
+      await fetch(`/api/live-game?code=${encodeURIComponent(code)}`, { method: 'DELETE' });
+    } catch (_) {}
+  }, 5 * 60 * 1000);
+}
+
 async function stopLiveShare() {
   const code = state.shareCode;
   state.shareCode = null;
@@ -2967,7 +3002,7 @@ async function stopLiveShare() {
   $('btnShareLive').textContent = 'Share Live';
   $('btnShareLive').classList.remove('toolbar-btn-live-active');
 
-  // Delete from server
+  // Delete from server immediately (manual stop = no need to linger)
   if (code) {
     try {
       await fetch(`/api/live-game?code=${encodeURIComponent(code)}`, { method: 'DELETE' });

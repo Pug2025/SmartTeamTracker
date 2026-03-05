@@ -93,18 +93,20 @@ export function buildShareModel(snapshot, code) {
   const period = periodLabel(state.period);
   const updatedAt = snapshot && snapshot.updated_at ? snapshot.updated_at : null;
   const version = updatedAt ? Date.parse(updatedAt) || Date.now() : Date.now();
+  const titleOpponent = truncateText(opponent, 24);
 
   return {
     code,
     opponent,
     opponentUpper: clampLabel(sanitizeForFont(opponentRaw).toUpperCase() || "OPPONENT", 22),
+    opponentShort: clampLabel(sanitizeForFont(opponentRaw).toUpperCase() || "OPPONENT", 14),
     goalsFor,
     goalsAgainst,
     period,
     updatedAt,
     version,
-    title: `Live Spectator View: ${opponent} vs Us`,
-    description: `${period} • ${opponent} ${goalsAgainst}, Us ${goalsFor} • Open the live spectator view.`
+    title: `Live vs ${titleOpponent} | ${goalsAgainst}-${goalsFor}`,
+    description: `Spectator view | ${period}`
   };
 }
 
@@ -153,9 +155,9 @@ export function renderShareHtml({ model, baseUrl }) {
 </head>
 <body>
   <main class="card">
-    <div class="eyebrow">Live Spectator View</div>
-    <h1>${escapeHtml(model.opponent)} ${model.goalsAgainst}-${model.goalsFor} Us</h1>
-    <p>${escapeHtml(model.period)} • Opening the live spectator screen for this game.</p>
+    <div class="eyebrow">Live Game</div>
+    <h1>Live vs ${escapeHtml(model.opponent)}</h1>
+    <p>${escapeHtml(model.goalsAgainst)}-${escapeHtml(model.goalsFor)} in ${escapeHtml(model.period)}</p>
     <div class="preview"><img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(`${model.opponent} spectator preview`)}" /></div>
     <div class="fallback"><a href="${escapeHtml(openUrl)}">Open spectator view</a></div>
   </main>
@@ -167,39 +169,49 @@ export function renderShareHtml({ model, baseUrl }) {
 export function renderPreviewPng(model) {
   const width = 1200;
   const height = 630;
-  const pixels = Buffer.alloc(width * height * 4);
+  const aa = 2;
+  const hiWidth = width * aa;
+  const hiHeight = height * aa;
+  const pixels = Buffer.alloc(hiWidth * hiHeight * 4);
+  const s = (value) => Math.round(value * aa);
+  const spacing = aa * 2;
 
-  fillVerticalGradient(pixels, width, height, [8, 17, 27, 255], [4, 9, 15, 255]);
-  fillRect(pixels, width, height, 42, 38, 1116, 554, [15, 24, 37, 255]);
-  strokeRect(pixels, width, height, 42, 38, 1116, 554, [39, 59, 88, 255], 2);
-  fillRect(pixels, width, height, 92, 330, 300, 6, [121, 215, 155, 255]);
+  fillVerticalGradient(pixels, hiWidth, hiHeight, [6, 11, 18, 255], [2, 5, 10, 255]);
+  fillRect(pixels, hiWidth, hiHeight, 0, 0, hiWidth, s(176), [8, 15, 24, 255]);
+  fillRect(pixels, hiWidth, hiHeight, s(56), s(44), s(1088), s(542), [10, 17, 27, 255]);
+  strokeRect(pixels, hiWidth, hiHeight, s(56), s(44), s(1088), s(542), [33, 52, 79, 255], s(2));
 
-  drawText(pixels, width, height, "LIVE SPECTATOR VIEW", 92, 110, 4, [143, 227, 173, 255], 2);
-  const opponentScale = pickScale(model.opponentUpper, 980, 11, 6);
-  drawText(pixels, width, height, model.opponentUpper, 92, 180, opponentScale, [245, 247, 251, 255], 2);
-  drawText(pixels, width, height, `${model.period} | LIVE SCORE`, 92, 252, 4, [176, 189, 209, 255], 2);
+  fillCircle(pixels, hiWidth, hiHeight, s(106), s(106), s(9), [121, 215, 155, 255]);
+  drawText(pixels, hiWidth, hiHeight, "LIVE", s(130), s(90), s(4), [143, 227, 173, 255], spacing);
+  drawCenteredText(pixels, hiWidth, hiHeight, "LIVE SCORE", s(600), s(90), s(4), [188, 199, 215, 255], spacing);
+  drawText(pixels, hiWidth, hiHeight, "SMARTTEAMTRACKER", s(820), s(92), s(3), [112, 128, 149, 255], spacing);
 
-  fillRect(pixels, width, height, 92, 356, 1016, 144, [10, 18, 29, 255]);
-  strokeRect(pixels, width, height, 92, 356, 1016, 144, [42, 65, 94, 255], 2);
+  fillRect(pixels, hiWidth, hiHeight, s(952), s(78), s(136), s(66), [18, 28, 43, 255]);
+  strokeRect(pixels, hiWidth, hiHeight, s(952), s(78), s(136), s(66), [52, 73, 103, 255], s(2));
+  drawCenteredText(pixels, hiWidth, hiHeight, model.period, s(1020), s(96), s(5), [241, 244, 249, 255], spacing);
 
-  fillRect(pixels, width, height, 118, 383, 286, 90, [22, 26, 33, 255]);
-  strokeRect(pixels, width, height, 118, 383, 286, 90, [58, 61, 67, 255], 2);
-  fillRect(pixels, width, height, 447, 383, 306, 90, [18, 26, 38, 255]);
-  strokeRect(pixels, width, height, 447, 383, 306, 90, [48, 69, 95, 255], 2);
-  fillRect(pixels, width, height, 796, 383, 286, 90, [16, 26, 39, 255]);
-  strokeRect(pixels, width, height, 796, 383, 286, 90, [48, 69, 95, 255], 2);
+  fillRect(pixels, hiWidth, hiHeight, s(96), s(164), s(1008), s(314), [8, 13, 20, 255]);
+  strokeRect(pixels, hiWidth, hiHeight, s(96), s(164), s(1008), s(314), [35, 54, 82, 255], s(2));
+  fillRect(pixels, hiWidth, hiHeight, s(124), s(194), s(306), s(250), [22, 27, 34, 255]);
+  strokeRect(pixels, hiWidth, hiHeight, s(124), s(194), s(306), s(250), [57, 61, 68, 255], s(2));
+  fillRect(pixels, hiWidth, hiHeight, s(462), s(224), s(276), s(88), [18, 28, 42, 255]);
+  strokeRect(pixels, hiWidth, hiHeight, s(462), s(224), s(276), s(88), [48, 70, 98, 255], s(2));
+  fillRect(pixels, hiWidth, hiHeight, s(770), s(194), s(306), s(250), [17, 27, 40, 255]);
+  strokeRect(pixels, hiWidth, hiHeight, s(770), s(194), s(306), s(250), [48, 70, 98, 255], s(2));
 
-  drawCenteredText(pixels, width, height, "THEM", 261, 406, 3, [189, 169, 158, 255], 1);
-  drawCenteredText(pixels, width, height, String(model.goalsAgainst), 261, 427, 9, [244, 246, 251, 255], 2);
+  const opponentScale = pickScale(model.opponentShort, s(250), s(4), s(2), spacing);
+  drawCenteredText(pixels, hiWidth, hiHeight, model.opponentShort, s(277), s(220), opponentScale, [194, 178, 167, 255], spacing);
+  drawCenteredText(pixels, hiWidth, hiHeight, "US", s(923), s(220), s(4), [191, 206, 222, 255], spacing);
 
-  drawCenteredText(pixels, width, height, model.period, 600, 428, 5, [214, 223, 237, 255], 2);
+  drawCenteredText(pixels, hiWidth, hiHeight, String(model.goalsAgainst), s(277), s(270), s(18), [244, 246, 251, 255], spacing);
+  drawCenteredText(pixels, hiWidth, hiHeight, String(model.goalsFor), s(923), s(270), s(18), [244, 246, 251, 255], spacing);
+  drawCenteredText(pixels, hiWidth, hiHeight, model.period, s(600), s(246), s(7), [224, 232, 243, 255], spacing);
 
-  drawCenteredText(pixels, width, height, "US", 939, 406, 3, [185, 200, 216, 255], 1);
-  drawCenteredText(pixels, width, height, String(model.goalsFor), 939, 427, 9, [244, 246, 251, 255], 2);
+  const detailLine = pickScale("TAP FOR LIVE UPDATES", s(370), s(3), s(2), spacing);
+  drawText(pixels, hiWidth, hiHeight, "TAP FOR LIVE UPDATES", s(98), s(520), detailLine, [125, 146, 176, 255], spacing);
+  fillRect(pixels, hiWidth, hiHeight, s(98), s(492), s(220), s(4), [121, 215, 155, 255]);
 
-  drawText(pixels, width, height, "SMARTTEAMTRACKER", 92, 548, 4, [127, 148, 180, 255], 2);
-
-  return encodePng(width, height, pixels);
+  return encodePng(width, height, downsampleRgba(pixels, hiWidth, hiHeight, aa));
 }
 
 function safeNum(value) {
@@ -236,9 +248,15 @@ function clampLabel(value, maxChars) {
   return `${value.slice(0, Math.max(0, maxChars - 3)).trim()}...`;
 }
 
-function pickScale(text, maxWidth, preferred, min) {
+function truncateText(value, maxChars) {
+  const text = String(value || "").trim();
+  if (text.length <= maxChars) return text;
+  return `${text.slice(0, Math.max(0, maxChars - 3)).trim()}...`;
+}
+
+function pickScale(text, maxWidth, preferred, min, spacing = 2) {
   for (let scale = preferred; scale >= min; scale -= 1) {
-    if (measureText(text, scale, 2) <= maxWidth) return scale;
+    if (measureText(text, scale, spacing) <= maxWidth) return scale;
   }
   return min;
 }
@@ -300,6 +318,56 @@ function strokeRect(pixels, width, height, x, y, rectWidth, rectHeight, color, t
   fillRect(pixels, width, height, x, y + rectHeight - thickness, rectWidth, thickness, color);
   fillRect(pixels, width, height, x, y, thickness, rectHeight, color);
   fillRect(pixels, width, height, x + rectWidth - thickness, y, thickness, rectHeight, color);
+}
+
+function fillCircle(pixels, width, height, centerX, centerY, radius, color) {
+  const rSquared = radius * radius;
+  const startX = Math.max(0, Math.floor(centerX - radius));
+  const endX = Math.min(width, Math.ceil(centerX + radius));
+  const startY = Math.max(0, Math.floor(centerY - radius));
+  const endY = Math.min(height, Math.ceil(centerY + radius));
+  for (let py = startY; py < endY; py += 1) {
+    for (let px = startX; px < endX; px += 1) {
+      const dx = px - centerX;
+      const dy = py - centerY;
+      if ((dx * dx) + (dy * dy) > rSquared) continue;
+      const idx = (py * width + px) * 4;
+      pixels[idx] = color[0];
+      pixels[idx + 1] = color[1];
+      pixels[idx + 2] = color[2];
+      pixels[idx + 3] = color[3];
+    }
+  }
+}
+
+function downsampleRgba(source, srcWidth, srcHeight, factor) {
+  const width = Math.floor(srcWidth / factor);
+  const height = Math.floor(srcHeight / factor);
+  const out = Buffer.alloc(width * height * 4);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      let r = 0;
+      let g = 0;
+      let b = 0;
+      let a = 0;
+      for (let oy = 0; oy < factor; oy += 1) {
+        for (let ox = 0; ox < factor; ox += 1) {
+          const srcIndex = (((y * factor) + oy) * srcWidth + ((x * factor) + ox)) * 4;
+          r += source[srcIndex];
+          g += source[srcIndex + 1];
+          b += source[srcIndex + 2];
+          a += source[srcIndex + 3];
+        }
+      }
+      const samples = factor * factor;
+      const dstIndex = (y * width + x) * 4;
+      out[dstIndex] = Math.round(r / samples);
+      out[dstIndex + 1] = Math.round(g / samples);
+      out[dstIndex + 2] = Math.round(b / samples);
+      out[dstIndex + 3] = Math.round(a / samples);
+    }
+  }
+  return out;
 }
 
 function encodePng(width, height, rgba) {

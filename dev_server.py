@@ -81,6 +81,13 @@ def title_case(value: Any) -> str:
     return " ".join(part[:1].upper() + part[1:].lower() for part in text.split())
 
 
+def truncate_text(value: Any, max_chars: int) -> str:
+    text = str(value or "").strip()
+    if len(text) <= max_chars:
+        return text
+    return f"{text[: max(0, max_chars - 3)].strip()}..."
+
+
 def build_share_model(snapshot: dict[str, Any] | None, code: str) -> dict[str, Any]:
     state = snapshot.get("state") if isinstance(snapshot, dict) and isinstance(snapshot.get("state"), dict) else {}
     opponent_raw = state.get("opponent") if isinstance(state.get("opponent"), str) else ""
@@ -94,12 +101,13 @@ def build_share_model(snapshot: dict[str, Any] | None, code: str) -> dict[str, A
         "code": code,
         "opponent": opponent,
         "opponent_upper": str(opponent_raw or "Opponent").upper(),
+        "opponent_short": truncate_text(str(opponent_raw or "Opponent").upper(), 14),
         "goals_for": goals_for,
         "goals_against": goals_against,
         "period": period,
         "version": version,
-        "title": f"Live Spectator View: {opponent} vs Us",
-        "description": f"{period} • {opponent} {goals_against}, Us {goals_for} • Open the live spectator view.",
+        "title": f"Live vs {truncate_text(opponent, 24)} | {goals_against}-{goals_for}",
+        "description": f"Spectator view | {period}",
     }
 
 
@@ -151,9 +159,9 @@ def render_share_html(model: dict[str, Any], base_url: str) -> str:
 </head>
 <body>
   <main class="card">
-    <div class="eyebrow">Live Spectator View</div>
-    <h1>{opponent} {goals_against}-{goals_for} Us</h1>
-    <p>{period} • Opening the live spectator screen for this game.</p>
+    <div class="eyebrow">Live Game</div>
+    <h1>Live vs {opponent}</h1>
+    <p>{goals_against}-{goals_for} in {period}</p>
     <div class="preview"><img src="{html.escape(image_url)}" alt="{html.escape(f'{model.get("opponent") or "Opponent"} spectator preview')}" /></div>
     <div class="fallback"><a href="{html.escape(open_url)}">Open spectator view</a></div>
   </main>
@@ -164,7 +172,7 @@ def render_share_html(model: dict[str, Any], base_url: str) -> str:
 
 def render_preview_svg(model: dict[str, Any]) -> str:
     opponent = html.escape(str(model.get("opponent") or "Opponent"))
-    opponent_upper = html.escape(str(model.get("opponent_upper") or "OPPONENT"))
+    opponent_short = html.escape(str(model.get("opponent_short") or "OPPONENT"))
     period = html.escape(str(model.get("period") or "LIVE"))
     goals_against = html.escape(str(model.get("goals_against", 0)))
     goals_for = html.escape(str(model.get("goals_for", 0)))
@@ -173,31 +181,37 @@ def render_preview_svg(model: dict[str, Any]) -> str:
     return f"""<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="{title}">
   <defs>
     <linearGradient id="bg" x1="0" x2="0" y1="0" y2="1">
-      <stop offset="0%" stop-color="#08111b" />
-      <stop offset="100%" stop-color="#04090f" />
+      <stop offset="0%" stop-color="#060b12" />
+      <stop offset="100%" stop-color="#02050a" />
     </linearGradient>
-    <radialGradient id="glow" cx="50%" cy="0%" r="70%">
-      <stop offset="0%" stop-color="#91bcec" stop-opacity="0.22" />
-      <stop offset="100%" stop-color="#91bcec" stop-opacity="0" />
+    <linearGradient id="topBand" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0%" stop-color="#0a1420" />
+      <stop offset="100%" stop-color="#0b1624" />
     </radialGradient>
   </defs>
   <rect width="1200" height="630" fill="url(#bg)" />
-  <rect width="1200" height="630" fill="url(#glow)" />
-  <rect x="42" y="38" width="1116" height="554" rx="28" fill="#0f1825" stroke="#273b55" stroke-width="2" />
-  <rect x="92" y="329" width="302" height="6" rx="3" fill="#79d79a" />
-  <text x="92" y="110" fill="#8fe3ad" font-size="28" font-family="Avenir Next, SF Pro Display, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-weight="800" letter-spacing="4">LIVE SPECTATOR VIEW</text>
-  <text x="92" y="188" fill="#f4f6fb" font-size="64" font-family="Avenir Next, SF Pro Display, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-weight="800" letter-spacing="-1.5">{opponent_upper}</text>
-  <text x="92" y="250" fill="#aab8cc" font-size="30" font-family="Avenir Next, SF Pro Display, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-weight="600">{period}  |  LIVE SCORE</text>
-  <rect x="92" y="356" width="1016" height="144" rx="24" fill="#0a121d" stroke="#2a415f" stroke-width="2" />
-  <rect x="118" y="383" width="286" height="90" rx="20" fill="#1a1f26" stroke="#393d43" stroke-width="2" />
-  <rect x="447" y="383" width="306" height="90" rx="20" fill="#132031" stroke="#30455f" stroke-width="2" />
-  <rect x="796" y="383" width="286" height="90" rx="20" fill="#132031" stroke="#30455f" stroke-width="2" />
-  <text x="261" y="409" text-anchor="middle" fill="#bda99e" font-size="22" font-family="Avenir Next, SF Pro Display, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-weight="700" letter-spacing="2">THEM</text>
-  <text x="261" y="458" text-anchor="middle" fill="#f4f6fb" font-size="64" font-family="Avenir Next, SF Pro Display, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-weight="800">{goals_against}</text>
-  <text x="600" y="438" text-anchor="middle" fill="#d6dfed" font-size="42" font-family="Avenir Next, SF Pro Display, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-weight="800">{period}</text>
-  <text x="939" y="409" text-anchor="middle" fill="#b9c8d8" font-size="22" font-family="Avenir Next, SF Pro Display, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-weight="700" letter-spacing="2">US</text>
-  <text x="939" y="458" text-anchor="middle" fill="#f4f6fb" font-size="64" font-family="Avenir Next, SF Pro Display, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-weight="800">{goals_for}</text>
-  <text x="92" y="548" fill="#7f94b4" font-size="24" font-family="Avenir Next, SF Pro Display, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-weight="700" letter-spacing="2">SMARTTEAMTRACKER</text>
+  <rect x="0" y="0" width="1200" height="180" fill="url(#topBand)" />
+  <rect x="56" y="44" width="1088" height="542" rx="30" fill="#0a111b" stroke="#213450" stroke-width="2" />
+  <circle cx="106" cy="106" r="10" fill="#79d79a" />
+  <text x="132" y="114" fill="#8fe3ad" font-size="28" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-weight="800" letter-spacing="4">LIVE</text>
+  <text x="600" y="114" text-anchor="middle" fill="#bcc7d7" font-size="28" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-weight="700" letter-spacing="4">LIVE SCORE</text>
+  <text x="1084" y="114" text-anchor="end" fill="#70829a" font-size="22" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-weight="700" letter-spacing="2">SMARTTEAMTRACKER</text>
+  <rect x="952" y="78" width="136" height="66" rx="18" fill="#111b2a" stroke="#334967" stroke-width="2" />
+  <text x="1020" y="120" text-anchor="middle" fill="#f1f4f9" font-size="34" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-weight="800">{period}</text>
+
+  <rect x="96" y="164" width="1008" height="314" rx="24" fill="#080d14" stroke="#233652" stroke-width="2" />
+  <rect x="124" y="194" width="306" height="250" rx="22" fill="#171c23" stroke="#393e45" stroke-width="2" />
+  <rect x="462" y="224" width="276" height="88" rx="22" fill="#121b29" stroke="#304662" stroke-width="2" />
+  <rect x="770" y="194" width="306" height="250" rx="22" fill="#111b28" stroke="#304662" stroke-width="2" />
+
+  <text x="277" y="232" text-anchor="middle" fill="#c2b2a7" font-size="28" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-weight="700" letter-spacing="1">{opponent_short}</text>
+  <text x="923" y="232" text-anchor="middle" fill="#bfd0de" font-size="28" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-weight="700" letter-spacing="2">US</text>
+  <text x="277" y="380" text-anchor="middle" fill="#f4f6fb" font-size="136" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-weight="800">{goals_against}</text>
+  <text x="923" y="380" text-anchor="middle" fill="#f4f6fb" font-size="136" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-weight="800">{goals_for}</text>
+  <text x="600" y="280" text-anchor="middle" fill="#e1e8f2" font-size="48" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-weight="800">{period}</text>
+
+  <rect x="98" y="492" width="220" height="4" rx="2" fill="#79d79a" />
+  <text x="98" y="536" fill="#7d92b1" font-size="24" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-weight="700" letter-spacing="2">TAP FOR LIVE UPDATES</text>
   <title>{title}</title>
   <desc>{description}</desc>
 </svg>"""

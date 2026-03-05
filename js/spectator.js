@@ -524,8 +524,13 @@
   function pulseScore(id) {
     const el = $(id);
     if (!el) return;
-    el.style.transform = 'scale(1.12)';
-    setTimeout(() => { el.style.transform = ''; }, 220);
+    const flashClass = id === 'specGF' ? 'score-flash-us' : 'score-flash-them';
+    el.classList.remove('score-bump', 'score-flash-us', 'score-flash-them');
+    void el.offsetWidth;
+    el.classList.add('score-bump', flashClass);
+    setTimeout(() => {
+      el.classList.remove('score-bump', flashClass);
+    }, 520);
   }
 
   function toNum(v) {

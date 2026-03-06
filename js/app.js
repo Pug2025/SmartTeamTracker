@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.2.6';
+const APP_VERSION = '6.2.7';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -99,12 +99,6 @@ function sanitizePeriod(v){
   if(!Number.isInteger(n)) return 1;
   return Math.min(MAX_PERIOD, Math.max(1, n));
 }
-function formatDisplayDate(ymd){
-  const safe = sanitizeDateInput(ymd || getLocalTodayYMD());
-  const [y, m, d] = safe.split('-').map(Number);
-  const dt = new Date(y, (m || 1) - 1, d || 1);
-  return dt.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
-}
 function getActiveTeamSafe(){
   try{
     const TM = getTeamManager();
@@ -149,7 +143,6 @@ function updateHeaderContext(){
   }
 }
 function updateSetupReadiness(){
-  const summary = $('setupSummary');
   const requirement = $('setupRequirement');
   const startBtn = $('btnStartGame');
   const historyBtn = $('btnHistory');
@@ -157,23 +150,17 @@ function updateSetupReadiness(){
   const levelDisplay = $('levelDisplay');
   const setupChip = $('setupChip');
 
-  if(!summary || !requirement || !startBtn || !historyBtn || !seasonBtn || !levelDisplay) return;
+  if(!requirement || !startBtn || !historyBtn || !seasonBtn || !levelDisplay) return;
 
   const { team, opponent, ready } = getStartGameReadiness();
-  const dateText = formatDisplayDate(($('date') && $('date').value) || state.date || getLocalTodayYMD());
-  const rosterCount = team && Array.isArray(team.roster) ? team.roster.length : 0;
 
   if(team){
-    summary.textContent = opponent
-      ? `${team.name} • ${team.level || 'U11'} • vs ${opponent} • ${dateText}`
-      : `${team.name} • ${team.level || 'U11'} • ${rosterCount} player${rosterCount === 1 ? '' : 's'} ready`;
     requirement.textContent = ready
       ? 'Everything is set. Start tracking when the game begins.'
       : 'Enter the opponent name to unlock Start Game.';
     levelDisplay.textContent = team.level || 'U11';
     levelDisplay.classList.remove('empty');
   } else {
-    summary.textContent = 'Add your team first. Team selection is required for roster, level, and season tracking.';
     requirement.textContent = 'Add a team, then enter the opponent to start.';
     levelDisplay.textContent = 'Add a team to set level';
     levelDisplay.classList.add('empty');

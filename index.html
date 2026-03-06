@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Team Tracker</title>
-<link rel="stylesheet" href="css/styles.css?v=6.2.20">
+<link rel="stylesheet" href="css/styles.css?v=6.3.0">
 <link rel="stylesheet" href="css/auth.css?v=6.2.7">
 </head>
 <body>
@@ -141,7 +141,20 @@
       <div class="setup-fields">
         <div class="input-group setup-field-span">
           <label for="opponent">Opponent Name</label>
-          <input id="opponent" placeholder="e.g. Napanee Stars" autocomplete="off">
+          <input id="opponent" list="opponentSuggestions" placeholder="e.g. Napanee Stars" autocomplete="off">
+          <datalist id="opponentSuggestions"></datalist>
+          <div id="opponentQuickWrap" class="opponent-quick-wrap hidden">
+            <div class="opponent-quick-label">Saved Opponents</div>
+            <div id="opponentQuickList" class="opponent-quick-list"></div>
+          </div>
+          <div id="matchupInsight" class="matchup-card hidden">
+            <div class="matchup-head">
+              <div class="matchup-eyebrow">Head To Head</div>
+              <div id="matchupRecord" class="matchup-record">0W – 0L</div>
+            </div>
+            <div id="matchupSummary" class="matchup-summary"></div>
+            <div id="matchupScores" class="matchup-scores"></div>
+          </div>
         </div>
         <!-- Level is now set per-team in the team manager. Keep the select for state, but show a read-only display in setup. -->
         <div class="input-group hidden" id="levelGroup">
@@ -624,7 +637,7 @@
 
     <div class="help-section">
       <h3>Getting Started</h3>
-      <p>Select your team, enter the opponent name, confirm the date, and tap <strong>Start Game</strong>. Team level comes from the selected team, so you only need to set it once in <strong>Manage Teams</strong>. The period selector at the top lets you switch periods &mdash; tap <strong>Next Period</strong> between periods to advance.</p>
+      <p>Select your team, enter the opponent name, confirm the date, and tap <strong>Start Game</strong>. Team level comes from the selected team, so you only need to set it once in <strong>Manage Teams</strong>. Saved opponents appear under the opponent field for quick reuse, and picking one shows your head-to-head record and recent scores automatically. The period selector at the top lets you switch periods &mdash; tap <strong>Next Period</strong> between periods to advance.</p>
     </div>
 
     <hr class="help-divider">
@@ -846,6 +859,6 @@
 <script src="js/spectator.js?v=6.2.12"></script>
 <script type="module" src="js/auth.js?v=6.2.7"></script>
 <script src="js/teams.js?v=6.2.7"></script>
-<script src="js/app.js?v=6.2.20"></script>
+<script src="js/app.js?v=6.3.0"></script>
 </body>
 </html>

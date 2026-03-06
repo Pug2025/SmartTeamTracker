@@ -599,6 +599,110 @@
   .setup-field-span{
     grid-column:1 / -1;
   }
+  .opponent-quick-wrap{
+    margin-top:10px;
+  }
+  .opponent-quick-label{
+    margin-bottom:6px;
+    font-size:10px;
+    font-weight:800;
+    letter-spacing:0.9px;
+    text-transform:uppercase;
+    color:#7e8b99;
+  }
+  .opponent-quick-list{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .opponent-quick-btn{
+    border:none;
+    border-radius:999px;
+    padding:8px 12px;
+    background:rgba(255,255,255,0.05);
+    color:#d7e3ef;
+    font-size:13px;
+    font-weight:700;
+    cursor:pointer;
+    font-family:inherit;
+    transition:background 0.15s ease, color 0.15s ease, transform 0.08s ease;
+  }
+  .opponent-quick-btn:hover{
+    background:rgba(77,163,255,0.16);
+    color:#fff;
+  }
+  .opponent-quick-btn:active{
+    transform:scale(0.97);
+  }
+  .opponent-quick-btn.selected{
+    background:rgba(77,163,255,0.22);
+    color:#dff0ff;
+    box-shadow:inset 0 0 0 1px rgba(77,163,255,0.28);
+  }
+  .matchup-card{
+    margin-top:12px;
+    padding:14px 15px;
+    border-radius:16px;
+    border:1px solid rgba(255,255,255,0.08);
+    background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+  }
+  .matchup-head{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:12px;
+  }
+  .matchup-eyebrow{
+    font-size:10px;
+    font-weight:800;
+    letter-spacing:0.9px;
+    text-transform:uppercase;
+    color:#7e8b99;
+  }
+  .matchup-record{
+    font-size:18px;
+    font-weight:800;
+    letter-spacing:-0.4px;
+    color:#fff;
+  }
+  .matchup-summary{
+    margin-top:6px;
+    font-size:13px;
+    color:#9aa6b2;
+    line-height:1.4;
+  }
+  .matchup-scores{
+    margin-top:10px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .matchup-score-pill{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:7px 10px;
+    border-radius:999px;
+    background:rgba(0,0,0,0.24);
+    border:1px solid rgba(255,255,255,0.06);
+    color:#e6edf5;
+    font-size:12px;
+    font-weight:700;
+  }
+  .matchup-score-pill .res{
+    font-size:10px;
+    font-weight:800;
+    letter-spacing:0.5px;
+    text-transform:uppercase;
+    color:#98a8b9;
+  }
+  .matchup-score-pill.w .res{ color:var(--good); }
+  .matchup-score-pill.l .res{ color:var(--accent-them); }
+  .matchup-score-pill.t .res{ color:var(--warn); }
+  .matchup-empty{
+    color:#708193;
+    font-size:12px;
+  }
   .setup-toggle-row{
     display:flex;
     align-items:center;
@@ -2383,6 +2487,19 @@
     margin-top:10px;
     font-size:12px;
   }
+  .matchup-card{
+    padding:12px 13px;
+  }
+  .matchup-record{
+    font-size:16px;
+  }
+  .matchup-summary{
+    font-size:12px;
+  }
+  .opponent-quick-btn{
+    font-size:12px;
+    padding:7px 11px;
+  }
   .setup-tertiary{
     margin-top:12px;
     gap:18px;
@@ -2452,6 +2569,37 @@
   }
   .team-selector-row{
     gap:8px;
+  }
+  .opponent-quick-list{
+    gap:6px;
+  }
+  .opponent-quick-btn{
+    font-size:11px;
+    padding:6px 10px;
+  }
+  .matchup-card{
+    margin-top:10px;
+    padding:11px 12px;
+  }
+  .matchup-head{
+    flex-direction:column;
+    align-items:flex-start;
+    gap:3px;
+  }
+  .matchup-record{
+    font-size:15px;
+  }
+  .matchup-summary{
+    margin-top:5px;
+    font-size:11px;
+  }
+  .matchup-scores{
+    margin-top:8px;
+    gap:6px;
+  }
+  .matchup-score-pill{
+    padding:6px 9px;
+    font-size:11px;
   }
   .btn-manage-teams{
     padding:11px 13px !important;

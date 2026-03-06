@@ -10,7 +10,7 @@ export default async function handler(req, res) {
 
   if (req.method === "GET") {
     try {
-      const limit = Math.min(Number(req.query.limit) || 50, 100);
+      const limit = Math.min(Number(req.query.limit) || 50, 500);
       const userId = req.query.user_id || null;
 
       // Build query URL — filter by user_id if provided

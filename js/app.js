@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.2.20';
+const APP_VERSION = '6.3.0';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -112,6 +112,21 @@ function syncSetupDateField(v){
   if(display) display.textContent = formatSetupDate(safe);
   return safe;
 }
+function normalizeOpponentName(value){
+  return String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+function cleanOpponentName(value){
+  return String(value || '').trim().replace(/\s+/g, ' ');
+}
+function escapeHTML(value){
+  return String(value || '').replace(/[&<>"']/g, (ch) => (
+    ch === '&' ? '&amp;'
+    : ch === '<' ? '&lt;'
+    : ch === '>' ? '&gt;'
+    : ch === '"' ? '&quot;'
+    : '&#39;'
+  ));
+}
 function sanitizePeriod(v){
   const n = Number(v);
   if(!Number.isInteger(n)) return 1;
@@ -217,6 +232,13 @@ const state = {
 };
 
 let per = {1:initP(),2:initP(),3:initP(),4:initP()};
+let setupOpponents = [];
+let setupGamesCache = {
+  scopeKey: '',
+  games: null,
+  loading: null
+};
+let setupOpponentsLoadToken = 0;
 function initP(){
   return {
     A_shots:0, A_goals:0, A_smothers:0, A_badRebounds:0, A_bigSaves:0,
@@ -303,6 +325,9 @@ $('btnStartGame').addEventListener('click', ()=>{
   state.level = team.level || $('level').value || 'U11';
 
   state.date = syncSetupDateField($('date').value);
+  rememberCurrentOpponent().catch(err => {
+    console.error(err);
+  });
 
   // Starting from setup must not carry an existing live share session forward.
   if(state.shareCode) stopLiveShare();
@@ -2764,6 +2789,7 @@ function refreshTeamUI() {
   if (teams.length === 0) {
     $('teamEmpty').style.display = '';
     $('teamHasTeams').style.display = 'none';
+    clearOpponentSetupState();
   } else {
     $('teamEmpty').style.display = 'none';
     $('teamHasTeams').style.display = '';
@@ -2775,6 +2801,10 @@ function refreshTeamUI() {
     const sel = $('teamSelect');
     sel.innerHTML = teams.map(t => `<option value="${t.id}">${t.name} (${t.level})</option>`).join('');
     sel.value = activeId;
+    loadSetupOpponents().catch(err => {
+      console.error(err);
+      clearOpponentSetupState();
+    });
   }
 
   updateSetupReadiness();
@@ -2941,6 +2971,7 @@ $('teamSelect').onchange = function(){
   const TM = getTeamManager();
   TM.setActiveTeamId(this.value || null);
   applyActiveTeam();
+  refreshTeamUI();
 };
 
 // Extra delegated safety wiring for dynamic/late-rendered setup controls.
@@ -3072,6 +3103,7 @@ $('btnNewFromSummary').onclick=async()=>{
   state.period = 1;
   state.opponent='';
   $('opponent').value = '';
+  updateOpponentMatchupCard().catch(err => console.error(err));
   state.countsA={shots:0,goals:0,softGoals:0,smothers:0,badRebounds:0,bigSaves:0};
   state.countsF={shots:0,goals:0};
   state.team={breakawaysAgainst:0,dzTurnovers:0,breakawaysFor:0,oddManRushFor:0,oddManRushAgainst:0,penaltiesFor:0,penaltiesAgainst:0,missedChancesFor:0,missedChancesAgainst:0,forcedTurnovers:0};
@@ -3109,6 +3141,7 @@ $('btnReset').onclick=async()=>{
   state.period = 1;
   state.opponent='';
   $('opponent').value = '';
+  updateOpponentMatchupCard().catch(err => console.error(err));
   state.countsA={shots:0,goals:0,softGoals:0,smothers:0,badRebounds:0,bigSaves:0};
   state.countsF={shots:0,goals:0};
   state.team={breakawaysAgainst:0,dzTurnovers:0,breakawaysFor:0,oddManRushFor:0,oddManRushAgainst:0,penaltiesFor:0,penaltiesAgainst:0,missedChancesFor:0,missedChancesAgainst:0,forcedTurnovers:0};
@@ -3145,11 +3178,29 @@ document.querySelectorAll('.modal').forEach(m=>
 );
 
 /* Inputs */
-$('opponent').oninput=e=>{state.opponent=e.target.value;save();updateSetupReadiness();}
+function syncOpponentSetupField(rawValue, { canonicalizeSaved = false } = {}){
+  const input = $('opponent');
+  if(!input) return;
+  const cleaned = cleanOpponentName(rawValue);
+  const savedMatch = findSavedOpponentByName(cleaned);
+  const nextValue = canonicalizeSaved && savedMatch ? savedMatch.name : cleaned;
+  if(input.value !== nextValue) input.value = nextValue;
+  state.opponent = nextValue;
+  save();
+  updateSetupReadiness();
+  updateOpponentMatchupCard().catch(err => console.error(err));
+}
+$('opponent').oninput=e=>{ syncOpponentSetupField(e.target.value); };
+$('opponent').onchange=e=>{ syncOpponentSetupField(e.target.value, { canonicalizeSaved:true }); };
 $('level').onchange=e=>{state.level=e.target.value;save();updateSetupReadiness();}
 $('date').onchange=e=>{state.date=syncSetupDateField(e.target.value);save();validateState('date change');updateSetupReadiness();}
 $('togglePM').checked = prefs.trackPlusMinus;
 $('togglePM').addEventListener('change', e=>{ prefs.trackPlusMinus = e.target.checked; savePrefs(); });
+$('opponentQuickList').addEventListener('click', (e) => {
+  const btn = e.target.closest('.opponent-quick-btn');
+  if(!btn) return;
+  syncOpponentSetupField(btn.dataset.name || '', { canonicalizeSaved:true });
+});
 
 /* Copy Summary (now: compact, structured text) */
 $('btnCopySummary').addEventListener('click', ()=>{
@@ -3202,6 +3253,311 @@ function getGameQueryScope(){
   const teamId = TM ? TM.getActiveTeamId() : null;
   return { userId, teamId };
 }
+function getSetupScopeKey(){
+  const { userId, teamId } = getGameQueryScope();
+  return `${userId || ''}::${teamId || ''}`;
+}
+function buildOpponentsApiUrl(limit = 25){
+  const { userId, teamId } = getGameQueryScope();
+  if(!teamId) return null;
+  const params = ['limit=' + encodeURIComponent(String(limit)), 'team_id=' + encodeURIComponent(teamId)];
+  if(userId) params.push('user_id=' + encodeURIComponent(userId));
+  return '/api/opponents?' + params.join('&');
+}
+function findSavedOpponentByName(name){
+  const normalized = normalizeOpponentName(name);
+  if(!normalized) return null;
+  return setupOpponents.find(o => normalizeOpponentName(o && o.name) === normalized) || null;
+}
+function formatShortGameDate(v){
+  if(!isLocalYMD(v)) return '';
+  const [y, m, d] = v.split('-').map(Number);
+  return new Intl.DateTimeFormat(undefined, { month:'short', day:'numeric' }).format(new Date(y, m - 1, d, 12));
+}
+function renderOpponentSuggestions(){
+  const list = $('opponentSuggestions');
+  if(!list) return;
+  list.innerHTML = setupOpponents.map(o => `<option value="${escapeHTML(o.name)}"></option>`).join('');
+}
+function renderOpponentQuickPicks(filterText = ''){
+  const wrap = $('opponentQuickWrap');
+  const list = $('opponentQuickList');
+  if(!wrap || !list) return;
+
+  const normalizedFilter = normalizeOpponentName(filterText);
+  const currentOpponent = normalizeOpponentName((($('opponent') && $('opponent').value) || state.opponent || ''));
+  const pool = normalizedFilter
+    ? setupOpponents.filter(o => normalizeOpponentName(o && o.name).includes(normalizedFilter))
+    : setupOpponents;
+  const visible = pool.slice(0, normalizedFilter ? 8 : 6);
+
+  if(!visible.length){
+    wrap.classList.add('hidden');
+    list.innerHTML = '';
+    return;
+  }
+
+  wrap.classList.remove('hidden');
+  list.innerHTML = visible.map(o => {
+    const selected = normalizeOpponentName(o.name) === currentOpponent ? ' selected' : '';
+    return `<button class="opponent-quick-btn${selected}" data-name="${escapeHTML(o.name)}" type="button">${escapeHTML(o.name)}</button>`;
+  }).join('');
+}
+function renderMatchupInsight(matchup){
+  const card = $('matchupInsight');
+  const record = $('matchupRecord');
+  const summary = $('matchupSummary');
+  const scores = $('matchupScores');
+  if(!card || !record || !summary || !scores) return;
+
+  if(!matchup){
+    card.classList.add('hidden');
+    record.textContent = '';
+    summary.textContent = '';
+    scores.innerHTML = '';
+    return;
+  }
+
+  card.classList.remove('hidden');
+  if(matchup.gamesPlayed > 0){
+    record.textContent = `${matchup.wins}W – ${matchup.losses}L${matchup.ties ? ` – ${matchup.ties}T` : ''}`;
+    summary.textContent = `${matchup.gamesPlayed} game${matchup.gamesPlayed === 1 ? '' : 's'} vs ${matchup.opponentName} • ${matchup.totalGF} GF • ${matchup.totalGA} GA`;
+    scores.innerHTML = matchup.scoreItems.length
+      ? matchup.scoreItems.map(item => (
+          `<span class="matchup-score-pill ${item.resultClass}"><span class="res">${item.result}</span><span>${item.score}</span>${item.dateLabel ? `<span>${escapeHTML(item.dateLabel)}</span>` : ''}</span>`
+        )).join('')
+      : `<span class="matchup-empty">No saved scores yet.</span>`;
+    return;
+  }
+
+  record.textContent = 'No Saved Games Yet';
+  summary.textContent = `You have ${matchup.opponentName} saved, but there are no completed game results against them yet.`;
+  scores.innerHTML = '';
+}
+function buildOpponentListFromGames(games){
+  const byName = new Map();
+  for(const game of games || []){
+    const data = game.data || {};
+    const rawName = cleanOpponentName(data.Opponent || game.opponent || '');
+    const normalized = normalizeOpponentName(rawName);
+    if(!normalized) continue;
+    const usedAt = String(game.created_at || data.updatedAt || game.date || data.Date || '');
+    const playedAt = data.Date || game.date || null;
+    const prev = byName.get(normalized);
+    if(!prev || String(prev.last_used_at || '') < usedAt){
+      byName.set(normalized, {
+        name: rawName,
+        last_used_at: usedAt,
+        last_played_at: playedAt
+      });
+    }
+  }
+  return Array.from(byName.values()).sort((a,b) => String(b.last_used_at || '').localeCompare(String(a.last_used_at || '')));
+}
+function mergeSavedOpponent(opponent){
+  const name = cleanOpponentName(opponent && opponent.name);
+  const normalized = normalizeOpponentName(name);
+  if(!normalized) return;
+  const next = {
+    id: opponent && opponent.id,
+    name,
+    last_used_at: opponent && opponent.last_used_at,
+    last_played_at: opponent && opponent.last_played_at
+  };
+  const idx = setupOpponents.findIndex(o => normalizeOpponentName(o && o.name) === normalized);
+  if(idx >= 0) setupOpponents[idx] = { ...setupOpponents[idx], ...next };
+  else setupOpponents.unshift(next);
+  setupOpponents.sort((a,b) => String(b.last_used_at || '').localeCompare(String(a.last_used_at || '')));
+  renderOpponentSuggestions();
+  renderOpponentQuickPicks((($('opponent') && $('opponent').value) || ''));
+}
+function clearOpponentSetupState(){
+  setupOpponents = [];
+  setupGamesCache = { scopeKey:'', games:null, loading:null };
+  renderOpponentSuggestions();
+  renderOpponentQuickPicks('');
+  renderMatchupInsight(null);
+}
+async function ensureSetupGamesCache(force = false){
+  const { teamId } = getGameQueryScope();
+  if(!teamId) return [];
+
+  const scopeKey = getSetupScopeKey();
+  if(!force && setupGamesCache.games && setupGamesCache.scopeKey === scopeKey){
+    return setupGamesCache.games;
+  }
+  if(!force && setupGamesCache.loading && setupGamesCache.scopeKey === scopeKey){
+    return await setupGamesCache.loading;
+  }
+
+  setupGamesCache.scopeKey = scopeKey;
+  const loading = fetchScopedGames(500).then((games) => {
+    if(setupGamesCache.scopeKey === scopeKey){
+      setupGamesCache.games = games;
+    }
+    return games;
+  });
+  setupGamesCache.loading = loading;
+  try{
+    return await loading;
+  } finally {
+    if(setupGamesCache.loading === loading){
+      setupGamesCache.loading = null;
+    }
+  }
+}
+async function fetchScopedOpponents(limit = 25){
+  const url = buildOpponentsApiUrl(limit);
+  if(!url) return [];
+  const res = await fetch(url);
+  const data = await res.json();
+  if(!res.ok || !data.success) throw new Error(data.error || 'Opponent fetch failed');
+  return Array.isArray(data.opponents) ? data.opponents : [];
+}
+async function loadSetupOpponents(){
+  const token = ++setupOpponentsLoadToken;
+  const { teamId } = getGameQueryScope();
+  if(!teamId){
+    clearOpponentSetupState();
+    return [];
+  }
+
+  const scopeKey = getSetupScopeKey();
+  if(setupGamesCache.scopeKey !== scopeKey){
+    setupGamesCache = { scopeKey, games:null, loading:null };
+  }
+
+  let opponents = [];
+  try{
+    opponents = await fetchScopedOpponents(30);
+  }catch(err){
+    console.warn('Opponent fetch failed, falling back to game history.', err);
+    try{
+      const games = await ensureSetupGamesCache(true);
+      opponents = buildOpponentListFromGames(games);
+    }catch(fallbackErr){
+      console.error(fallbackErr);
+      opponents = [];
+    }
+  }
+
+  if(token !== setupOpponentsLoadToken) return setupOpponents;
+  setupOpponents = opponents.map(o => ({
+    id: o.id,
+    name: cleanOpponentName(o.name),
+    last_used_at: o.last_used_at || '',
+    last_played_at: o.last_played_at || null
+  })).filter(o => o.name);
+  renderOpponentSuggestions();
+  renderOpponentQuickPicks((($('opponent') && $('opponent').value) || ''));
+  await updateOpponentMatchupCard();
+  return setupOpponents;
+}
+function buildMatchupRecord(games, opponentName){
+  const normalized = normalizeOpponentName(opponentName);
+  if(!normalized) return null;
+
+  const matched = (games || []).filter((game) => {
+    const data = game.data || {};
+    return normalizeOpponentName(data.Opponent || game.opponent || '') === normalized;
+  });
+  if(!matched.length){
+    return {
+      opponentName: cleanOpponentName(opponentName),
+      gamesPlayed: 0,
+      wins: 0,
+      losses: 0,
+      ties: 0,
+      totalGF: 0,
+      totalGA: 0,
+      scoreItems: []
+    };
+  }
+
+  let wins = 0, losses = 0, ties = 0, totalGF = 0, totalGA = 0;
+  const scoreItems = matched.slice(0, 6).map((game) => {
+    const data = game.data || {};
+    const gf = Number(data.GF) || 0;
+    const ga = Number(data.GA) || 0;
+    totalGF += gf;
+    totalGA += ga;
+    let result = 'T';
+    let resultClass = 't';
+    if(gf > ga){ wins++; result = 'W'; resultClass = 'w'; }
+    else if(ga > gf){ losses++; result = 'L'; resultClass = 'l'; }
+    else { ties++; }
+    return {
+      result,
+      resultClass,
+      score: `${gf}\u2013${ga}`,
+      dateLabel: formatShortGameDate(data.Date || game.date || '')
+    };
+  });
+
+  for(const game of matched.slice(6)){
+    const data = game.data || {};
+    const gf = Number(data.GF) || 0;
+    const ga = Number(data.GA) || 0;
+    totalGF += gf;
+    totalGA += ga;
+    if(gf > ga) wins++;
+    else if(ga > gf) losses++;
+    else ties++;
+  }
+
+  return {
+    opponentName: cleanOpponentName(matched[0].data?.Opponent || matched[0].opponent || opponentName),
+    gamesPlayed: matched.length,
+    wins,
+    losses,
+    ties,
+    totalGF,
+    totalGA,
+    scoreItems
+  };
+}
+async function updateOpponentMatchupCard({ forceGames = false } = {}){
+  const input = $('opponent');
+  if(!input){
+    renderMatchupInsight(null);
+    return;
+  }
+
+  renderOpponentQuickPicks(input.value || '');
+  const known = findSavedOpponentByName(input.value);
+  if(!known){
+    renderMatchupInsight(null);
+    return;
+  }
+
+  const expected = normalizeOpponentName(input.value);
+  const games = await ensureSetupGamesCache(forceGames);
+  if(normalizeOpponentName((($('opponent') && $('opponent').value) || '')) !== expected) return;
+  renderMatchupInsight(buildMatchupRecord(games, known.name));
+}
+async function rememberCurrentOpponent(){
+  const { userId, teamId } = getGameQueryScope();
+  const name = cleanOpponentName((($('opponent') && $('opponent').value) || state.opponent || ''));
+  if(!teamId || !name) return null;
+
+  const payload = {
+    name,
+    team_id: teamId,
+    user_id: userId || null,
+    last_played_at: state.date || getLocalTodayYMD()
+  };
+  const res = await fetch('/api/opponents', {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json' },
+    body:JSON.stringify({ opponent: payload })
+  });
+  const data = await res.json().catch(() => ({}));
+  if(!res.ok || !data.success){
+    throw new Error(data.error || 'Opponent save failed');
+  }
+  if(data.opponent) mergeSavedOpponent(data.opponent);
+  return data.opponent || null;
+}
 function buildGamesApiUrl({ limit = 50, id = null, includeLimit = true } = {}){
   const params = [];
   if(includeLimit) params.push('limit=' + encodeURIComponent(String(limit)));
@@ -3244,6 +3600,8 @@ async function resetSeasonStats(){
     $('seasonBody').innerHTML = '<div style="text-align:center; padding:20px;">No games yet — play some games first!</div>';
     $('btnSeasonReset').classList.add('hidden');
     showStatusToast('Season stats reset', 'success');
+    setupGamesCache.games = [];
+    await updateOpponentMatchupCard({ forceGames:true });
     if($('historyPanel').style.display === 'block'){
       await loadHistoryPanel();
     }
@@ -3448,8 +3806,10 @@ $('historyList').addEventListener('click', async (e) => {
       await deleteGameRecord(gameId);
       if(row) closeHistorySwipeRow(row, true);
       showStatusToast('Game deleted', 'success');
+      setupGamesCache.games = null;
       await loadHistoryPanel();
       await refreshSeasonPanelIfOpen();
+      await updateOpponentMatchupCard({ forceGames:true });
     }catch(err){
       console.error(err);
       showStatusToast('Delete failed', 'error', 3500);
@@ -3523,9 +3883,11 @@ $('gameDetailDelete').addEventListener('click', async ()=>{
   try{
     await deleteGameRecord(currentDetailGameId);
     showStatusToast('Game deleted', 'success');
+    setupGamesCache.games = null;
     $('gameDetailModal').style.display = 'none';
     await loadHistoryPanel();
     await refreshSeasonPanelIfOpen();
+    await updateOpponentMatchupCard({ forceGames:true });
   }catch(e){
     console.error(e);
     showStatusToast('Error deleting game', 'error', 3500);

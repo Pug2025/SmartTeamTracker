@@ -5,6 +5,7 @@ Serves static files and emulates the Vercel /api routes:
 - /api/ping
 - /api/save-game
 - /api/games
+- /api/opponents
 - /api/live-game
 - /api/spectator-share
 - /api/spectator-preview
@@ -79,6 +80,10 @@ def title_case(value: Any) -> str:
     if not text:
         return "Opponent"
     return " ".join(part[:1].upper() + part[1:].lower() for part in text.split())
+
+
+def normalize_opponent_name(value: Any) -> str:
+    return " ".join(str(value or "").strip().lower().split())
 
 
 def truncate_text(value: Any, max_chars: int) -> str:
@@ -268,7 +273,7 @@ class Backend:
 
     def _read_local_data(self) -> dict[str, Any]:
         if not self.data_file.exists():
-            return {"next_game_id": 1, "games": [], "live_games": []}
+            return {"next_game_id": 1, "next_opponent_id": 1, "games": [], "live_games": [], "opponents": []}
 
         try:
             data = json.loads(self.data_file.read_text(encoding="utf-8"))
@@ -278,8 +283,10 @@ class Backend:
         if not isinstance(data, dict):
             data = {}
         data.setdefault("next_game_id", 1)
+        data.setdefault("next_opponent_id", 1)
         data.setdefault("games", [])
         data.setdefault("live_games", [])
+        data.setdefault("opponents", [])
         return data
 
     def _write_local_data(self, data: dict[str, Any]) -> None:
@@ -334,7 +341,7 @@ class Backend:
     def list_games(
         self, limit: int, user_id: str | None, team_id: str | None
     ) -> tuple[int, dict[str, Any]]:
-        limit = max(1, min(limit, 100))
+        limit = max(1, min(limit, 500))
 
         if self.mode == "supabase":
             query = [
@@ -373,6 +380,149 @@ class Backend:
             for g in games[:limit]
         ]
         return 200, {"success": True, "games": filtered}
+
+    def list_opponents(
+        self, limit: int, user_id: str | None, team_id: str | None
+    ) -> tuple[int, dict[str, Any]]:
+        limit = max(1, min(limit, 100))
+        if not team_id:
+            return 400, {"error": "Missing team id"}
+
+        if self.mode == "supabase":
+            query = [
+                "select=id,name,last_used_at,last_played_at",
+                "order=last_used_at.desc",
+                f"limit={limit}",
+                f"team_id=eq.{quote(team_id, safe='')}",
+            ]
+            if user_id:
+                query.append(f"user_id=eq.{quote(user_id, safe='')}")
+            else:
+                query.append("user_id=is.null")
+            status, payload = self._supabase_request("GET", f"opponents?{'&'.join(query)}")
+            if not (200 <= status < 300):
+                return status, {"error": "Fetch failed", "details": payload}
+            return 200, {"success": True, "opponents": payload}
+
+        with self.lock:
+            data = self._read_local_data()
+            opponents = list(data.get("opponents", []))
+
+        filtered = []
+        for opp in opponents:
+            if str(opp.get("team_id") or "") != team_id:
+                continue
+            if user_id:
+                if str(opp.get("user_id") or "") != user_id:
+                    continue
+            elif opp.get("user_id") not in (None, ""):
+                continue
+            filtered.append(
+                {
+                    "id": opp.get("id"),
+                    "name": opp.get("name"),
+                    "last_used_at": opp.get("last_used_at"),
+                    "last_played_at": opp.get("last_played_at"),
+                }
+            )
+
+        filtered.sort(key=lambda o: o.get("last_used_at") or "", reverse=True)
+        return 200, {"success": True, "opponents": filtered[:limit]}
+
+    def upsert_opponent(self, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+        team_id = str(payload.get("team_id") or "").strip()
+        name = " ".join(str(payload.get("name") or "").strip().split())
+        user_id = str(payload.get("user_id") or "").strip() or None
+        last_played_at = str(payload.get("last_played_at") or "").strip() or None
+        normalized_name = normalize_opponent_name(name)
+
+        if not team_id or not name:
+            return 400, {"error": "team_id and name are required"}
+
+        now_iso = utc_now_iso()
+
+        if self.mode == "supabase":
+            query = [
+                "select=id,name,last_played_at,last_used_at",
+                f"team_id=eq.{quote(team_id, safe='')}",
+                f"name_normalized=eq.{quote(normalized_name, safe='')}",
+                "limit=1",
+            ]
+            if user_id:
+                query.append(f"user_id=eq.{quote(user_id, safe='')}")
+            else:
+                query.append("user_id=is.null")
+            status, existing = self._supabase_request("GET", f"opponents?{'&'.join(query)}")
+            if not (200 <= status < 300):
+                return status, {"error": "Lookup failed", "details": existing}
+
+            if isinstance(existing, list) and existing:
+                patch_payload = {"name": name, "last_used_at": now_iso}
+                if last_played_at:
+                    patch_payload["last_played_at"] = last_played_at
+                record_id = existing[0].get("id")
+                status, updated = self._supabase_request(
+                    "PATCH",
+                    f"opponents?id=eq.{quote(str(record_id), safe='')}",
+                    payload=patch_payload,
+                    extra_headers={"Prefer": "return=representation"},
+                )
+                if not (200 <= status < 300):
+                    return status, {"error": "Update failed", "details": updated}
+                record = updated[0] if isinstance(updated, list) and updated else updated
+                return 200, {"success": True, "opponent": record}
+
+            insert_payload = {
+                "user_id": user_id,
+                "team_id": team_id,
+                "name": name,
+                "last_used_at": now_iso,
+                "last_played_at": last_played_at,
+            }
+            status, inserted = self._supabase_request(
+                "POST",
+                "opponents",
+                payload=insert_payload,
+                extra_headers={"Prefer": "return=representation"},
+            )
+            if not (200 <= status < 300):
+                return status, {"error": "Insert failed", "details": inserted}
+            record = inserted[0] if isinstance(inserted, list) and inserted else inserted
+            return 200, {"success": True, "opponent": record}
+
+        with self.lock:
+            data = self._read_local_data()
+            opponents = data.get("opponents", [])
+            match = None
+            for opponent in opponents:
+                same_team = str(opponent.get("team_id") or "") == team_id
+                same_user = (str(opponent.get("user_id") or "").strip() or None) == user_id
+                same_name = normalize_opponent_name(opponent.get("name")) == normalized_name
+                if same_team and same_user and same_name:
+                    match = opponent
+                    break
+
+            if match is not None:
+                match["name"] = name
+                match["last_used_at"] = now_iso
+                if last_played_at:
+                    match["last_played_at"] = last_played_at
+                record = dict(match)
+            else:
+                next_id = int(data.get("next_opponent_id", 1))
+                data["next_opponent_id"] = next_id + 1
+                record = {
+                    "id": next_id,
+                    "user_id": user_id,
+                    "team_id": team_id,
+                    "name": name,
+                    "last_used_at": now_iso,
+                    "last_played_at": last_played_at,
+                }
+                opponents.append(record)
+            self._write_local_data(data)
+
+        return 200, {"success": True, "opponent": record}
 
     def delete_game(self, game_id: str) -> tuple[int, dict[str, Any]]:
         if self.mode == "supabase":
@@ -636,6 +786,36 @@ class AppHandler(SimpleHTTPRequestHandler):
                 else:
                     self._send_json(400, {"error": "Missing game id or team id"})
                     return
+                self._send_json(status, body)
+                return
+
+            self._method_not_allowed()
+            return
+
+        if route == "/api/opponents":
+            if method == "GET":
+                limit_raw = (query.get("limit") or ["25"])[0]
+                try:
+                    limit = int(limit_raw)
+                except ValueError:
+                    limit = 25
+                user_id = (query.get("user_id") or [None])[0]
+                team_id = (query.get("team_id") or [None])[0]
+                status, body = self.backend.list_opponents(limit=limit, user_id=user_id, team_id=team_id)
+                self._send_json(status, body)
+                return
+
+            if method == "POST":
+                try:
+                    payload = self._read_json_body()
+                except ValueError as err:
+                    self._send_json(400, {"error": str(err)})
+                    return
+                opponent = payload.get("opponent")
+                if not isinstance(opponent, dict):
+                    self._send_json(400, {"error": "Invalid payload. Expected { opponent: {...} }"})
+                    return
+                status, body = self.backend.upsert_opponent(opponent)
                 self._send_json(status, body)
                 return
 

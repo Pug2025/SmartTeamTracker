@@ -456,6 +456,11 @@
     text-align:left;
     margin-bottom:14px;
   }
+  .setup-date-field{
+    width:100%;
+    min-width:0;
+    overflow:hidden;
+  }
   label{
     display:block;
     font-size:12px;
@@ -488,6 +493,28 @@
     display:block;
     inline-size:100%;
     padding-right:12px;
+  }
+  .setup-date-input{
+    width:100%;
+    max-width:100%;
+    min-width:0;
+    overflow:hidden;
+    font-size:15px;
+    line-height:1.2;
+  }
+  .setup-date-input::-webkit-date-and-time-value{
+    min-width:0;
+    text-align:left;
+  }
+  .setup-date-input::-webkit-datetime-edit{
+    padding:0;
+  }
+  .setup-date-input::-webkit-datetime-edit-fields-wrapper{
+    padding:0;
+  }
+  .setup-date-input::-webkit-calendar-picker-indicator{
+    margin:0;
+    padding:0;
   }
   .btn-start{
     width:100%;

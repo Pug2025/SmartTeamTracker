@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Team Tracker</title>
-<link rel="stylesheet" href="css/styles.css?v=6.2.14">
+<link rel="stylesheet" href="css/styles.css?v=6.2.16">
 <link rel="stylesheet" href="css/auth.css?v=6.2.7">
 </head>
 <body>
@@ -132,7 +132,7 @@
         <div id="teamHasTeams" class="team-has-teams" style="display:none;">
           <label class="setup-field-label" for="teamSelect">Selected Team</label>
           <div class="team-selector-row">
-            <select id="teamSelect"><option value="">Select Team</option></select>
+            <select id="teamSelect"></select>
             <button class="btn-std btn-manage-teams" id="btnManageTeams" type="button">Manage</button>
           </div>
         </div>
@@ -155,9 +155,9 @@
             <option>Other</option>
           </select>
         </div>
-        <div class="input-group">
+        <div class="input-group setup-date-field">
           <label for="date">Date</label>
-          <input id="date" type="date">
+          <input id="date" class="setup-date-input" type="date">
         </div>
       </div>
 
@@ -843,6 +843,6 @@
 <script src="js/spectator.js?v=6.2.12"></script>
 <script type="module" src="js/auth.js?v=6.2.7"></script>
 <script src="js/teams.js?v=6.2.7"></script>
-<script src="js/app.js?v=6.2.14"></script>
+<script src="js/app.js?v=6.2.16"></script>
 </body>
 </html>

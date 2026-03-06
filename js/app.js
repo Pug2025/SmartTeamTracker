@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.2.14';
+const APP_VERSION = '6.2.16';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -2743,7 +2743,7 @@ function getTeamManager() {
 function refreshTeamUI() {
   const TM = getTeamManager();
   const teams = TM.loadTeams();
-  const activeId = TM.getActiveTeamId();
+  let activeId = TM.getActiveTeamId();
 
   if (teams.length === 0) {
     $('teamEmpty').style.display = '';
@@ -2751,10 +2751,14 @@ function refreshTeamUI() {
   } else {
     $('teamEmpty').style.display = 'none';
     $('teamHasTeams').style.display = '';
+    if (!activeId || !teams.some(t => t.id === activeId)) {
+      activeId = teams[0].id;
+      TM.setActiveTeamId(activeId);
+      applyActiveTeam();
+    }
     const sel = $('teamSelect');
-    sel.innerHTML = '<option value="">Select Team</option>' +
-      teams.map(t => `<option value="${t.id}">${t.name} (${t.level})</option>`).join('');
-    sel.value = activeId || '';
+    sel.innerHTML = teams.map(t => `<option value="${t.id}">${t.name} (${t.level})</option>`).join('');
+    sel.value = activeId;
   }
 
   updateSetupReadiness();

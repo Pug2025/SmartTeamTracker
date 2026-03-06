@@ -527,7 +527,7 @@
     display:flex;
     align-items:center;
     gap:16px;
-    justify-content:flex-start;
+    justify-content:center;
     margin-top:14px;
     flex-wrap:wrap;
   }
@@ -550,6 +550,35 @@
   }
   .btn-edit-setup{
     /* legacy — now handled by .toolbar-btn */
+  }
+  .setup-panel-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    margin-bottom:10px;
+  }
+  .setup-panel-actions{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+  }
+  .setup-panel-btn{
+    font-size:11px;
+    padding:6px 11px;
+  }
+  .btn-danger-ghost{
+    border-color:rgba(255,69,58,0.35);
+    color:#ffb3ad;
+    background:rgba(255,69,58,0.08);
+  }
+  .history-hint{
+    margin-bottom:10px;
+    font-size:11px;
+    color:#7e8b99;
+    text-align:center;
   }
 
   /* ===== Split Brain Controls ===== */
@@ -1458,6 +1487,30 @@
   }
 
   /* Game History */
+  .history-row{
+    position:relative;
+    margin-bottom:6px;
+    border-radius:10px;
+    overflow:hidden;
+    touch-action:pan-y;
+  }
+  .history-delete-action{
+    position:absolute;
+    top:0;
+    right:0;
+    bottom:0;
+    width:82px;
+    border:none;
+    background:linear-gradient(180deg, #cf3b30, #a31e17);
+    color:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:22px;
+    font-weight:800;
+    cursor:pointer;
+    border-radius:10px;
+  }
   .history-item{
     display:flex;
     justify-content:space-between;
@@ -1465,9 +1518,12 @@
     padding:10px;
     border:1px solid #222;
     border-radius:10px;
-    margin-bottom:6px;
     cursor:pointer;
     background:#0a0a0a;
+    position:relative;
+    z-index:1;
+    transition:transform 0.18s ease, background 0.12s ease;
+    will-change:transform;
   }
   .history-item:active{ background:#1a1a1a; }
   .history-left{ display:flex; flex-direction:column; gap:2px; }
@@ -1481,6 +1537,9 @@
   .history-score .w{ color:var(--good); }
   .history-score .l{ color:var(--accent-them); }
   .history-score .t{ color:var(--warn); }
+  .history-row.open .history-item{
+    transform:translateX(-82px);
+  }
 
 /* ===== Season Dashboard ===== */
 .season-record{
@@ -2155,24 +2214,149 @@
     padding:14px 12px 20px;
   }
   .setup-card{
-    padding:22px 18px 18px;
+    padding:18px 16px 16px;
     border-radius:20px;
+    margin-top:12px;
   }
   .setup-head{
     flex-direction:column;
     align-items:flex-start;
+    gap:10px;
   }
   .setup-card h2{
-    font-size:26px;
+    font-size:24px;
   }
   .setup-fields{
-    grid-template-columns:1fr;
+    grid-template-columns:minmax(0,1fr) 122px;
+    gap:10px;
   }
   .setup-field-span{
-    grid-column:auto;
+    grid-column:1 / -1;
   }
   .setup-toggle-row{
     align-items:flex-start;
+    padding:12px 14px;
+  }
+  .setup-summary{
+    margin-top:14px;
+    padding:12px 14px;
+    font-size:13px;
+  }
+  .setup-section-label{
+    margin:14px 0 8px;
+  }
+  .team-active-card{
+    margin-bottom:10px;
+    padding:12px 14px;
+  }
+  .team-selector-row select,
+  .level-readonly,
+  input,
+  select,
+  textarea{
+    padding:12px 13px;
+    font-size:15px;
+  }
+  .btn-start{
+    margin-top:10px;
+    padding:14px 16px;
+    font-size:17px;
+  }
+  .setup-inline-note{
+    margin-top:10px;
+    font-size:12px;
+  }
+  .setup-tertiary{
+    margin-top:12px;
+    gap:18px;
+  }
+  .setup-panel-head{
+    align-items:flex-start;
+  }
+  .setup-panel-actions{
+    gap:6px;
+  }
+}
+
+@media (max-width: 430px){
+  .top-row{
+    padding:9px 10px 7px;
+  }
+  .wrap{
+    padding:10px 10px 16px;
+  }
+  .setup-eyebrow,
+  .setup-sub{
+    display:none;
+  }
+  .setup-chip{
+    padding:6px 10px;
+    font-size:10px;
+  }
+  .setup-card{
+    padding:14px 14px 14px;
+    border-radius:18px;
+  }
+  .setup-card h2{
+    font-size:22px;
+  }
+  .setup-head{
+    gap:8px;
+  }
+  .setup-summary{
+    margin-top:10px;
+    padding:10px 12px;
+    font-size:12px;
+  }
+  .setup-section-label{
+    margin:12px 0 7px;
+    font-size:10px;
+  }
+  .input-group{
+    margin-bottom:10px;
+  }
+  .team-empty-card,
+  .team-active-card,
+  .setup-toggle-row{
+    padding:10px 12px;
+  }
+  .team-empty-text,
+  .setup-toggle-copy{
+    font-size:11px;
+    line-height:1.35;
+  }
+  .team-active-name{
+    font-size:16px;
+  }
+  .team-active-meta{
+    font-size:12px;
+  }
+  .team-selector-row{
+    gap:8px;
+  }
+  .btn-manage-teams{
+    padding:11px 13px !important;
+  }
+  .setup-fields{
+    grid-template-columns:minmax(0,1fr) 112px;
+  }
+  .setup-toggle-title{
+    font-size:13px;
+  }
+  .setup-inline-note{
+    margin-top:8px;
+    font-size:11px;
+    line-height:1.35;
+  }
+  .btn-start{
+    padding:13px 15px;
+    font-size:16px;
+  }
+  .history-hint{
+    font-size:10px;
+  }
+  .history-delete-action{
+    width:74px;
   }
 }
 

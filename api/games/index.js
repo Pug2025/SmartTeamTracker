@@ -50,12 +50,40 @@ export default async function handler(req, res) {
   if (req.method === "DELETE") {
     try {
       const id = req.query.id;
-      if (!id) {
-        return res.status(400).json({ error: "Missing game id" });
+      const teamId = req.query.team_id || null;
+      const userId = req.query.user_id || null;
+
+      if (id) {
+        const response = await fetch(
+          `${supabaseUrl}/rest/v1/games?id=eq.${encodeURIComponent(id)}`,
+          {
+            method: "DELETE",
+            headers: {
+              "apikey": supabaseKey,
+              "Authorization": `Bearer ${supabaseKey}`
+            }
+          }
+        );
+
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          return res.status(response.status).json({ error: "Delete failed", details: data });
+        }
+
+        return res.status(200).json({ success: true });
+      }
+
+      if (!teamId) {
+        return res.status(400).json({ error: "Missing game id or team id" });
+      }
+
+      let deleteUrl = `${supabaseUrl}/rest/v1/games?team_id=eq.${encodeURIComponent(teamId)}`;
+      if (userId) {
+        deleteUrl += `&user_id=eq.${encodeURIComponent(userId)}`;
       }
 
       const response = await fetch(
-        `${supabaseUrl}/rest/v1/games?id=eq.${encodeURIComponent(id)}`,
+        deleteUrl,
         {
           method: "DELETE",
           headers: {
@@ -67,7 +95,7 @@ export default async function handler(req, res) {
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        return res.status(response.status).json({ error: "Delete failed", details: data });
+        return res.status(response.status).json({ error: "Reset failed", details: data });
       }
 
       return res.status(200).json({ success: true });

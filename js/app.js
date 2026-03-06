@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.2.4';
+const APP_VERSION = '6.2.5';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -112,8 +112,10 @@ function getActiveTeamSafe(){
   }catch(_){}
   return null;
 }
-function getSetupOpponentText(){
-  return (($('opponent') && $('opponent').value) || state.opponent || '').trim();
+function getSetupOpponentText({ preferState = false } = {}){
+  const inputValue = (($('opponent') && $('opponent').value) || '').trim();
+  if(!preferState && $('opponent')) return inputValue;
+  return inputValue || String(state.opponent || '').trim();
 }
 function compactScoreLabel(name, fallback){
   const raw = String(name || '').trim();
@@ -127,7 +129,7 @@ function getStartGameReadiness(){
 }
 function updateScoreLabels(){
   const team = getActiveTeamSafe();
-  $('scoreThemLabel').textContent = compactScoreLabel(getSetupOpponentText(), 'THEM');
+  $('scoreThemLabel').textContent = compactScoreLabel(getSetupOpponentText({ preferState:true }), 'THEM');
   $('scoreUsLabel').textContent = compactScoreLabel(team && team.name, 'US');
 }
 function updateHeaderContext(){
@@ -136,7 +138,7 @@ function updateHeaderContext(){
 
   const team = getActiveTeamSafe();
   const teamName = team ? team.name : 'Team';
-  const opponent = getSetupOpponentText();
+  const opponent = getSetupOpponentText({ preferState:document.body.classList.contains('in-game') });
 
   if(document.body.classList.contains('in-game')){
     const matchup = opponent ? `${teamName} vs ${opponent}` : `${teamName} live`;
@@ -153,6 +155,7 @@ function updateSetupReadiness(){
   const historyBtn = $('btnHistory');
   const seasonBtn = $('btnSeason');
   const levelDisplay = $('levelDisplay');
+  const setupChip = $('setupChip');
 
   if(!summary || !requirement || !startBtn || !historyBtn || !seasonBtn || !levelDisplay) return;
 
@@ -175,6 +178,8 @@ function updateSetupReadiness(){
     levelDisplay.textContent = 'Add a team to set level';
     levelDisplay.classList.add('empty');
   }
+
+  if(setupChip) setupChip.style.display = team ? 'none' : 'inline-flex';
 
   startBtn.disabled = !ready;
   startBtn.classList.toggle('disabled', !ready);
@@ -3191,37 +3196,201 @@ $('btnCopyClose').addEventListener('click', ()=>{ $('copyModal').style.display='
 $('btnExportGameCSV').addEventListener('click', exportGameCSV);
 
 /* ===== Game History ===== */
+function getGameQueryScope(){
+  const userId = typeof window.getAuthUserId === 'function' ? window.getAuthUserId() : null;
+  const TM = window.TeamManager;
+  const teamId = TM ? TM.getActiveTeamId() : null;
+  return { userId, teamId };
+}
+function buildGamesApiUrl({ limit = 50, id = null, includeLimit = true } = {}){
+  const params = [];
+  if(includeLimit) params.push('limit=' + encodeURIComponent(String(limit)));
+  if(id !== null && id !== undefined) params.push('id=' + encodeURIComponent(String(id)));
+  const { userId, teamId } = getGameQueryScope();
+  if(userId) params.push('user_id=' + encodeURIComponent(userId));
+  if(teamId) params.push('team_id=' + encodeURIComponent(teamId));
+  return '/api/games' + (params.length ? '?' + params.join('&') : '');
+}
+async function fetchScopedGames(limit = 50){
+  const res = await fetch(buildGamesApiUrl({ limit }));
+  const data = await res.json();
+  if(!data.success) throw new Error(data.error || 'Fetch failed');
+  return data.games || [];
+}
+async function deleteGameRecord(gameId){
+  const res = await fetch(buildGamesApiUrl({ id:gameId, includeLimit:false }), { method:'DELETE' });
+  const data = await res.json().catch(() => ({}));
+  if(!res.ok || !data.success){
+    throw new Error(data.error || 'Delete failed');
+  }
+  return data;
+}
+async function resetSeasonStats(){
+  const { teamId } = getGameQueryScope();
+  if(!teamId){
+    showStatusToast('Add your team to reset season stats.', 'warn', 3200);
+    return;
+  }
+
+  const ok = await showConfirm('Reset season stats for the active team? This deletes all saved games for that team.');
+  if(!ok) return;
+
+  try{
+    const res = await fetch(buildGamesApiUrl({ includeLimit:false }), { method:'DELETE' });
+    const data = await res.json().catch(() => ({}));
+    if(!res.ok || !data.success){
+      throw new Error(data.error || 'Reset failed');
+    }
+    $('seasonBody').innerHTML = '<div style="text-align:center; padding:20px;">No games yet — play some games first!</div>';
+    $('btnSeasonReset').classList.add('hidden');
+    showStatusToast('Season stats reset', 'success');
+    if($('historyPanel').style.display === 'block'){
+      await loadHistoryPanel();
+    }
+  }catch(e){
+    console.error(e);
+    showStatusToast('Failed to reset season stats', 'error', 3500);
+  }
+}
+async function loadHistoryPanel(){
+  resetHistorySwipeState();
+  $('historyPanel').style.display = 'block';
+  $('historyList').innerHTML = '<div style="text-align:center; padding:20px; color:var(--muted);">Loading...</div>';
+  try{
+    const games = await fetchScopedGames(50);
+    if(!games.length){
+      $('historyList').innerHTML = '<div style="text-align:center; padding:20px;">No past games found.</div>';
+      return;
+    }
+    renderHistoryList(games);
+  }catch(e){
+    console.error(e);
+    $('historyList').innerHTML = '<div style="text-align:center; padding:20px; color:var(--accent-them);">Failed to load games. Check your connection.</div>';
+  }
+}
 $('btnHistory').addEventListener('click', async ()=>{
   if(!getActiveTeamSafe()){
     showStatusToast('Add your team to view past games.', 'warn', 3200);
     return;
   }
-  $('historyPanel').style.display = 'block';
-  $('historyList').innerHTML = '<div style="text-align:center; padding:20px; color:var(--muted);">Loading...</div>';
-  try{
-    const uid = typeof window.getAuthUserId === 'function' ? window.getAuthUserId() : null;
-    const TM = window.TeamManager;
-    const tid = TM ? TM.getActiveTeamId() : null;
-    let histUrl = '/api/games';
-    const params = [];
-    if (uid) params.push('user_id=' + encodeURIComponent(uid));
-    if (tid) params.push('team_id=' + encodeURIComponent(tid));
-    if (params.length) histUrl += '?' + params.join('&');
-    const res = await fetch(histUrl);
-    const d = await res.json();
-    if(!d.success || !d.games || !d.games.length){
-      $('historyList').innerHTML = '<div style="text-align:center; padding:20px;">No past games found.</div>';
+  await loadHistoryPanel();
+});
+$('btnHistoryClose').addEventListener('click', ()=>{
+  resetHistorySwipeState();
+  $('historyPanel').style.display='none';
+});
+
+const HISTORY_SWIPE_WIDTH = 82;
+const HISTORY_SWIPE_THRESHOLD = 46;
+let openHistoryRow = null;
+let historySwipe = {
+  row:null,
+  startX:0,
+  startY:0,
+  startOffset:0,
+  currentOffset:0,
+  dragging:false,
+  justSwipedAt:0
+};
+function getHistoryCard(row){
+  return row ? row.querySelector('.history-item') : null;
+}
+function setHistorySwipeOffset(row, offset, immediate = false){
+  const card = getHistoryCard(row);
+  if(!card) return;
+  if(immediate) card.style.transition = 'none';
+  card.style.transform = `translateX(${offset}px)`;
+  row.dataset.offset = String(offset);
+  if(immediate){
+    requestAnimationFrame(()=>{ card.style.transition = ''; });
+  }
+}
+function closeHistorySwipeRow(row, immediate = false){
+  if(!row) return;
+  row.classList.remove('open');
+  setHistorySwipeOffset(row, 0, immediate);
+  if(openHistoryRow === row) openHistoryRow = null;
+}
+function openHistorySwipeRow(row){
+  if(!row) return;
+  if(openHistoryRow && openHistoryRow !== row) closeHistorySwipeRow(openHistoryRow);
+  row.classList.add('open');
+  setHistorySwipeOffset(row, -HISTORY_SWIPE_WIDTH);
+  openHistoryRow = row;
+}
+function resetHistorySwipeState(){
+  if(openHistoryRow) closeHistorySwipeRow(openHistoryRow, true);
+  openHistoryRow = null;
+  historySwipe = {
+    row:null,
+    startX:0,
+    startY:0,
+    startOffset:0,
+    currentOffset:0,
+    dragging:false,
+    justSwipedAt:0
+  };
+}
+$('historyList').addEventListener('touchstart', e=>{
+  const row = e.target.closest('.history-row');
+  if(!row || e.target.closest('.history-delete-action')) return;
+
+  const touch = e.touches[0];
+  historySwipe.row = row;
+  historySwipe.startX = touch.clientX;
+  historySwipe.startY = touch.clientY;
+  historySwipe.startOffset = row.classList.contains('open') ? -HISTORY_SWIPE_WIDTH : 0;
+  historySwipe.currentOffset = historySwipe.startOffset;
+  historySwipe.dragging = false;
+}, { passive:true });
+$('historyList').addEventListener('touchmove', e=>{
+  const row = historySwipe.row;
+  if(!row) return;
+
+  const touch = e.touches[0];
+  const dx = touch.clientX - historySwipe.startX;
+  const dy = touch.clientY - historySwipe.startY;
+  if(!historySwipe.dragging){
+    if(Math.abs(dx) < 10) return;
+    if(Math.abs(dy) > Math.abs(dx)){
+      historySwipe.row = null;
       return;
     }
-    renderHistoryList(d.games);
-  }catch(e){
-    console.error(e);
-    $('historyList').innerHTML = '<div style="text-align:center; padding:20px; color:var(--accent-them);">Failed to load games. Check your connection.</div>';
+    historySwipe.dragging = true;
+    if(openHistoryRow && openHistoryRow !== row) closeHistorySwipeRow(openHistoryRow);
   }
-});
-$('btnHistoryClose').addEventListener('click', ()=>{ $('historyPanel').style.display='none'; });
+
+  e.preventDefault();
+  const nextOffset = Math.max(-HISTORY_SWIPE_WIDTH, Math.min(0, historySwipe.startOffset + dx));
+  const card = getHistoryCard(row);
+  if(card){
+    card.style.transition = 'none';
+    card.style.transform = `translateX(${nextOffset}px)`;
+    historySwipe.currentOffset = nextOffset;
+  }
+}, { passive:false });
+function finishHistorySwipe(){
+  const row = historySwipe.row;
+  if(!row) return;
+
+  const card = getHistoryCard(row);
+  if(card) card.style.transition = '';
+  if(historySwipe.dragging){
+    if(historySwipe.currentOffset <= -HISTORY_SWIPE_THRESHOLD){
+      openHistorySwipeRow(row);
+    } else {
+      closeHistorySwipeRow(row);
+    }
+    historySwipe.justSwipedAt = Date.now();
+  }
+  historySwipe.row = null;
+  historySwipe.dragging = false;
+}
+$('historyList').addEventListener('touchend', finishHistorySwipe, { passive:true });
+$('historyList').addEventListener('touchcancel', finishHistorySwipe, { passive:true });
 
 function renderHistoryList(games){
+  resetHistorySwipeState();
   $('historyList').innerHTML = games.map((g,i) => {
     const data = g.data || {};
     const gf = data.GF ?? '?';
@@ -3232,26 +3401,56 @@ function renderHistoryList(games){
     const gs = data.GoalieScore != null ? data.GoalieScore : '—';
     const ts = data.TeamScore != null ? data.TeamScore : '—';
     const scoreClass = gf > ga ? 'w' : gf < ga ? 'l' : 't';
-    return `<div class="history-item" data-idx="${i}">
-      <div class="history-left">
-        <span class="history-opp">vs ${opp}</span>
-        <span class="history-meta">${date} &bull; ${level} &bull; GK:${gs} TM:${ts}</span>
+    return `<div class="history-row" data-idx="${i}" data-id="${g.id}">
+      <button class="history-delete-action" data-id="${g.id}" type="button" aria-label="Delete game">&#128465;</button>
+      <div class="history-item">
+        <div class="history-left">
+          <span class="history-opp">vs ${opp}</span>
+          <span class="history-meta">${date} &bull; ${level} &bull; GK:${gs} TM:${ts}</span>
+        </div>
+        <div class="history-score"><span class="${scoreClass}">${gf}–${ga}</span></div>
       </div>
-      <div class="history-score"><span class="${scoreClass}">${gf}–${ga}</span></div>
     </div>`;
   }).join('');
 
   // Store games for detail view
   $('historyList')._games = games;
-
-  $('historyList').onclick = (e) => {
-    const item = e.target.closest('.history-item');
-    if(!item) return;
-    const idx = Number(item.dataset.idx);
-    const game = $('historyList')._games[idx];
-    if(game) showGameDetail(game);
-  };
 }
+$('historyList').addEventListener('click', async (e) => {
+  if(Date.now() - historySwipe.justSwipedAt < 250) return;
+
+  const deleteBtn = e.target.closest('.history-delete-action');
+  if(deleteBtn){
+    const row = deleteBtn.closest('.history-row');
+    const gameId = deleteBtn.dataset.id;
+    if(!gameId) return;
+    try{
+      await deleteGameRecord(gameId);
+      if(row) closeHistorySwipeRow(row, true);
+      showStatusToast('Game deleted', 'success');
+      await loadHistoryPanel();
+    }catch(err){
+      console.error(err);
+      showStatusToast('Delete failed', 'error', 3500);
+    }
+    return;
+  }
+
+  const row = e.target.closest('.history-row');
+  if(!row) return;
+  if(openHistoryRow && openHistoryRow !== row){
+    closeHistorySwipeRow(openHistoryRow);
+    return;
+  }
+  if(row.classList.contains('open')){
+    closeHistorySwipeRow(row);
+    return;
+  }
+
+  const idx = Number(row.dataset.idx);
+  const game = $('historyList')._games && $('historyList')._games[idx];
+  if(game) showGameDetail(game);
+});
 
 let currentDetailGameId = null;
 
@@ -3301,16 +3500,10 @@ $('gameDetailDelete').addEventListener('click', async ()=>{
   if(!ok) return;
 
   try{
-    const res = await fetch(`/api/games?id=${encodeURIComponent(currentDetailGameId)}`, { method:'DELETE' });
-    const d = await res.json();
-    if(d.success){
-      showStatusToast('Game deleted', 'success');
-      $('gameDetailModal').style.display = 'none';
-      // Refresh the history list
-      $('btnHistory').click();
-    } else {
-      showStatusToast('Delete failed', 'error', 3500);
-    }
+    await deleteGameRecord(currentDetailGameId);
+    showStatusToast('Game deleted', 'success');
+    $('gameDetailModal').style.display = 'none';
+    await loadHistoryPanel();
   }catch(e){
     console.error(e);
     showStatusToast('Error deleting game', 'error', 3500);
@@ -3326,25 +3519,20 @@ $('btnSeason').addEventListener('click', async ()=>{
   $('seasonPanel').style.display = 'block';
   $('seasonBody').innerHTML = '<div style="text-align:center; padding:20px; color:var(--muted);">Loading...</div>';
   try{
-    const uid = typeof window.getAuthUserId === 'function' ? window.getAuthUserId() : null;
-    const TM = window.TeamManager;
-    const teamId = TM ? TM.getActiveTeamId() : null;
-    let histUrl = '/api/games?limit=100';
-    if(uid) histUrl += '&user_id=' + encodeURIComponent(uid);
-    if(teamId) histUrl += '&team_id=' + encodeURIComponent(teamId);
-    const res = await fetch(histUrl);
-    const d = await res.json();
-    if(!d.success || !d.games || !d.games.length){
+    const games = await fetchScopedGames(100);
+    $('btnSeasonReset').classList.toggle('hidden', !games.length);
+    if(!games.length){
       $('seasonBody').innerHTML = '<div style="text-align:center; padding:20px;">No games yet — play some games first!</div>';
       return;
     }
-    renderSeasonDashboard(d.games);
+    renderSeasonDashboard(games);
   }catch(e){
     console.error(e);
     $('seasonBody').innerHTML = '<div style="text-align:center; padding:20px; color:var(--accent-them);">Failed to load. Check your connection.</div>';
   }
 });
 $('btnSeasonClose').addEventListener('click', ()=>{ $('seasonPanel').style.display='none'; });
+$('btnSeasonReset').addEventListener('click', resetSeasonStats);
 
 function renderSeasonDashboard(games){
   // Extract data from all games

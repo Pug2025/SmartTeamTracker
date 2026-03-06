@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
-<link rel="manifest" href="manifest.json?v=6.2.4">
+<link rel="manifest" href="manifest.json?v=6.2.5">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Team Tracker</title>
-<link rel="stylesheet" href="css/styles.css?v=6.2.4">
-<link rel="stylesheet" href="css/auth.css?v=6.2.4">
+<link rel="stylesheet" href="css/styles.css?v=6.2.5">
+<link rel="stylesheet" href="css/auth.css?v=6.2.5">
 </head>
 <body>
 
@@ -116,7 +116,7 @@
           <h2>Game Setup</h2>
           <div class="setup-sub">Select your team and opponent to start tracking.</div>
         </div>
-        <div class="setup-chip">Team Required</div>
+        <div class="setup-chip" id="setupChip">Team Required</div>
       </div>
       <div id="setupSummary" class="setup-summary">Add your team to begin this game.</div>
 
@@ -190,18 +190,24 @@
 
     <!-- Game History Panel -->
     <div id="historyPanel" class="card" style="display:none; margin-top:14px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <div class="setup-panel-head">
         <h3 style="margin:0; font-size:16px;">Game History</h3>
-        <button class="btn-std" id="btnHistoryClose" style="font-size:11px; padding:4px 10px;">Close</button>
+        <div class="setup-panel-actions">
+          <button class="btn-std setup-panel-btn" id="btnHistoryClose" type="button">Close</button>
+        </div>
       </div>
+      <div class="history-hint">Swipe left on a game to delete it.</div>
       <div id="historyList" class="small" style="color:#aaa;">Loading...</div>
     </div>
 
     <!-- Season Dashboard Panel -->
     <div id="seasonPanel" class="card" style="display:none; margin-top:14px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <div class="setup-panel-head">
         <h3 style="margin:0; font-size:16px;">Season Dashboard</h3>
-        <button class="btn-std" id="btnSeasonClose" style="font-size:11px; padding:4px 10px;">Close</button>
+        <div class="setup-panel-actions">
+          <button class="btn-std btn-danger-ghost setup-panel-btn hidden" id="btnSeasonReset" type="button">Reset Season</button>
+          <button class="btn-std setup-panel-btn" id="btnSeasonClose" type="button">Close</button>
+        </div>
       </div>
       <div id="seasonBody" class="small" style="color:#aaa;">Loading...</div>
     </div>
@@ -473,7 +479,7 @@
 </div>
 
 <!-- Floating Undo Button -->
-<div id="btnUndo" class="fab-undo">UNDO</div>
+<div id="btnUndo" class="fab-undo" style="display:none;">UNDO</div>
 
 <!-- MODALS -->
 <!-- Roster modal -->
@@ -843,9 +849,9 @@
   </div>
 </div>
 
-<script src="js/spectator.js?v=6.2.4"></script>
-<script type="module" src="js/auth.js?v=6.2.4"></script>
-<script src="js/teams.js?v=6.2.4"></script>
-<script src="js/app.js?v=6.2.4"></script>
+<script src="js/spectator.js?v=6.2.5"></script>
+<script type="module" src="js/auth.js?v=6.2.5"></script>
+<script src="js/teams.js?v=6.2.5"></script>
+<script src="js/app.js?v=6.2.5"></script>
 </body>
 </html>

@@ -395,6 +395,35 @@ class Backend:
             return 404, {"error": "Game not found"}
         return 200, {"success": True}
 
+    def delete_games_for_team(
+        self, team_id: str, user_id: str | None
+    ) -> tuple[int, dict[str, Any]]:
+        if self.mode == "supabase":
+            query = [f"team_id=eq.{quote(team_id, safe='')}"]
+            if user_id:
+                query.append(f"user_id=eq.{quote(user_id, safe='')}")
+            status, payload = self._supabase_request("DELETE", f"games?{'&'.join(query)}")
+            if not (200 <= status < 300):
+                return status, {"error": "Reset failed", "details": payload}
+            return 200, {"success": True}
+
+        with self.lock:
+            data = self._read_local_data()
+            games = data.get("games", [])
+            kept = []
+            removed = 0
+            for game in games:
+                same_team = str(game.get("team_id") or "") == team_id
+                same_user = not user_id or str(game.get("user_id") or "") == user_id
+                if same_team and same_user:
+                    removed += 1
+                    continue
+                kept.append(game)
+            data["games"] = kept
+            self._write_local_data(data)
+
+        return 200, {"success": True, "deleted": removed}
+
     def get_live_game(self, code: str) -> tuple[int, dict[str, Any]]:
         if self.mode == "supabase":
             status, payload = self._supabase_request(
@@ -598,10 +627,15 @@ class AppHandler(SimpleHTTPRequestHandler):
 
             if method == "DELETE":
                 game_id = (query.get("id") or [None])[0]
-                if not game_id:
-                    self._send_json(400, {"error": "Missing game id"})
+                team_id = (query.get("team_id") or [None])[0]
+                user_id = (query.get("user_id") or [None])[0]
+                if game_id:
+                    status, body = self.backend.delete_game(game_id)
+                elif team_id:
+                    status, body = self.backend.delete_games_for_team(team_id, user_id)
+                else:
+                    self._send_json(400, {"error": "Missing game id or team id"})
                     return
-                status, body = self.backend.delete_game(game_id)
                 self._send_json(status, body)
                 return
 

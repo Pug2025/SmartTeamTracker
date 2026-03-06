@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.3.10';
+const APP_VERSION = '6.3.11';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -2831,6 +2831,15 @@ function applyActiveTeam() {
   }
   refreshTeamUI();
 }
+window.onAuthReady = () => {
+  invalidateSetupGamesCache();
+  setupOpponentsLoadToken += 1;
+  refreshTeamUI();
+  refreshSeasonPanelIfOpen().catch(err => console.error(err));
+  if($('historyPanel').style.display === 'block'){
+    loadHistoryPanel().catch(err => console.error(err));
+  }
+};
 
 function openTeamModal(autoShowForm) {
   const TM = getTeamManager();
@@ -3573,6 +3582,12 @@ function buildOpponentListFromGames(games){
   }
   return Array.from(byName.values()).sort(compareOpponentNames);
 }
+function gameMatchesOpponentName(game, opponentName){
+  const normalized = normalizeOpponentName(opponentName);
+  if(!normalized || !game) return false;
+  const data = game.data && typeof game.data === 'object' ? game.data : {};
+  return normalizeOpponentName(data.Opponent || game.opponent || '') === normalized;
+}
 function getOpponentLastPlayedDate(opponentName, games = setupGamesCache.games){
   const normalized = normalizeOpponentName(opponentName);
   if(!normalized || !Array.isArray(games) || !games.length) return null;
@@ -3580,7 +3595,7 @@ function getOpponentLastPlayedDate(opponentName, games = setupGamesCache.games){
   let latestPlayedAt = '';
   for(const game of games){
     const data = game.data || {};
-    if(normalizeOpponentName(data.Opponent || game.opponent || '') !== normalized) continue;
+    if(!gameMatchesOpponentName(game, opponentName)) continue;
     const playedAt = sanitizeDateInput(data.Date || game.date || '');
     if(!isLocalYMD(playedAt)) continue;
     if(!latestPlayedAt || playedAt > latestPlayedAt) latestPlayedAt = playedAt;
@@ -3722,10 +3737,7 @@ function buildMatchupRecord(games, opponentName){
   const normalized = normalizeOpponentName(opponentName);
   if(!normalized) return null;
 
-  const matched = (games || []).filter((game) => {
-    const data = game.data || {};
-    return normalizeOpponentName(data.Opponent || game.opponent || '') === normalized;
-  });
+  const matched = (games || []).filter((game) => gameMatchesOpponentName(game, opponentName));
   if(!matched.length){
     return {
       opponentName: cleanOpponentName(opponentName),
@@ -3877,15 +3889,40 @@ async function deleteGameRecord(gameId){
 }
 async function deleteOpponentAndGames(opponentId, opponentName){
   const cleanedName = cleanOpponentName(opponentName);
-  const gamesRes = await fetch(buildGamesApiUrl({ includeLimit:false, opponent:cleanedName }), { method:'DELETE' });
-  const gamesData = await gamesRes.json().catch(() => ({}));
-  if(!gamesRes.ok || !gamesData.success){
-    throw new Error(gamesData.error || 'Opponent game delete failed');
+  let scopedGames = [];
+  try{
+    scopedGames = await ensureSetupGamesCache(true);
+  }catch(err){
+    console.warn('Scoped game cache unavailable during opponent delete, retrying direct fetch.', err);
+    scopedGames = await fetchScopedGames(500);
+  }
+
+  const matchingGames = (scopedGames || []).filter((game) => (
+    gameMatchesOpponentName(game, cleanedName) && game && game.id != null
+  ));
+
+  for(const game of matchingGames){
+    await deleteGameRecord(game.id);
+  }
+
+  let deletedGames = matchingGames.length;
+  try{
+    const gamesRes = await fetch(buildGamesApiUrl({ includeLimit:false, opponent:cleanedName }), { method:'DELETE' });
+    const gamesData = await gamesRes.json().catch(() => ({}));
+    if(!gamesRes.ok || !gamesData.success){
+      throw new Error(gamesData.error || 'Opponent game delete failed');
+    }
+    deletedGames += Number(gamesData.deleted) || 0;
+  }catch(err){
+    console.warn('Bulk opponent game delete fallback failed.', err);
   }
 
   await deleteOpponentRecord(opponentId);
+  const scopeKey = getSetupScopeKey();
+  setupGamesCache = createSetupGamesCache(scopeKey);
+  setupGamesCache.games = (scopedGames || []).filter((game) => !gameMatchesOpponentName(game, cleanedName));
   return {
-    deletedGames: Number(gamesData.deleted) || 0
+    deletedGames
   };
 }
 async function resetSeasonStats(){

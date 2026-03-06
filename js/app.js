@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.3.2';
+const APP_VERSION = '6.3.3';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -241,6 +241,7 @@ let setupGamesCache = {
 let setupOpponentsLoadToken = 0;
 let opponentDropdownOpen = false;
 let opponentDropdownHideTimer = null;
+let opponentDropdownMode = 'filter';
 function initP(){
   return {
     A_shots:0, A_goals:0, A_smothers:0, A_badRebounds:0, A_bigSaves:0,
@@ -3195,22 +3196,30 @@ function syncOpponentSetupField(rawValue, { canonicalizeSaved = false } = {}){
 }
 $('opponent').oninput=e=>{
   cancelOpponentDropdownHide();
+  opponentDropdownMode = 'filter';
   syncOpponentSetupField(e.target.value);
-  const hasRows = renderOpponentDropdown(e.target.value || '');
+  const hasRows = renderCurrentOpponentDropdown();
   setOpponentDropdownOpen(hasRows);
 };
 $('opponent').onchange=e=>{
   syncOpponentSetupField(e.target.value, { canonicalizeSaved:true });
-  renderOpponentDropdown((($('opponent') && $('opponent').value) || ''));
+  renderCurrentOpponentDropdown();
 };
 $('opponent').addEventListener('focus', e => {
   cancelOpponentDropdownHide();
-  const hasRows = renderOpponentDropdown(e.target.value || '');
+  if(opponentDropdownOpen && opponentDropdownMode === 'all') return;
+  const hasValue = !!cleanOpponentName(e.target.value);
+  opponentDropdownMode = hasValue ? 'filter' : 'all';
+  if(hasValue){
+    setOpponentDropdownOpen(false);
+    return;
+  }
+  const hasRows = renderCurrentOpponentDropdown();
   setOpponentDropdownOpen(hasRows);
 });
 $('opponent').addEventListener('blur', e => {
   syncOpponentSetupField(e.target.value, { canonicalizeSaved:true });
-  renderOpponentDropdown((($('opponent') && $('opponent').value) || ''));
+  renderCurrentOpponentDropdown();
   scheduleOpponentDropdownHide();
 });
 $('opponent').addEventListener('keydown', async (e) => {
@@ -3219,25 +3228,32 @@ $('opponent').addEventListener('keydown', async (e) => {
     return;
   }
   if(e.key === 'ArrowDown'){
-    const hasRows = renderOpponentDropdown(e.target.value || '');
+    cancelOpponentDropdownHide();
+    opponentDropdownMode = cleanOpponentName(e.target.value) ? 'filter' : 'all';
+    const hasRows = renderCurrentOpponentDropdown();
     setOpponentDropdownOpen(hasRows);
+    e.preventDefault();
     return;
   }
   if(e.key !== 'Enter') return;
   const typedName = cleanOpponentName(e.target.value);
   if(!typedName) return;
   e.preventDefault();
-  const existing = findSavedOpponentByName(typedName);
-  if(existing){
-    syncOpponentSetupField(existing.name, { canonicalizeSaved:true });
-    setOpponentDropdownOpen(false);
+  const matchedOpponent = findAutocompleteOpponent(typedName);
+  if(matchedOpponent){
+    applyOpponentSelection(matchedOpponent.name);
+    return;
+  }
+  const matchingSavedOpponents = getOpponentDropdownMatches(typedName);
+  if(matchingSavedOpponents.length){
+    opponentDropdownMode = 'filter';
+    const hasRows = renderCurrentOpponentDropdown();
+    setOpponentDropdownOpen(hasRows);
     return;
   }
   try{
     const saved = await saveOpponentName(typedName);
-    syncOpponentSetupField(saved && saved.name ? saved.name : typedName, { canonicalizeSaved:true });
-    renderOpponentDropdown((($('opponent') && $('opponent').value) || ''));
-    setOpponentDropdownOpen(false);
+    applyOpponentSelection(saved && saved.name ? saved.name : typedName);
     showStatusToast('Opponent saved', 'success');
   }catch(err){
     console.error(err);
@@ -3250,12 +3266,13 @@ $('togglePM').checked = prefs.trackPlusMinus;
 $('togglePM').addEventListener('change', e=>{ prefs.trackPlusMinus = e.target.checked; savePrefs(); });
 $('opponentMenuBtn').addEventListener('click', () => {
   cancelOpponentDropdownHide();
-  if(opponentDropdownOpen){
+  if(opponentDropdownOpen && opponentDropdownMode === 'all'){
     setOpponentDropdownOpen(false);
     return;
   }
+  opponentDropdownMode = 'all';
   const input = $('opponent');
-  const hasRows = renderOpponentDropdown((input && input.value) || '');
+  const hasRows = renderCurrentOpponentDropdown();
   setOpponentDropdownOpen(hasRows);
   if(input) input.focus();
 });
@@ -3289,9 +3306,7 @@ $('opponentDropdown').addEventListener('click', async (e) => {
     if(!opponentName) return;
     try{
       const saved = await saveOpponentName(opponentName);
-      syncOpponentSetupField(saved && saved.name ? saved.name : opponentName, { canonicalizeSaved:true });
-      renderOpponentDropdown((($('opponent') && $('opponent').value) || ''));
-      setOpponentDropdownOpen(false);
+      applyOpponentSelection(saved && saved.name ? saved.name : opponentName);
       showStatusToast('Opponent saved', 'success');
     }catch(err){
       console.error(err);
@@ -3301,9 +3316,7 @@ $('opponentDropdown').addEventListener('click', async (e) => {
   }
   const btn = e.target.closest('.opponent-option-main');
   if(!btn) return;
-  syncOpponentSetupField(btn.dataset.name || '', { canonicalizeSaved:true });
-  renderOpponentDropdown((($('opponent') && $('opponent').value) || ''));
-  setOpponentDropdownOpen(false);
+  applyOpponentSelection(btn.dataset.name || '');
 });
 document.addEventListener('click', (e) => {
   const combo = $('opponentCombobox');
@@ -3390,6 +3403,46 @@ function compareOpponentNames(a, b){
 function sortSetupOpponents(){
   setupOpponents.sort(compareOpponentNames);
 }
+function getOpponentDropdownMatches(filterText = '', { showAll = false } = {}){
+  const normalizedFilter = normalizeOpponentName(filterText);
+  if(showAll || !normalizedFilter) return [...setupOpponents];
+
+  const prefixMatches = [];
+  const containsMatches = [];
+  for(const opponent of setupOpponents){
+    const normalizedName = normalizeOpponentName(opponent && opponent.name);
+    if(!normalizedName.includes(normalizedFilter)) continue;
+    if(normalizedName.startsWith(normalizedFilter)) prefixMatches.push(opponent);
+    else containsMatches.push(opponent);
+  }
+  return prefixMatches.concat(containsMatches);
+}
+function getCurrentOpponentDropdownFilter(){
+  if(opponentDropdownMode === 'all') return '';
+  const input = $('opponent');
+  return (input && input.value) || state.opponent || '';
+}
+function renderCurrentOpponentDropdown(){
+  return renderOpponentDropdown(getCurrentOpponentDropdownFilter(), { showAll: opponentDropdownMode === 'all' });
+}
+function findAutocompleteOpponent(filterText){
+  const cleaned = cleanOpponentName(filterText);
+  if(!cleaned) return null;
+  const exactMatch = findSavedOpponentByName(cleaned);
+  if(exactMatch) return exactMatch;
+
+  const normalized = normalizeOpponentName(cleaned);
+  const prefixMatches = setupOpponents.filter((opponent) => (
+    normalizeOpponentName(opponent && opponent.name).startsWith(normalized)
+  ));
+  return prefixMatches.length === 1 ? prefixMatches[0] : null;
+}
+function applyOpponentSelection(name){
+  opponentDropdownMode = 'filter';
+  syncOpponentSetupField(name || '', { canonicalizeSaved:true });
+  renderCurrentOpponentDropdown();
+  setOpponentDropdownOpen(false);
+}
 function cancelOpponentDropdownHide(){
   if(opponentDropdownHideTimer){
     clearTimeout(opponentDropdownHideTimer);
@@ -3415,20 +3468,16 @@ function setOpponentDropdownOpen(nextOpen){
   if(input) input.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
   if(shell) shell.classList.toggle('open', shouldOpen);
 }
-function renderOpponentDropdown(filterText = ''){
+function renderOpponentDropdown(filterText = '', { showAll = false } = {}){
   const dropdown = $('opponentDropdown');
   if(!dropdown) return false;
 
   const cleanedFilter = cleanOpponentName(filterText);
-  const normalizedFilter = normalizeOpponentName(cleanedFilter);
   const currentOpponent = normalizeOpponentName((($('opponent') && $('opponent').value) || state.opponent || ''));
-  const matches = normalizedFilter
-    ? setupOpponents.filter(o => normalizeOpponentName(o && o.name).includes(normalizedFilter))
-    : setupOpponents;
-  const visible = matches;
+  const visible = getOpponentDropdownMatches(cleanedFilter, { showAll });
   const rows = [];
 
-  if(cleanedFilter && !findSavedOpponentByName(cleanedFilter)){
+  if(cleanedFilter && !showAll && !findSavedOpponentByName(cleanedFilter)){
     rows.push(
       `<button class="opponent-dropdown-add" type="button" data-name="${escapeHTML(cleanedFilter)}">Add &quot;${escapeHTML(cleanedFilter)}&quot;</button>`
     );
@@ -3524,7 +3573,7 @@ function mergeSavedOpponent(opponent){
   if(idx >= 0) setupOpponents[idx] = { ...setupOpponents[idx], ...next };
   else setupOpponents.push(next);
   sortSetupOpponents();
-  const hasRows = renderOpponentDropdown((($('opponent') && $('opponent').value) || ''));
+  const hasRows = renderCurrentOpponentDropdown();
   if(opponentDropdownOpen) setOpponentDropdownOpen(hasRows);
 }
 function removeSavedOpponent(opponentId){
@@ -3532,7 +3581,7 @@ function removeSavedOpponent(opponentId){
   const idx = setupOpponents.findIndex(o => String(o && o.id) === idText);
   if(idx === -1) return null;
   const [removed] = setupOpponents.splice(idx, 1);
-  const hasRows = renderOpponentDropdown((($('opponent') && $('opponent').value) || ''));
+  const hasRows = renderCurrentOpponentDropdown();
   if(opponentDropdownOpen) setOpponentDropdownOpen(hasRows);
   if(findSavedOpponentByName((($('opponent') && $('opponent').value) || ''))){
     updateOpponentMatchupCard().catch(err => console.error(err));
@@ -3620,7 +3669,7 @@ async function loadSetupOpponents(){
     last_played_at: o.last_played_at || null
   })).filter(o => o.name);
   sortSetupOpponents();
-  const hasRows = renderOpponentDropdown((($('opponent') && $('opponent').value) || ''));
+  const hasRows = renderCurrentOpponentDropdown();
   if(opponentDropdownOpen) setOpponentDropdownOpen(hasRows);
   await updateOpponentMatchupCard();
   return setupOpponents;
@@ -3695,7 +3744,7 @@ async function updateOpponentMatchupCard({ forceGames = false } = {}){
     return;
   }
 
-  const hasRows = renderOpponentDropdown(input.value || '');
+  const hasRows = renderCurrentOpponentDropdown();
   if(opponentDropdownOpen) setOpponentDropdownOpen(hasRows);
   const known = findSavedOpponentByName(input.value);
   if(!known){

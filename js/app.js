@@ -142,10 +142,9 @@ function updateSetupReadiness(){
   const startBtn = $('btnStartGame');
   const historyBtn = $('btnHistory');
   const seasonBtn = $('btnSeason');
-  const levelDisplay = $('levelDisplay');
   const setupChip = $('setupChip');
 
-  if(!requirement || !startBtn || !historyBtn || !seasonBtn || !levelDisplay) return;
+  if(!requirement || !startBtn || !historyBtn || !seasonBtn) return;
 
   const { team, opponent, ready } = getStartGameReadiness();
 
@@ -153,12 +152,8 @@ function updateSetupReadiness(){
     requirement.textContent = ready
       ? 'Everything is set. Start tracking when the game begins.'
       : 'Enter the opponent name to unlock Start Game.';
-    levelDisplay.textContent = team.level || 'U11';
-    levelDisplay.classList.remove('empty');
   } else {
     requirement.textContent = 'Add a team, then enter the opponent to start.';
-    levelDisplay.textContent = 'Add a team to set level';
-    levelDisplay.classList.add('empty');
   }
 
   if(setupChip) setupChip.style.display = team ? 'none' : 'inline-flex';
@@ -2730,17 +2725,11 @@ function refreshTeamUI() {
   const activeId = TM.getActiveTeamId();
   const activeTeam = activeId ? teams.find(t => t.id === activeId) : null;
   const activeCard = $('activeTeamSummary');
-  const levelDisplay = $('levelDisplay');
 
   if (teams.length === 0) {
     $('teamEmpty').style.display = '';
     $('teamHasTeams').style.display = 'none';
-    $('levelReadonly').style.display = '';
     if(activeCard) activeCard.style.display = 'none';
-    if(levelDisplay){
-      levelDisplay.textContent = 'Add a team to set level';
-      levelDisplay.classList.add('empty');
-    }
   } else {
     $('teamEmpty').style.display = 'none';
     $('teamHasTeams').style.display = '';
@@ -2749,7 +2738,6 @@ function refreshTeamUI() {
       teams.map(t => `<option value="${t.id}">${t.name} (${t.level})</option>`).join('');
     sel.value = activeId || '';
 
-    $('levelReadonly').style.display = '';
     if (activeTeam) {
       const rosterCount = Array.isArray(activeTeam.roster) ? activeTeam.roster.length : 0;
       if(activeCard){
@@ -2757,16 +2745,8 @@ function refreshTeamUI() {
         $('activeTeamName').textContent = activeTeam.name;
         $('activeTeamMeta').textContent = `${activeTeam.level || 'U11'} • ${rosterCount} player${rosterCount === 1 ? '' : 's'} ready`;
       }
-      if(levelDisplay){
-        levelDisplay.textContent = activeTeam.level || 'U11';
-        levelDisplay.classList.remove('empty');
-      }
     } else {
       if(activeCard) activeCard.style.display = 'none';
-      if(levelDisplay){
-        levelDisplay.textContent = 'Select a team';
-        levelDisplay.classList.add('empty');
-      }
     }
   }
 

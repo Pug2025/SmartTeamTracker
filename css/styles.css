@@ -89,7 +89,7 @@
   .top-title-stack{
     display:flex;
     flex-direction:column;
-    gap:2px;
+    gap:0;
     min-width:0;
   }
   .top-title-line{
@@ -98,26 +98,11 @@
     gap:8px;
     min-width:0;
   }
-  .top-context{
-    font-size:12px;
-    color:#9aa6b2;
-    font-weight:600;
-    letter-spacing:0.1px;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-  }
   body.in-game .top-row{
     padding:10px 14px;
   }
   body.in-game .top-title-group{
     align-items:center;
-  }
-  body.in-game .top-title-stack{
-    gap:0;
-  }
-  body.in-game .top-context{
-    display:none;
   }
   .top-actions{
     display:flex;
@@ -451,6 +436,7 @@
   input[type="date"]{
     width:100%;
     min-width:0;
+    display:block;
   }
   .btn-start{
     width:100%;
@@ -489,17 +475,11 @@
   }
   .setup-fields{
     display:grid;
-    grid-template-columns:minmax(0, 92px) minmax(0, 1fr);
+    grid-template-columns:minmax(0, 1fr);
     gap:12px;
   }
   .setup-field-span{
     grid-column:1 / -1;
-  }
-  .setup-field-level{
-    min-width:0;
-  }
-  .setup-field-date{
-    min-width:0;
   }
   .setup-toggle-row{
     display:flex;
@@ -2246,7 +2226,7 @@
     font-size:24px;
   }
   .setup-fields{
-    grid-template-columns:minmax(0, 88px) minmax(0, 1fr);
+    grid-template-columns:minmax(0, 1fr);
     gap:10px;
   }
   .setup-field-span{
@@ -2347,7 +2327,7 @@
     padding:11px 13px !important;
   }
   .setup-fields{
-    grid-template-columns:minmax(0, 84px) minmax(0, 1fr);
+    grid-template-columns:minmax(0, 1fr);
   }
   .setup-toggle-title{
     font-size:13px;

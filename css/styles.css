@@ -450,6 +450,7 @@
   }
   input[type="date"]{
     width:100%;
+    min-width:0;
   }
   .btn-start{
     width:100%;
@@ -488,11 +489,17 @@
   }
   .setup-fields{
     display:grid;
-    grid-template-columns:1.4fr 1fr;
+    grid-template-columns:minmax(0, 92px) minmax(0, 1fr);
     gap:12px;
   }
   .setup-field-span{
     grid-column:1 / -1;
+  }
+  .setup-field-level{
+    min-width:0;
+  }
+  .setup-field-date{
+    min-width:0;
   }
   .setup-toggle-row{
     display:flex;
@@ -2239,7 +2246,7 @@
     font-size:24px;
   }
   .setup-fields{
-    grid-template-columns:minmax(0,1fr) 122px;
+    grid-template-columns:minmax(0, 88px) minmax(0, 1fr);
     gap:10px;
   }
   .setup-field-span{
@@ -2340,7 +2347,7 @@
     padding:11px 13px !important;
   }
   .setup-fields{
-    grid-template-columns:minmax(0,1fr) 138px;
+    grid-template-columns:minmax(0, 84px) minmax(0, 1fr);
   }
   .setup-toggle-title{
     font-size:13px;

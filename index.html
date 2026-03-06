@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
-<link rel="manifest" href="manifest.json?v=6.2.3">
+<link rel="manifest" href="manifest.json?v=6.2.4">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Team Tracker</title>
-<link rel="stylesheet" href="css/styles.css?v=6.2.3">
-<link rel="stylesheet" href="css/auth.css?v=6.2.3">
+<link rel="stylesheet" href="css/styles.css?v=6.2.4">
+<link rel="stylesheet" href="css/auth.css?v=6.2.4">
 </head>
 <body>
 
@@ -48,7 +48,10 @@
 <header class="sticky-header">
   <div class="top-row">
     <div class="top-title-group">
-      <h1>Team Tracker</h1>
+      <div class="top-title-stack">
+        <h1>Team Tracker</h1>
+        <div class="top-context" id="headerContext">Game Setup</div>
+      </div>
       <div class="pill warn" id="cloudStatus">Checking</div>
     </div>
     <div class="top-actions">
@@ -58,7 +61,7 @@
   </div>
 
   <div class="header-menu" id="headerMenu">
-    <button class="header-menu-btn" id="btnEditSetup" type="button">Edit Info</button>
+    <button class="header-menu-btn" id="btnEditSetup" type="button">Game Setup</button>
     <button class="header-menu-btn" id="btnRoster" type="button">Roster</button>
     <button class="header-menu-btn" id="btnHelp" type="button">Help</button>
     <button class="header-menu-btn header-menu-btn-danger" id="btnSignOut" type="button">Sign Out</button>
@@ -74,7 +77,7 @@
   <div class="scoreboard-row" id="scoreboardRow" style="display:none;">
     <!-- THEM LEFT, US RIGHT -->
     <div class="score-block them">
-      <span class="score-label">THEM</span>
+      <span class="score-label" id="scoreThemLabel">THEM</span>
       <span id="liveGA" class="score-val">0</span>
       <div class="score-sub" id="liveSA_sub">SA: 0</div>
     </div>
@@ -87,7 +90,7 @@
     </div>
 
     <div class="score-block us">
-      <span class="score-label">US</span>
+      <span class="score-label" id="scoreUsLabel">US</span>
       <span id="liveGF" class="score-val">0</span>
       <div class="score-sub" id="liveSF_sub">SF: 0</div>
     </div>
@@ -107,58 +110,81 @@
   <!-- Setup Panel (Initially Visible) -->
   <div id="setupContainer">
     <div class="setup-card">
-      <h2>Game Setup</h2>
+      <div class="setup-eyebrow">Pre-Game</div>
+      <div class="setup-head">
+        <div>
+          <h2>Game Setup</h2>
+          <div class="setup-sub">Select your team and opponent to start tracking.</div>
+        </div>
+        <div class="setup-chip">Team Required</div>
+      </div>
+      <div id="setupSummary" class="setup-summary">Add your team to begin this game.</div>
 
       <!-- Team Selector -->
+      <div class="setup-section-label">Team</div>
       <div id="teamSelectorWrap" class="team-selector-wrap">
         <!-- When no teams: show Add Team prompt -->
         <div id="teamEmpty" class="team-empty-card">
-          <div class="team-empty-text">Add your team to track rosters and game history per team</div>
-          <button class="btn-start" id="btnAddFirstTeam" type="button" style="margin:0; font-size:14px; padding:10px;">+ Add My Team</button>
+          <div class="team-empty-text">Your team is required before you can start tracking. Add it once and the app can carry roster, level, and history forward.</div>
+          <button class="btn-start btn-start-secondary" id="btnAddFirstTeam" type="button">Add Your Team</button>
         </div>
         <!-- When teams exist: show selector -->
         <div id="teamHasTeams" class="team-has-teams" style="display:none;">
-          <label>My Team</label>
+          <div id="activeTeamSummary" class="team-active-card" style="display:none;">
+            <div class="team-active-name" id="activeTeamName">Kingston Knights</div>
+            <div class="team-active-meta" id="activeTeamMeta">U11 • 8 players ready</div>
+          </div>
+          <label class="setup-field-label" for="teamSelect">Selected Team</label>
           <div class="team-selector-row">
-            <select id="teamSelect"><option value="">— No Team —</option></select>
+            <select id="teamSelect"><option value="">Select Team</option></select>
             <button class="btn-std btn-manage-teams" id="btnManageTeams" type="button">Manage</button>
           </div>
         </div>
       </div>
 
-      <div class="input-group">
-        <label>Opponent Name</label>
-        <input id="opponent" placeholder="e.g. Napanee Stars" autocomplete="off">
+      <div class="setup-section-label">Matchup</div>
+      <div class="setup-fields">
+        <div class="input-group setup-field-span">
+          <label for="opponent">Opponent Name</label>
+          <input id="opponent" placeholder="e.g. Napanee Stars" autocomplete="off">
+        </div>
+        <!-- Level is now set per-team in the team manager. Keep the select for state, but show a read-only display in setup. -->
+        <div class="input-group hidden" id="levelGroup">
+          <label>Level</label>
+          <select id="level">
+            <option>U9</option>
+            <option selected>U11</option>
+            <option>U13</option>
+            <option>U15</option>
+            <option>U18</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="input-group" id="levelReadonly">
+          <label>Level</label>
+          <div id="levelDisplay" class="level-readonly empty">Add a team to set level</div>
+        </div>
+        <div class="input-group">
+          <label for="date">Date</label>
+          <input id="date" type="date">
+        </div>
       </div>
-      <!-- Level is now set per-team in the team manager. Show read-only when team selected, editable fallback when no team -->
-      <div class="input-group" id="levelGroup">
-        <label>Level</label>
-        <select id="level">
-          <option>U9</option>
-          <option selected>U11</option>
-          <option>U13</option>
-          <option>U15</option>
-          <option>U18</option>
-          <option>Other</option>
-        </select>
-      </div>
-      <div class="input-group" id="levelReadonly" style="display:none;">
-        <label>Level</label>
-        <div id="levelDisplay" class="level-readonly">U11</div>
-      </div>
-      <div class="input-group">
-        <label>Date</label>
-        <input id="date" type="date">
-      </div>
-      <div class="input-group" style="display:flex; align-items:center; gap:10px; margin-top:4px;">
-        <label style="margin:0; flex:1;" for="togglePM">Track +/- (On-Ice)</label>
+
+      <div class="setup-section-label">Tracking</div>
+      <div class="setup-toggle-row">
+        <div>
+          <div class="setup-toggle-title">Track +/-</div>
+          <div class="setup-toggle-copy">Prompt for the five skaters on the ice after each goal.</div>
+        </div>
         <label class="switch"><input type="checkbox" id="togglePM" checked><span class="slider"></span></label>
       </div>
-      <div id="resumeBanner" class="banner hidden" style="font-size:12px; color:var(--warn); margin-bottom:10px;">Resumed saved game.</div>
-      <button id="btnStartGame" class="btn-start">Start Game</button>
-      <div style="display:flex; gap:8px; margin-top:8px;">
-        <button id="btnHistory" class="btn-start" style="background:transparent; color:var(--accent-us); border:2px solid var(--accent-us); flex:1; font-size:14px;">Past Games</button>
-        <button id="btnSeason" class="btn-start" style="background:transparent; color:var(--good); border:2px solid var(--good); flex:1; font-size:14px;">Season Stats</button>
+
+      <div id="setupRequirement" class="setup-inline-note">Select your team and enter the opponent to start.</div>
+      <div id="resumeBanner" class="banner setup-resume hidden">Resumed saved game. You can continue immediately or adjust setup before you restart.</div>
+      <button id="btnStartGame" class="btn-start" disabled>Start Game</button>
+      <div class="setup-tertiary">
+        <button id="btnHistory" class="btn-tertiary-link" type="button">Past Games</button>
+        <button id="btnSeason" class="btn-tertiary-link" type="button">Season Stats</button>
       </div>
     </div>
 
@@ -240,8 +266,8 @@
     <!-- Live Dashboard -->
     <div class="dash">
       <div class="dashTop">
-        <div class="t">Scoreboard</div>
-        <div class="small" id="dashLine">GF 0 • GA 0 • SF 0 • SA 0</div>
+        <div class="t">Game Pulse</div>
+        <div class="small" id="dashLine">P1 • Shot share pending • No xG trend yet</div>
       </div>
 
       <div class="ringsRow">
@@ -817,9 +843,9 @@
   </div>
 </div>
 
-<script src="js/spectator.js?v=6.2.3"></script>
-<script type="module" src="js/auth.js?v=6.2.3"></script>
-<script src="js/teams.js?v=6.2.3"></script>
-<script src="js/app.js?v=6.2.3"></script>
+<script src="js/spectator.js?v=6.2.4"></script>
+<script type="module" src="js/auth.js?v=6.2.4"></script>
+<script src="js/teams.js?v=6.2.4"></script>
+<script src="js/app.js?v=6.2.4"></script>
 </body>
 </html>

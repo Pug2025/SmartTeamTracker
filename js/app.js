@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.2.3';
+const APP_VERSION = '6.2.4';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -99,6 +99,95 @@ function sanitizePeriod(v){
   if(!Number.isInteger(n)) return 1;
   return Math.min(MAX_PERIOD, Math.max(1, n));
 }
+function formatDisplayDate(ymd){
+  const safe = sanitizeDateInput(ymd || getLocalTodayYMD());
+  const [y, m, d] = safe.split('-').map(Number);
+  const dt = new Date(y, (m || 1) - 1, d || 1);
+  return dt.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
+}
+function getActiveTeamSafe(){
+  try{
+    const TM = getTeamManager();
+    if(TM && typeof TM.getActiveTeam === 'function') return TM.getActiveTeam();
+  }catch(_){}
+  return null;
+}
+function getSetupOpponentText(){
+  return (($('opponent') && $('opponent').value) || state.opponent || '').trim();
+}
+function compactScoreLabel(name, fallback){
+  const raw = String(name || '').trim();
+  if(!raw) return fallback;
+  return raw.replace(/\s+/g, ' ');
+}
+function getStartGameReadiness(){
+  const team = getActiveTeamSafe();
+  const opponent = getSetupOpponentText();
+  return { team, opponent, ready: !!team && !!opponent };
+}
+function updateScoreLabels(){
+  const team = getActiveTeamSafe();
+  $('scoreThemLabel').textContent = compactScoreLabel(getSetupOpponentText(), 'THEM');
+  $('scoreUsLabel').textContent = compactScoreLabel(team && team.name, 'US');
+}
+function updateHeaderContext(){
+  const el = $('headerContext');
+  if(!el) return;
+
+  const team = getActiveTeamSafe();
+  const teamName = team ? team.name : 'Team';
+  const opponent = getSetupOpponentText();
+
+  if(document.body.classList.contains('in-game')){
+    const matchup = opponent ? `${teamName} vs ${opponent}` : `${teamName} live`;
+    const periodLabel = sanitizePeriod(state.period) === 4 ? 'OT' : `P${sanitizePeriod(state.period)}`;
+    el.textContent = `${matchup} • ${periodLabel}`;
+  } else {
+    el.textContent = 'Game Setup';
+  }
+}
+function updateSetupReadiness(){
+  const summary = $('setupSummary');
+  const requirement = $('setupRequirement');
+  const startBtn = $('btnStartGame');
+  const historyBtn = $('btnHistory');
+  const seasonBtn = $('btnSeason');
+  const levelDisplay = $('levelDisplay');
+
+  if(!summary || !requirement || !startBtn || !historyBtn || !seasonBtn || !levelDisplay) return;
+
+  const { team, opponent, ready } = getStartGameReadiness();
+  const dateText = formatDisplayDate(($('date') && $('date').value) || state.date || getLocalTodayYMD());
+  const rosterCount = team && Array.isArray(team.roster) ? team.roster.length : 0;
+
+  if(team){
+    summary.textContent = opponent
+      ? `${team.name} • ${team.level || 'U11'} • vs ${opponent} • ${dateText}`
+      : `${team.name} • ${team.level || 'U11'} • ${rosterCount} player${rosterCount === 1 ? '' : 's'} ready`;
+    requirement.textContent = ready
+      ? 'Everything is set. Start tracking when the game begins.'
+      : 'Enter the opponent name to unlock Start Game.';
+    levelDisplay.textContent = team.level || 'U11';
+    levelDisplay.classList.remove('empty');
+  } else {
+    summary.textContent = 'Add your team first. Team selection is required for roster, level, and season tracking.';
+    requirement.textContent = 'Add a team, then enter the opponent to start.';
+    levelDisplay.textContent = 'Add a team to set level';
+    levelDisplay.classList.add('empty');
+  }
+
+  startBtn.disabled = !ready;
+  startBtn.classList.toggle('disabled', !ready);
+  startBtn.textContent = ready ? 'Start Game' : team ? 'Enter Opponent to Start' : 'Add Team to Start';
+
+  historyBtn.disabled = !team;
+  seasonBtn.disabled = !team;
+  historyBtn.classList.toggle('disabled', !team);
+  seasonBtn.classList.toggle('disabled', !team);
+
+  updateHeaderContext();
+  updateScoreLabels();
+}
 
 /* ===== State ===== */
 const state = {
@@ -164,6 +253,8 @@ function setInGameHeader(inGame){
 
   document.body.classList.toggle('in-game', inGame);
   closeHeaderMenu();
+  updateHeaderContext();
+  updateScoreLabels();
 }
 
 function toggleSetup(showSetup){
@@ -172,12 +263,14 @@ function toggleSetup(showSetup){
     $('gameControls').style.display='none';
     $('btnUndo').style.display='none';
     setInGameHeader(false);
+    updateSetupReadiness();
   } else {
     $('setupContainer').style.display='none';
     $('gameControls').style.display='block';
     $('btnUndo').style.display='flex';
     setInGameHeader(true);
   }
+  updateHeaderContext();
 }
 
 function scrollGameplayIntoView(){
@@ -192,9 +285,22 @@ function scrollGameplayIntoView(){
 }
 
 $('btnStartGame').addEventListener('click', ()=>{
+  const { team, opponent, ready } = getStartGameReadiness();
+  if(!team){
+    openTeamModal(true);
+    showStatusToast('Add your team before starting a game.', 'warn', 3200);
+    return;
+  }
+  if(!opponent){
+    $('opponent').focus();
+    showStatusToast('Enter the opponent name to start.', 'warn', 3200);
+    return;
+  }
+  if(!ready) return;
+
   // Always pull current setup values (prevents stale state issues)
-  state.opponent = ($('opponent').value || '').trim();
-  state.level = $('level').value || 'U11';
+  state.opponent = opponent;
+  state.level = team.level || $('level').value || 'U11';
 
   state.date = sanitizeDateInput($('date').value);
   $('date').value = state.date;
@@ -378,6 +484,7 @@ function highlightPeriod(){
     const p = Number(ch.dataset.p);
     ch.classList.toggle('active', p===state.period);
   });
+  updateHeaderContext();
 }
 
 function fmtTime(iso){
@@ -846,33 +953,46 @@ $('toastRestore').addEventListener('click', ()=>{
 });
 
 /* Labels */
+const EVENT_LABELS = {
+  shot:'Shot Against',
+  goal:'Goal Against',
+  soft_goal:'Soft Goal',
+  bad_rebound:'Bad Rebound',
+  smother:'Smother',
+  big_save:'Big Save',
+  for_shot:'Shot For',
+  for_goal:'Goal For',
+  breakaway_against:'Breakaway Against',
+  dz_turnover:'D-Zone Turnover',
+  breakaway_for:'Breakaway For',
+  odd_man_rush_for:'Odd-Man Rush For',
+  odd_man_rush_against:'Odd-Man Rush Against',
+  penalty_for:'Penalty Drawn',
+  penalty_against:'Penalty Taken',
+  missed_chance_for:'Missed Chance For',
+  missed_chance_against:'Missed Chance Against',
+  forced_turnover:'Forced Turnover'
+};
+function formatGoalCauseBadge(cause){
+  if(!cause || cause === 'other') return '';
+  const map = {
+    BA:'Breakaway',
+    DZ:'D-Zone Turnover',
+    BR:'Rebound',
+    OMRA:'Odd-Man Rush'
+  };
+  return String(cause)
+    .split('+')
+    .map(part => map[part] || part)
+    .join(' + ');
+}
 function labelFor(ev){
-  let label = ev.type
-    .replace('soft_goal','Soft Goal')
-    .replace('bad_rebound','Bad Rebound')
-    .replace('big_save','Big Save')
-    .replace('for_shot','Our Shot')
-    .replace('for_goal','Our Goal')
-    .replace('breakaway_against','Breakaway Ag')
-    .replace('dz_turnover','DZ Turnover')
-    .replace('breakaway_for','Breakaway For')
-    .replace('odd_man_rush_for','Odd Man Rush For')
-    .replace('odd_man_rush_against','Odd Man Rush Ag')
-    .replace('penalty_for','Penalty For')
-    .replace('penalty_against','Penalty Against')
-    .replace('missed_chance_for','Missed Chance For')
-    .replace('missed_chance_against','Missed Chance Ag')
-    .replace('forced_turnover','Forced Turnover')
-    .replace(/_/g,' ');
+  let label = EVENT_LABELS[ev.type] || ev.type.replace(/_/g,' ');
 
   if(ev.type==='for_goal'){
     const s = ev.player && ev.player!=='?' ? ev.player : 'Unknown';
     const a = (ev.assist===null || ev.assist===undefined) ? '—' : (ev.assist==='?' ? 'Unknown' : ev.assist);
     label = `Our Goal (#${s}) A: ${a==='—' ? '—' : '#'+a}`;
-
-    if(ev.off_ctx === 'Breakaway') label += ' [BA]';
-    else if(ev.off_ctx === 'Odd Man Rush') label += ' [OMR]';
-    else if(ev.off_ctx === 'Forced Turnover') label += ' [FT]';
   }
 
   if((ev.type==='for_shot')&&ev.player&&ev.player!=='?'&&ev.player!=='Unknown') {
@@ -1551,8 +1671,6 @@ function updateMeta(){
   const saves=Math.max(0,A.shots-A.goals);
   const svText = A.shots ? (saves/A.shots).toFixed(3).slice(1) : '—';
 
-  $('dashLine').textContent = `GF ${F.goals} • GA ${A.goals} • SF ${F.shots} • SA ${A.shots}`;
-
   $('savesVal').textContent = saves;
   $('svVal').textContent = `SV% ${svText}`;
 
@@ -1610,6 +1728,11 @@ function updateMeta(){
     $('xgaSub').textContent = 'Expected goals ag';
     $('xgDiffSub').textContent = 'Quality edge';
   }
+
+  const livePeriod = sanitizePeriod(state.period) === 4 ? 'OT' : `P${sanitizePeriod(state.period)}`;
+  const xgEdge = state.events.length > 0 ? `${sq.xGDiff > 0 ? '+' : ''}${sq.xGDiff.toFixed(1)} xG` : 'No xG trend yet';
+  const shareLine = share === '—' ? 'Shot share pending' : `Shot share ${share}`;
+  $('dashLine').textContent = `${livePeriod} • ${shareLine} • ${xgEdge}`;
 
   // Chance Quality slider
   // Boost goals to 1.0 xG (certainty) — a goal proves the chance was dangerous
@@ -1701,6 +1824,8 @@ function updateMeta(){
     }
   }
 
+  updateHeaderContext();
+  updateScoreLabels();
   updateDebugLines();
 }
 
@@ -1721,10 +1846,13 @@ function renderLog(){
     const cause = ev.ga_cause || '';
     const tags = [];
     if(isGA){
-      if(cause) tags.push(cause);
       if(ctx) tags.push(ctx);
+      else {
+        const causeLabel = formatGoalCauseBadge(cause);
+        if(causeLabel) tags.push(causeLabel);
+      }
     }
-    if(ev.type==='for_goal' && ev.off_ctx) tags.push(`OF:${ev.off_ctx}`);
+    if(ev.type==='for_goal' && ev.off_ctx && ev.off_ctx !== 'Other') tags.push(ev.off_ctx);
     if(ev.strength) tags.push(ev.strength);
 
     const tagText = tags.join(' • ');
@@ -2424,6 +2552,7 @@ return;
       $('resumeBanner').classList.add('hidden');
       // Clear ONLY the setup field display so it doesn't show stale opponent
       $('opponent').value = '';
+      toggleSetup(true);
     }
 
     // Ensure date always has a value (and keep input in sync)
@@ -2442,6 +2571,7 @@ return;
     updateMeta();
     highlightPeriod();
     renderAll();
+    updateSetupReadiness();
     validateState('init load');
     refreshCloudStatus();
 
@@ -2464,7 +2594,6 @@ return;
   const SEEN_KEY = 'team-tracker-welcome-seen';
   const hasSeenWelcome = localStorage.getItem(SEEN_KEY);
   if(!hasSeenWelcome){
-    $('welcomeModal').style.display = 'flex';
     $('btnHelp').classList.add('pulse');
   }
   $('btnWelcomeDismiss').onclick = function(){
@@ -2600,34 +2729,48 @@ function refreshTeamUI() {
   const teams = TM.loadTeams();
   const activeId = TM.getActiveTeamId();
   const activeTeam = activeId ? teams.find(t => t.id === activeId) : null;
+  const activeCard = $('activeTeamSummary');
+  const levelDisplay = $('levelDisplay');
 
   if (teams.length === 0) {
-    // No teams: show "Add Team" prompt, hide selector
     $('teamEmpty').style.display = '';
     $('teamHasTeams').style.display = 'none';
-    // Show editable level dropdown (no team to pull from)
-    $('levelGroup').style.display = '';
-    $('levelReadonly').style.display = 'none';
+    $('levelReadonly').style.display = '';
+    if(activeCard) activeCard.style.display = 'none';
+    if(levelDisplay){
+      levelDisplay.textContent = 'Add a team to set level';
+      levelDisplay.classList.add('empty');
+    }
   } else {
-    // Has teams: show selector, hide prompt
     $('teamEmpty').style.display = 'none';
     $('teamHasTeams').style.display = '';
-    // Populate dropdown
     const sel = $('teamSelect');
-    sel.innerHTML = '<option value="">— Select Team —</option>' +
+    sel.innerHTML = '<option value="">Select Team</option>' +
       teams.map(t => `<option value="${t.id}">${t.name} (${t.level})</option>`).join('');
     sel.value = activeId || '';
 
-    // Toggle level display: readonly when team selected, editable when "no team"
+    $('levelReadonly').style.display = '';
     if (activeTeam) {
-      $('levelGroup').style.display = 'none';
-      $('levelReadonly').style.display = '';
-      $('levelDisplay').textContent = activeTeam.level || 'U11';
+      const rosterCount = Array.isArray(activeTeam.roster) ? activeTeam.roster.length : 0;
+      if(activeCard){
+        activeCard.style.display = '';
+        $('activeTeamName').textContent = activeTeam.name;
+        $('activeTeamMeta').textContent = `${activeTeam.level || 'U11'} • ${rosterCount} player${rosterCount === 1 ? '' : 's'} ready`;
+      }
+      if(levelDisplay){
+        levelDisplay.textContent = activeTeam.level || 'U11';
+        levelDisplay.classList.remove('empty');
+      }
     } else {
-      $('levelGroup').style.display = '';
-      $('levelReadonly').style.display = 'none';
+      if(activeCard) activeCard.style.display = 'none';
+      if(levelDisplay){
+        levelDisplay.textContent = 'Select a team';
+        levelDisplay.classList.add('empty');
+      }
     }
   }
+
+  updateSetupReadiness();
 }
 
 function applyActiveTeam() {
@@ -2639,6 +2782,9 @@ function applyActiveTeam() {
     $('level').value = state.level;
     try { localStorage.setItem(ROSTER_KEY, JSON.stringify(state.roster)); } catch (_) {}
     save();
+  } else {
+    state.roster = [];
+    try { localStorage.setItem(ROSTER_KEY, JSON.stringify(state.roster)); } catch (_) {}
   }
   refreshTeamUI();
 }
@@ -2753,6 +2899,7 @@ function saveTeamFromForm() {
   const editId = $('teamForm').dataset.editId;
   if (editId) {
     TM.updateTeam(editId, { name, level, roster: rosterRaw });
+    if (TM.getActiveTeamId() === editId) applyActiveTeam();
   } else {
     const team = TM.createTeam(name, level, rosterRaw);
     TM.setActiveTeamId(team.id);
@@ -2993,9 +3140,9 @@ document.querySelectorAll('.modal').forEach(m=>
 );
 
 /* Inputs */
-$('opponent').oninput=e=>{state.opponent=e.target.value;save();}
-$('level').onchange=e=>{state.level=e.target.value;save();}
-$('date').onchange=e=>{state.date=sanitizeDateInput(e.target.value);$('date').value=state.date;save();validateState('date change');}
+$('opponent').oninput=e=>{state.opponent=e.target.value;save();updateSetupReadiness();}
+$('level').onchange=e=>{state.level=e.target.value;save();updateSetupReadiness();}
+$('date').onchange=e=>{state.date=sanitizeDateInput(e.target.value);$('date').value=state.date;save();validateState('date change');updateSetupReadiness();}
 $('togglePM').checked = prefs.trackPlusMinus;
 $('togglePM').addEventListener('change', e=>{ prefs.trackPlusMinus = e.target.checked; savePrefs(); });
 
@@ -3045,6 +3192,10 @@ $('btnExportGameCSV').addEventListener('click', exportGameCSV);
 
 /* ===== Game History ===== */
 $('btnHistory').addEventListener('click', async ()=>{
+  if(!getActiveTeamSafe()){
+    showStatusToast('Add your team to view past games.', 'warn', 3200);
+    return;
+  }
   $('historyPanel').style.display = 'block';
   $('historyList').innerHTML = '<div style="text-align:center; padding:20px; color:var(--muted);">Loading...</div>';
   try{
@@ -3168,6 +3319,10 @@ $('gameDetailDelete').addEventListener('click', async ()=>{
 
 /* ===== Season Dashboard ===== */
 $('btnSeason').addEventListener('click', async ()=>{
+  if(!getActiveTeamSafe()){
+    showStatusToast('Add your team to view season stats.', 'warn', 3200);
+    return;
+  }
   $('seasonPanel').style.display = 'block';
   $('seasonBody').innerHTML = '<div style="text-align:center; padding:20px; color:var(--muted);">Loading...</div>';
   try{

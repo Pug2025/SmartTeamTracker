@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.3.5';
+const APP_VERSION = '6.3.6';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -3288,12 +3288,22 @@ $('opponentDropdown').addEventListener('click', async (e) => {
     const row = deleteBtn.closest('.opponent-option');
     const nameBtn = row ? row.querySelector('.opponent-option-main') : null;
     const opponentName = nameBtn ? nameBtn.dataset.name || nameBtn.textContent || 'this opponent' : 'this opponent';
-    const ok = await showConfirm(`Delete "${cleanOpponentName(opponentName)}" from saved opponents?`);
+    const ok = await showConfirm(`Delete "${cleanOpponentName(opponentName)}" and all saved games against them? This will remove their head-to-head history and season stats.`);
     if(!ok) return;
     try{
-      await deleteOpponentRecord(opponentId);
+      const result = await deleteOpponentAndGames(opponentId, opponentName);
       removeSavedOpponent(opponentId);
-      showStatusToast('Opponent removed', 'success');
+      setupGamesCache.games = null;
+      await refreshSeasonPanelIfOpen();
+      if($('historyPanel').style.display === 'block'){
+        await loadHistoryPanel();
+      }
+      await updateOpponentMatchupCard({ forceGames:true });
+      const deletedGames = Number(result && result.deletedGames) || 0;
+      showStatusToast(
+        deletedGames > 0 ? `Opponent removed with ${deletedGames} saved game${deletedGames === 1 ? '' : 's'}` : 'Opponent removed',
+        'success'
+      );
     }catch(err){
       console.error(err);
       showStatusToast('Delete failed', 'error', 3500);
@@ -3828,10 +3838,11 @@ async function deleteOpponentRecord(opponentId){
   }
   return data;
 }
-function buildGamesApiUrl({ limit = 50, id = null, includeLimit = true } = {}){
+function buildGamesApiUrl({ limit = 50, id = null, includeLimit = true, opponent = null } = {}){
   const params = [];
   if(includeLimit) params.push('limit=' + encodeURIComponent(String(limit)));
   if(id !== null && id !== undefined) params.push('id=' + encodeURIComponent(String(id)));
+  if(opponent) params.push('opponent=' + encodeURIComponent(String(opponent)));
   const { userId, teamId } = getGameQueryScope();
   if(userId) params.push('user_id=' + encodeURIComponent(userId));
   if(teamId) params.push('team_id=' + encodeURIComponent(teamId));
@@ -3850,6 +3861,19 @@ async function deleteGameRecord(gameId){
     throw new Error(data.error || 'Delete failed');
   }
   return data;
+}
+async function deleteOpponentAndGames(opponentId, opponentName){
+  const cleanedName = cleanOpponentName(opponentName);
+  const gamesRes = await fetch(buildGamesApiUrl({ includeLimit:false, opponent:cleanedName }), { method:'DELETE' });
+  const gamesData = await gamesRes.json().catch(() => ({}));
+  if(!gamesRes.ok || !gamesData.success){
+    throw new Error(gamesData.error || 'Opponent game delete failed');
+  }
+
+  await deleteOpponentRecord(opponentId);
+  return {
+    deletedGames: Number(gamesData.deleted) || 0
+  };
 }
 async function resetSeasonStats(){
   const { teamId } = getGameQueryScope();

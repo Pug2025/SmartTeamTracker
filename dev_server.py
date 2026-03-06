@@ -704,6 +704,73 @@ class Backend:
 
         return 200, {"success": True, "deleted": removed}
 
+    def delete_games_for_opponent(
+        self, team_id: str, user_id: str | None, opponent_name: str
+    ) -> tuple[int, dict[str, Any]]:
+        normalized_name = normalize_opponent_name(opponent_name)
+        if not team_id or not normalized_name:
+            return 400, {"error": "Missing team id or opponent"}
+
+        if self.mode == "supabase":
+            query = [
+                "select=id,opponent,data",
+                "order=created_at.desc",
+                "limit=1000",
+                f"team_id=eq.{quote(team_id, safe='')}",
+            ]
+            if user_id:
+                query.append(f"user_id=eq.{quote(user_id, safe='')}")
+            else:
+                query.append("user_id=is.null")
+            status, payload = self._supabase_request("GET", f"games?{'&'.join(query)}")
+            if not (200 <= status < 300):
+                return status, {"error": "Fetch failed", "details": payload}
+
+            matches = []
+            for game in payload if isinstance(payload, list) else []:
+                data = game.get("data") if isinstance(game.get("data"), dict) else {}
+                raw_name = data.get("Opponent") or game.get("opponent") or ""
+                if normalize_opponent_name(raw_name) == normalized_name:
+                    matches.append(game)
+
+            deleted = 0
+            for game in matches:
+                game_id = str(game.get("id") or "")
+                if not game_id:
+                    continue
+                status, payload = self._supabase_request(
+                    "DELETE", f"games?id=eq.{quote(game_id, safe='')}"
+                )
+                if not (200 <= status < 300):
+                    return status, {"error": "Delete failed", "details": payload}
+                deleted += 1
+
+            return 200, {"success": True, "deleted": deleted}
+
+        with self.lock:
+            data = self._read_local_data()
+            games = data.get("games", [])
+            kept = []
+            removed = 0
+            for game in games:
+                same_team = str(game.get("team_id") or "") == team_id
+                current_user = str(game.get("user_id") or "").strip() or None
+                same_user = current_user == user_id
+                raw_name = (
+                    ((game.get("data") or {}).get("Opponent") if isinstance(game.get("data"), dict) else None)
+                    or game.get("opponent")
+                    or ""
+                )
+                same_opponent = normalize_opponent_name(raw_name) == normalized_name
+                if same_team and same_user and same_opponent:
+                    removed += 1
+                    continue
+                kept.append(game)
+            data["games"] = kept
+            self._write_local_data(data)
+
+        return 200, {"success": True, "deleted": removed}
+
     def get_live_game(self, code: str) -> tuple[int, dict[str, Any]]:
         if self.mode == "supabase":
             status, payload = self._supabase_request(
@@ -909,8 +976,11 @@ class AppHandler(SimpleHTTPRequestHandler):
                 game_id = (query.get("id") or [None])[0]
                 team_id = (query.get("team_id") or [None])[0]
                 user_id = (query.get("user_id") or [None])[0]
+                opponent = (query.get("opponent") or [None])[0]
                 if game_id:
                     status, body = self.backend.delete_game(game_id)
+                elif team_id and opponent:
+                    status, body = self.backend.delete_games_for_opponent(team_id, user_id, opponent)
                 elif team_id:
                     status, body = self.backend.delete_games_for_team(team_id, user_id)
                 else:

@@ -29,6 +29,13 @@
     color:var(--ink);
     padding-bottom:80px; /* Space for FAB */
   }
+  body.in-game{
+    background:
+      radial-gradient(circle at 14% -6%, rgba(77,163,255,0.11), transparent 34%),
+      radial-gradient(circle at 86% 2%, rgba(255,69,58,0.08), transparent 30%),
+      radial-gradient(circle at 50% 118%, rgba(26, 44, 71, 0.20), transparent 44%),
+      linear-gradient(180deg, #09111a 0%, #05080d 42%, #030507 100%);
+  }
 
   /* Basic utility / text classes */
   .inlineRow{
@@ -67,6 +74,10 @@
     -webkit-backdrop-filter:blur(16px);
     border-bottom:1px solid #2a2a2a;
     padding-bottom:6px;
+  }
+  body.in-game .sticky-header{
+    background:linear-gradient(180deg, rgba(9,13,20,0.95), rgba(6,8,12,0.88));
+    border-bottom:1px solid rgba(255,255,255,0.05);
   }
   .top-row{
     display:flex;
@@ -238,29 +249,24 @@
     display:grid;
     gap:6px;
     min-width:0;
-  }
-  .scoreboard-team.them{
-    justify-items:start;
-  }
-  .scoreboard-team.us{
-    justify-items:end;
+    justify-items:center;
   }
   .scoreboard-team-name{
-    width:100%;
+    width:var(--score-box-width);
+    max-width:100%;
     font-size:11px;
     font-weight:800;
     letter-spacing:0.2px;
     color:#c7d3de;
+    text-align:center;
     white-space:nowrap;
     overflow:hidden;
     text-overflow:ellipsis;
   }
   .scoreboard-team.them .scoreboard-team-name{
-    text-align:left;
     color:#d8b2ad;
   }
   .scoreboard-team.us .scoreboard-team-name{
-    text-align:right;
     color:#bfd7ee;
   }
   .scoreboard-center{

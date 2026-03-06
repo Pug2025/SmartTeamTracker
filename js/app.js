@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.2.11';
+const APP_VERSION = '6.2.13';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -2744,13 +2744,10 @@ function refreshTeamUI() {
   const TM = getTeamManager();
   const teams = TM.loadTeams();
   const activeId = TM.getActiveTeamId();
-  const activeTeam = activeId ? teams.find(t => t.id === activeId) : null;
-  const activeCard = $('activeTeamSummary');
 
   if (teams.length === 0) {
     $('teamEmpty').style.display = '';
     $('teamHasTeams').style.display = 'none';
-    if(activeCard) activeCard.style.display = 'none';
   } else {
     $('teamEmpty').style.display = 'none';
     $('teamHasTeams').style.display = '';
@@ -2758,17 +2755,6 @@ function refreshTeamUI() {
     sel.innerHTML = '<option value="">Select Team</option>' +
       teams.map(t => `<option value="${t.id}">${t.name} (${t.level})</option>`).join('');
     sel.value = activeId || '';
-
-    if (activeTeam) {
-      const rosterCount = Array.isArray(activeTeam.roster) ? activeTeam.roster.length : 0;
-      if(activeCard){
-        activeCard.style.display = '';
-        $('activeTeamName').textContent = activeTeam.name;
-        $('activeTeamMeta').textContent = `${activeTeam.level || 'U11'} • ${rosterCount} player${rosterCount === 1 ? '' : 's'} ready`;
-      }
-    } else {
-      if(activeCard) activeCard.style.display = 'none';
-    }
   }
 
   updateSetupReadiness();

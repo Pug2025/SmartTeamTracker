@@ -104,11 +104,45 @@
   body.in-game .top-title-group{
     align-items:center;
   }
+  body:not(.in-game) .top-row{
+    position:relative;
+    justify-content:center;
+    padding:14px 14px 10px;
+  }
+  body:not(.in-game) .top-title-group{
+    position:absolute;
+    left:50%;
+    transform:translateX(-50%);
+    flex:none;
+    justify-content:center;
+    align-items:center;
+    width:max-content;
+    max-width:calc(100% - 96px);
+  }
+  body:not(.in-game) .top-title-stack{
+    align-items:center;
+  }
+  body:not(.in-game) .top-title-line{
+    justify-content:center;
+  }
+  body:not(.in-game) .top-row h1{
+    font-size:34px;
+    letter-spacing:-1.1px;
+  }
+  body:not(.in-game) #cloudStatus{
+    display:none;
+  }
   .top-actions{
     display:flex;
     align-items:center;
     gap:6px;
     flex-shrink:0;
+  }
+  body:not(.in-game) .top-actions{
+    position:absolute;
+    right:14px;
+    top:50%;
+    transform:translateY(-50%);
   }
   .btn-icon{
     width:30px;
@@ -372,10 +406,22 @@
     gap:16px;
     align-items:flex-start;
   }
+  body:not(.in-game) .setup-eyebrow{
+    text-align:center;
+  }
+  body:not(.in-game) .setup-head{
+    flex-direction:column;
+    align-items:center;
+    text-align:center;
+    gap:10px;
+  }
   .setup-card h2{
     margin:0;
     font-size:31px;
     letter-spacing:-1px;
+  }
+  body:not(.in-game) .setup-card h2{
+    font-size:28px;
   }
   .setup-sub{
     margin-top:8px;
@@ -1647,23 +1693,6 @@
   margin-bottom:8px;
   letter-spacing:0.2px;
 }
-.team-active-card{
-  margin-bottom:12px;
-  padding:14px 16px;
-  border-radius:16px;
-  background:rgba(255,255,255,0.04);
-  border:1px solid rgba(255,255,255,0.08);
-}
-.team-active-name{
-  font-size:18px;
-  font-weight:800;
-  letter-spacing:-0.5px;
-}
-.team-active-meta{
-  margin-top:4px;
-  font-size:13px;
-  color:#8ca0b5;
-}
 .team-selector-row{
   display:flex;
   gap:10px;
@@ -2209,11 +2238,20 @@
   .top-row{
     padding:10px 12px 8px;
   }
+  body:not(.in-game) .top-row{
+    padding:12px 12px 8px;
+  }
   .top-title-group{
     gap:10px;
   }
   .top-row h1{
     font-size:16px;
+  }
+  body:not(.in-game) .top-row h1{
+    font-size:28px;
+  }
+  body:not(.in-game) .top-actions{
+    right:12px;
   }
   .top-context{
     font-size:11px;
@@ -2234,8 +2272,14 @@
     align-items:flex-start;
     gap:10px;
   }
+  body:not(.in-game) .setup-head{
+    align-items:center;
+  }
   .setup-card h2{
     font-size:24px;
+  }
+  body:not(.in-game) .setup-card h2{
+    font-size:22px;
   }
   .setup-fields{
     grid-template-columns:minmax(0, 1fr);
@@ -2250,10 +2294,6 @@
   }
   .setup-section-label{
     margin:14px 0 8px;
-  }
-  .team-active-card{
-    margin-bottom:10px;
-    padding:12px 14px;
   }
   .team-selector-row select,
   .level-readonly,
@@ -2288,6 +2328,15 @@
   .top-row{
     padding:9px 10px 7px;
   }
+  body:not(.in-game) .top-row{
+    padding:10px 10px 7px;
+  }
+  body:not(.in-game) .top-row h1{
+    font-size:24px;
+  }
+  body:not(.in-game) .top-actions{
+    right:10px;
+  }
   .wrap{
     padding:10px 10px 16px;
   }
@@ -2306,6 +2355,9 @@
   .setup-card h2{
     font-size:22px;
   }
+  body:not(.in-game) .setup-card h2{
+    font-size:20px;
+  }
   .setup-head{
     gap:8px;
   }
@@ -2317,7 +2369,6 @@
     margin-bottom:10px;
   }
   .team-empty-card,
-  .team-active-card,
   .setup-toggle-row{
     padding:10px 12px;
   }
@@ -2325,12 +2376,6 @@
   .setup-toggle-copy{
     font-size:11px;
     line-height:1.35;
-  }
-  .team-active-name{
-    font-size:16px;
-  }
-  .team-active-meta{
-    font-size:12px;
   }
   .team-selector-row{
     gap:8px;

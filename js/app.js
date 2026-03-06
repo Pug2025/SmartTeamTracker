@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.2.17';
+const APP_VERSION = '6.2.18';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -93,6 +93,24 @@ function isLocalYMD(v){
 }
 function sanitizeDateInput(v){
   return isLocalYMD(v) ? v : getLocalTodayYMD();
+}
+const SETUP_DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric'
+});
+function formatSetupDate(v){
+  const safe = sanitizeDateInput(v);
+  const [y, m, d] = safe.split('-').map(Number);
+  return SETUP_DATE_FORMATTER.format(new Date(y, m - 1, d, 12));
+}
+function syncSetupDateField(v){
+  const safe = sanitizeDateInput(v);
+  const input = $('date');
+  if(input) input.value = safe;
+  const display = $('dateDisplay');
+  if(display) display.textContent = formatSetupDate(safe);
+  return safe;
 }
 function sanitizePeriod(v){
   const n = Number(v);
@@ -284,8 +302,7 @@ $('btnStartGame').addEventListener('click', ()=>{
   state.opponent = opponent;
   state.level = team.level || $('level').value || 'U11';
 
-  state.date = sanitizeDateInput($('date').value);
-  $('date').value = state.date;
+  state.date = syncSetupDateField($('date').value);
 
   // Starting from setup must not carry an existing live share session forward.
   if(state.shareCode) stopLiveShare();
@@ -2536,7 +2553,7 @@ return;
 (function init(){
   // Date input default (iOS-safe: set string, not valueAsDate)
   const todayStr = getLocalTodayYMD();
-  $('date').value = todayStr;
+  syncSetupDateField(todayStr);
   setInGameHeader(false);
 
   // Keep state date aligned initially
@@ -2575,8 +2592,7 @@ return;
     if(!state.date){
       state.date = $('date').value || todayStr;
     }
-    state.date = sanitizeDateInput(state.date);
-    $('date').value = state.date;
+    state.date = syncSetupDateField(state.date);
 
     // Sync setup inputs from state (except opponent when not resuming)
     if(hasEvents){
@@ -3052,8 +3068,7 @@ $('btnNewFromSummary').onclick=async()=>{
   state.events=[];
   cancelRecentGoodCredit();
   lastRemoved = null;
-  state.date = getLocalTodayYMD();
-  $('date').value = state.date;
+  state.date = syncSetupDateField(getLocalTodayYMD());
   state.period = 1;
   state.opponent='';
   $('opponent').value = '';
@@ -3090,8 +3105,7 @@ $('btnReset').onclick=async()=>{
   state.events=[];
   cancelRecentGoodCredit();
   lastRemoved = null;
-  state.date = getLocalTodayYMD();
-  $('date').value = state.date;
+  state.date = syncSetupDateField(getLocalTodayYMD());
   state.period = 1;
   state.opponent='';
   $('opponent').value = '';
@@ -3133,7 +3147,7 @@ document.querySelectorAll('.modal').forEach(m=>
 /* Inputs */
 $('opponent').oninput=e=>{state.opponent=e.target.value;save();updateSetupReadiness();}
 $('level').onchange=e=>{state.level=e.target.value;save();updateSetupReadiness();}
-$('date').onchange=e=>{state.date=sanitizeDateInput(e.target.value);$('date').value=state.date;save();validateState('date change');updateSetupReadiness();}
+$('date').onchange=e=>{state.date=syncSetupDateField(e.target.value);save();validateState('date change');updateSetupReadiness();}
 $('togglePM').checked = prefs.trackPlusMinus;
 $('togglePM').addEventListener('change', e=>{ prefs.trackPlusMinus = e.target.checked; savePrefs(); });
 

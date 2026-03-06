@@ -457,8 +457,42 @@
     margin-bottom:14px;
   }
   .setup-date-field{
-    width:100%;
+    width:min(100%, 320px);
     min-width:0;
+    margin-left:auto;
+    margin-right:auto;
+  }
+  .setup-date-field label{
+    text-align:center;
+  }
+  .setup-date-shell{
+    position:relative;
+    min-height:50px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:14px 18px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,0.08);
+    background:rgba(6,8,10,0.96);
+    overflow:hidden;
+    transition:border-color 0.18s, box-shadow 0.18s, background 0.18s;
+  }
+  .setup-date-shell:focus-within{
+    border-color:rgba(77,163,255,0.55);
+    box-shadow:0 0 0 3px rgba(77,163,255,0.12);
+    background:#07090d;
+  }
+  .setup-date-display{
+    font-size:16px;
+    font-weight:700;
+    letter-spacing:-0.2px;
+    color:#eef3f8;
+    text-align:center;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    pointer-events:none;
   }
   label{
     display:block;
@@ -487,23 +521,37 @@
   }
   input[type="date"]{
     width:100%;
-    max-width:100%;
-    min-width:0;
-    display:block;
-    inline-size:100%;
-    padding-right:15px;
   }
   .setup-date-input{
+    position:absolute;
+    inset:0;
     width:100%;
-    max-width:100%;
-    min-width:0;
-    font-size:16px;
-    line-height:normal;
-    -webkit-appearance:auto;
-    appearance:auto;
+    height:100%;
+    margin:0;
+    padding:0;
+    border:0;
+    border-radius:14px;
+    background:transparent;
+    color:transparent;
+    opacity:0;
+    cursor:pointer;
+    -webkit-appearance:none;
+    appearance:none;
+    box-shadow:none;
   }
-  .setup-date-input::-webkit-date-and-time-value{
-    text-align:left;
+  .setup-date-input:focus{
+    border:0;
+    box-shadow:none;
+    background:transparent;
+  }
+  .setup-date-input::-webkit-calendar-picker-indicator{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    margin:0;
+    padding:0;
+    cursor:pointer;
   }
   .btn-start{
     width:100%;

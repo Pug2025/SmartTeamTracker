@@ -147,6 +147,44 @@ export default async function handler(req, res) {
     }
   }
 
+  if (req.method === "DELETE") {
+    try {
+      const id = req.query.id || null;
+      const teamId = req.query.team_id || null;
+      const userId = req.query.user_id || null;
+
+      if (!id) {
+        return res.status(400).json({ error: "Missing opponent id" });
+      }
+
+      let deleteUrl = `${supabaseUrl}/rest/v1/opponents?id=eq.${encodeURIComponent(id)}`;
+      if (teamId) {
+        deleteUrl += `&team_id=eq.${encodeURIComponent(teamId)}`;
+      }
+      deleteUrl += userId
+        ? `&user_id=eq.${encodeURIComponent(userId)}`
+        : `&user_id=is.null`;
+
+      const response = await fetch(deleteUrl, {
+        method: "DELETE",
+        headers: {
+          "apikey": supabaseKey,
+          "Authorization": `Bearer ${supabaseKey}`
+        }
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        return res.status(response.status).json({ error: "Delete failed", details: data });
+      }
+
+      return res.status(200).json({ success: true });
+    } catch (error) {
+      console.error("Server error:", error);
+      return res.status(500).json({ error: "Internal Server Error", message: error.message });
+    }
+  }
+
   return res.status(405).json({ error: "Method Not Allowed" });
 }
 

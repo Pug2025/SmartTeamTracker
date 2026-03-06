@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Team Tracker</title>
-<link rel="stylesheet" href="css/styles.css?v=6.3.0">
+<link rel="stylesheet" href="css/styles.css?v=6.3.2">
 <link rel="stylesheet" href="css/auth.css?v=6.2.7">
 </head>
 <body>
@@ -141,11 +141,12 @@
       <div class="setup-fields">
         <div class="input-group setup-field-span">
           <label for="opponent">Opponent Name</label>
-          <input id="opponent" list="opponentSuggestions" placeholder="e.g. Napanee Stars" autocomplete="off">
-          <datalist id="opponentSuggestions"></datalist>
-          <div id="opponentQuickWrap" class="opponent-quick-wrap hidden">
-            <div class="opponent-quick-label">Saved Opponents</div>
-            <div id="opponentQuickList" class="opponent-quick-list"></div>
+          <div id="opponentCombobox" class="opponent-combobox">
+            <div id="opponentInputShell" class="opponent-input-shell">
+              <input id="opponent" placeholder="e.g. Napanee Stars" autocomplete="off" spellcheck="false" aria-autocomplete="list" aria-haspopup="listbox" aria-controls="opponentDropdown" aria-expanded="false">
+              <button id="opponentMenuBtn" class="opponent-menu-btn" type="button" aria-label="Show saved opponents"><span aria-hidden="true">&#9662;</span></button>
+            </div>
+            <div id="opponentDropdown" class="opponent-dropdown hidden" role="listbox" aria-label="Saved opponents"></div>
           </div>
           <div id="matchupInsight" class="matchup-card hidden">
             <div class="matchup-head">
@@ -859,6 +860,6 @@
 <script src="js/spectator.js?v=6.2.12"></script>
 <script type="module" src="js/auth.js?v=6.2.7"></script>
 <script src="js/teams.js?v=6.2.7"></script>
-<script src="js/app.js?v=6.3.0"></script>
+<script src="js/app.js?v=6.3.2"></script>
 </body>
 </html>

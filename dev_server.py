@@ -524,6 +524,46 @@ class Backend:
 
         return 200, {"success": True, "opponent": record}
 
+    def delete_opponent(
+        self, opponent_id: str, user_id: str | None, team_id: str | None
+    ) -> tuple[int, dict[str, Any]]:
+        if not opponent_id:
+            return 400, {"error": "Missing opponent id"}
+
+        if self.mode == "supabase":
+            query = [f"id=eq.{quote(opponent_id, safe='')}"]
+            if team_id:
+                query.append(f"team_id=eq.{quote(team_id, safe='')}")
+            if user_id:
+                query.append(f"user_id=eq.{quote(user_id, safe='')}")
+            else:
+                query.append("user_id=is.null")
+            status, payload = self._supabase_request("DELETE", f"opponents?{'&'.join(query)}")
+            if not (200 <= status < 300):
+                return status, {"error": "Delete failed", "details": payload}
+            return 200, {"success": True}
+
+        with self.lock:
+            data = self._read_local_data()
+            opponents = data.get("opponents", [])
+            kept = []
+            removed = False
+            for opponent in opponents:
+                same_id = str(opponent.get("id")) == str(opponent_id)
+                same_team = not team_id or str(opponent.get("team_id") or "") == team_id
+                current_user = str(opponent.get("user_id") or "").strip() or None
+                same_user = current_user == user_id
+                if same_id and same_team and same_user:
+                    removed = True
+                    continue
+                kept.append(opponent)
+            data["opponents"] = kept
+            self._write_local_data(data)
+
+        if not removed:
+            return 404, {"error": "Opponent not found"}
+        return 200, {"success": True}
+
     def delete_game(self, game_id: str) -> tuple[int, dict[str, Any]]:
         if self.mode == "supabase":
             status, payload = self._supabase_request(
@@ -816,6 +856,14 @@ class AppHandler(SimpleHTTPRequestHandler):
                     self._send_json(400, {"error": "Invalid payload. Expected { opponent: {...} }"})
                     return
                 status, body = self.backend.upsert_opponent(opponent)
+                self._send_json(status, body)
+                return
+
+            if method == "DELETE":
+                opponent_id = (query.get("id") or [None])[0]
+                user_id = (query.get("user_id") or [None])[0]
+                team_id = (query.get("team_id") or [None])[0]
+                status, body = self.backend.delete_opponent(opponent_id, user_id, team_id)
                 self._send_json(status, body)
                 return
 

@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.3.0';
+const APP_VERSION = '6.3.2';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -239,6 +239,8 @@ let setupGamesCache = {
   loading: null
 };
 let setupOpponentsLoadToken = 0;
+let opponentDropdownOpen = false;
+let opponentDropdownHideTimer = null;
 function initP(){
   return {
     A_shots:0, A_goals:0, A_smothers:0, A_badRebounds:0, A_bigSaves:0,
@@ -3181,25 +3183,133 @@ document.querySelectorAll('.modal').forEach(m=>
 function syncOpponentSetupField(rawValue, { canonicalizeSaved = false } = {}){
   const input = $('opponent');
   if(!input) return;
-  const cleaned = cleanOpponentName(rawValue);
+  const rawText = String(rawValue || '');
+  const cleaned = cleanOpponentName(rawText);
   const savedMatch = findSavedOpponentByName(cleaned);
-  const nextValue = canonicalizeSaved && savedMatch ? savedMatch.name : cleaned;
+  const nextValue = canonicalizeSaved ? (savedMatch ? savedMatch.name : cleaned) : rawText;
   if(input.value !== nextValue) input.value = nextValue;
   state.opponent = nextValue;
   save();
   updateSetupReadiness();
   updateOpponentMatchupCard().catch(err => console.error(err));
 }
-$('opponent').oninput=e=>{ syncOpponentSetupField(e.target.value); };
-$('opponent').onchange=e=>{ syncOpponentSetupField(e.target.value, { canonicalizeSaved:true }); };
+$('opponent').oninput=e=>{
+  cancelOpponentDropdownHide();
+  syncOpponentSetupField(e.target.value);
+  const hasRows = renderOpponentDropdown(e.target.value || '');
+  setOpponentDropdownOpen(hasRows);
+};
+$('opponent').onchange=e=>{
+  syncOpponentSetupField(e.target.value, { canonicalizeSaved:true });
+  renderOpponentDropdown((($('opponent') && $('opponent').value) || ''));
+};
+$('opponent').addEventListener('focus', e => {
+  cancelOpponentDropdownHide();
+  const hasRows = renderOpponentDropdown(e.target.value || '');
+  setOpponentDropdownOpen(hasRows);
+});
+$('opponent').addEventListener('blur', e => {
+  syncOpponentSetupField(e.target.value, { canonicalizeSaved:true });
+  renderOpponentDropdown((($('opponent') && $('opponent').value) || ''));
+  scheduleOpponentDropdownHide();
+});
+$('opponent').addEventListener('keydown', async (e) => {
+  if(e.key === 'Escape'){
+    setOpponentDropdownOpen(false);
+    return;
+  }
+  if(e.key === 'ArrowDown'){
+    const hasRows = renderOpponentDropdown(e.target.value || '');
+    setOpponentDropdownOpen(hasRows);
+    return;
+  }
+  if(e.key !== 'Enter') return;
+  const typedName = cleanOpponentName(e.target.value);
+  if(!typedName) return;
+  e.preventDefault();
+  const existing = findSavedOpponentByName(typedName);
+  if(existing){
+    syncOpponentSetupField(existing.name, { canonicalizeSaved:true });
+    setOpponentDropdownOpen(false);
+    return;
+  }
+  try{
+    const saved = await saveOpponentName(typedName);
+    syncOpponentSetupField(saved && saved.name ? saved.name : typedName, { canonicalizeSaved:true });
+    renderOpponentDropdown((($('opponent') && $('opponent').value) || ''));
+    setOpponentDropdownOpen(false);
+    showStatusToast('Opponent saved', 'success');
+  }catch(err){
+    console.error(err);
+    showStatusToast('Save failed', 'error', 3500);
+  }
+});
 $('level').onchange=e=>{state.level=e.target.value;save();updateSetupReadiness();}
 $('date').onchange=e=>{state.date=syncSetupDateField(e.target.value);save();validateState('date change');updateSetupReadiness();}
 $('togglePM').checked = prefs.trackPlusMinus;
 $('togglePM').addEventListener('change', e=>{ prefs.trackPlusMinus = e.target.checked; savePrefs(); });
-$('opponentQuickList').addEventListener('click', (e) => {
-  const btn = e.target.closest('.opponent-quick-btn');
+$('opponentMenuBtn').addEventListener('click', () => {
+  cancelOpponentDropdownHide();
+  if(opponentDropdownOpen){
+    setOpponentDropdownOpen(false);
+    return;
+  }
+  const input = $('opponent');
+  const hasRows = renderOpponentDropdown((input && input.value) || '');
+  setOpponentDropdownOpen(hasRows);
+  if(input) input.focus();
+});
+$('opponentDropdown').addEventListener('mousedown', (e) => {
+  cancelOpponentDropdownHide();
+  e.preventDefault();
+});
+$('opponentDropdown').addEventListener('click', async (e) => {
+  const deleteBtn = e.target.closest('.opponent-option-delete');
+  if(deleteBtn){
+    const opponentId = deleteBtn.dataset.id;
+    if(!opponentId) return;
+    const row = deleteBtn.closest('.opponent-option');
+    const nameBtn = row ? row.querySelector('.opponent-option-main') : null;
+    const opponentName = nameBtn ? nameBtn.dataset.name || nameBtn.textContent || 'this opponent' : 'this opponent';
+    const ok = await showConfirm(`Delete "${cleanOpponentName(opponentName)}" from saved opponents?`);
+    if(!ok) return;
+    try{
+      await deleteOpponentRecord(opponentId);
+      removeSavedOpponent(opponentId);
+      showStatusToast('Opponent removed', 'success');
+    }catch(err){
+      console.error(err);
+      showStatusToast('Delete failed', 'error', 3500);
+    }
+    return;
+  }
+  const addBtn = e.target.closest('.opponent-dropdown-add');
+  if(addBtn){
+    const opponentName = cleanOpponentName(addBtn.dataset.name || '');
+    if(!opponentName) return;
+    try{
+      const saved = await saveOpponentName(opponentName);
+      syncOpponentSetupField(saved && saved.name ? saved.name : opponentName, { canonicalizeSaved:true });
+      renderOpponentDropdown((($('opponent') && $('opponent').value) || ''));
+      setOpponentDropdownOpen(false);
+      showStatusToast('Opponent saved', 'success');
+    }catch(err){
+      console.error(err);
+      showStatusToast('Save failed', 'error', 3500);
+    }
+    return;
+  }
+  const btn = e.target.closest('.opponent-option-main');
   if(!btn) return;
   syncOpponentSetupField(btn.dataset.name || '', { canonicalizeSaved:true });
+  renderOpponentDropdown((($('opponent') && $('opponent').value) || ''));
+  setOpponentDropdownOpen(false);
+});
+document.addEventListener('click', (e) => {
+  const combo = $('opponentCombobox');
+  if(combo && !combo.contains(e.target)){
+    setOpponentDropdownOpen(false);
+  }
 });
 
 /* Copy Summary (now: compact, structured text) */
@@ -3257,7 +3367,7 @@ function getSetupScopeKey(){
   const { userId, teamId } = getGameQueryScope();
   return `${userId || ''}::${teamId || ''}`;
 }
-function buildOpponentsApiUrl(limit = 25){
+function buildOpponentsApiUrl(limit = 100){
   const { userId, teamId } = getGameQueryScope();
   if(!teamId) return null;
   const params = ['limit=' + encodeURIComponent(String(limit)), 'team_id=' + encodeURIComponent(teamId)];
@@ -3274,34 +3384,80 @@ function formatShortGameDate(v){
   const [y, m, d] = v.split('-').map(Number);
   return new Intl.DateTimeFormat(undefined, { month:'short', day:'numeric' }).format(new Date(y, m - 1, d, 12));
 }
-function renderOpponentSuggestions(){
-  const list = $('opponentSuggestions');
-  if(!list) return;
-  list.innerHTML = setupOpponents.map(o => `<option value="${escapeHTML(o.name)}"></option>`).join('');
+function compareOpponentNames(a, b){
+  return cleanOpponentName(a && a.name).localeCompare(cleanOpponentName(b && b.name), undefined, { sensitivity:'base' });
 }
-function renderOpponentQuickPicks(filterText = ''){
-  const wrap = $('opponentQuickWrap');
-  const list = $('opponentQuickList');
-  if(!wrap || !list) return;
+function sortSetupOpponents(){
+  setupOpponents.sort(compareOpponentNames);
+}
+function cancelOpponentDropdownHide(){
+  if(opponentDropdownHideTimer){
+    clearTimeout(opponentDropdownHideTimer);
+    opponentDropdownHideTimer = null;
+  }
+}
+function scheduleOpponentDropdownHide(){
+  cancelOpponentDropdownHide();
+  opponentDropdownHideTimer = setTimeout(() => {
+    opponentDropdownHideTimer = null;
+    const combo = $('opponentCombobox');
+    if(combo && combo.contains(document.activeElement)) return;
+    setOpponentDropdownOpen(false);
+  }, 120);
+}
+function setOpponentDropdownOpen(nextOpen){
+  const dropdown = $('opponentDropdown');
+  const input = $('opponent');
+  const shell = $('opponentInputShell');
+  const shouldOpen = Boolean(nextOpen && dropdown && dropdown.childElementCount);
+  opponentDropdownOpen = shouldOpen;
+  if(dropdown) dropdown.classList.toggle('hidden', !shouldOpen);
+  if(input) input.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+  if(shell) shell.classList.toggle('open', shouldOpen);
+}
+function renderOpponentDropdown(filterText = ''){
+  const dropdown = $('opponentDropdown');
+  if(!dropdown) return false;
 
-  const normalizedFilter = normalizeOpponentName(filterText);
+  const cleanedFilter = cleanOpponentName(filterText);
+  const normalizedFilter = normalizeOpponentName(cleanedFilter);
   const currentOpponent = normalizeOpponentName((($('opponent') && $('opponent').value) || state.opponent || ''));
-  const pool = normalizedFilter
+  const matches = normalizedFilter
     ? setupOpponents.filter(o => normalizeOpponentName(o && o.name).includes(normalizedFilter))
     : setupOpponents;
-  const visible = pool.slice(0, normalizedFilter ? 8 : 6);
+  const visible = matches;
+  const rows = [];
 
-  if(!visible.length){
-    wrap.classList.add('hidden');
-    list.innerHTML = '';
-    return;
+  if(cleanedFilter && !findSavedOpponentByName(cleanedFilter)){
+    rows.push(
+      `<button class="opponent-dropdown-add" type="button" data-name="${escapeHTML(cleanedFilter)}">Add &quot;${escapeHTML(cleanedFilter)}&quot;</button>`
+    );
   }
 
-  wrap.classList.remove('hidden');
-  list.innerHTML = visible.map(o => {
-    const selected = normalizeOpponentName(o.name) === currentOpponent ? ' selected' : '';
-    return `<button class="opponent-quick-btn${selected}" data-name="${escapeHTML(o.name)}" type="button">${escapeHTML(o.name)}</button>`;
-  }).join('');
+  if(visible.length){
+    rows.push(...visible.map((opponent) => {
+      const name = cleanOpponentName(opponent && opponent.name);
+      const selected = normalizeOpponentName(name) === currentOpponent;
+      const metaText = opponent && opponent.last_played_at
+        ? `Last played ${escapeHTML(formatShortGameDate(opponent.last_played_at) || opponent.last_played_at)}`
+        : 'Saved opponent';
+      const deleteBtn = opponent && opponent.id != null
+        ? `<button class="opponent-option-delete" type="button" data-id="${escapeHTML(opponent.id)}" aria-label="Delete ${escapeHTML(name)}">&times;</button>`
+        : '';
+      return `<div class="opponent-option${selected ? ' selected' : ''}" role="option" aria-selected="${selected ? 'true' : 'false'}">
+        <button class="opponent-option-main" type="button" data-name="${escapeHTML(name)}">
+          <span class="opponent-option-name">${escapeHTML(name)}</span>
+          <span class="opponent-option-meta">${metaText}</span>
+        </button>
+        ${deleteBtn}
+      </div>`;
+    }));
+  } else if(!rows.length){
+    rows.push(`<div class="opponent-dropdown-empty">${setupOpponents.length ? 'No matching opponents.' : 'Saved opponents will appear here.'}</div>`);
+  }
+
+  dropdown.innerHTML = rows.join('');
+  return rows.length > 0;
 }
 function renderMatchupInsight(matchup){
   const card = $('matchupInsight');
@@ -3352,7 +3508,7 @@ function buildOpponentListFromGames(games){
       });
     }
   }
-  return Array.from(byName.values()).sort((a,b) => String(b.last_used_at || '').localeCompare(String(a.last_used_at || '')));
+  return Array.from(byName.values()).sort(compareOpponentNames);
 }
 function mergeSavedOpponent(opponent){
   const name = cleanOpponentName(opponent && opponent.name);
@@ -3366,16 +3522,31 @@ function mergeSavedOpponent(opponent){
   };
   const idx = setupOpponents.findIndex(o => normalizeOpponentName(o && o.name) === normalized);
   if(idx >= 0) setupOpponents[idx] = { ...setupOpponents[idx], ...next };
-  else setupOpponents.unshift(next);
-  setupOpponents.sort((a,b) => String(b.last_used_at || '').localeCompare(String(a.last_used_at || '')));
-  renderOpponentSuggestions();
-  renderOpponentQuickPicks((($('opponent') && $('opponent').value) || ''));
+  else setupOpponents.push(next);
+  sortSetupOpponents();
+  const hasRows = renderOpponentDropdown((($('opponent') && $('opponent').value) || ''));
+  if(opponentDropdownOpen) setOpponentDropdownOpen(hasRows);
+}
+function removeSavedOpponent(opponentId){
+  const idText = String(opponentId);
+  const idx = setupOpponents.findIndex(o => String(o && o.id) === idText);
+  if(idx === -1) return null;
+  const [removed] = setupOpponents.splice(idx, 1);
+  const hasRows = renderOpponentDropdown((($('opponent') && $('opponent').value) || ''));
+  if(opponentDropdownOpen) setOpponentDropdownOpen(hasRows);
+  if(findSavedOpponentByName((($('opponent') && $('opponent').value) || ''))){
+    updateOpponentMatchupCard().catch(err => console.error(err));
+  } else {
+    renderMatchupInsight(null);
+  }
+  return removed || null;
 }
 function clearOpponentSetupState(){
   setupOpponents = [];
   setupGamesCache = { scopeKey:'', games:null, loading:null };
-  renderOpponentSuggestions();
-  renderOpponentQuickPicks('');
+  const dropdown = $('opponentDropdown');
+  if(dropdown) dropdown.innerHTML = '';
+  setOpponentDropdownOpen(false);
   renderMatchupInsight(null);
 }
 async function ensureSetupGamesCache(force = false){
@@ -3406,7 +3577,7 @@ async function ensureSetupGamesCache(force = false){
     }
   }
 }
-async function fetchScopedOpponents(limit = 25){
+async function fetchScopedOpponents(limit = 100){
   const url = buildOpponentsApiUrl(limit);
   if(!url) return [];
   const res = await fetch(url);
@@ -3429,7 +3600,7 @@ async function loadSetupOpponents(){
 
   let opponents = [];
   try{
-    opponents = await fetchScopedOpponents(30);
+    opponents = await fetchScopedOpponents(100);
   }catch(err){
     console.warn('Opponent fetch failed, falling back to game history.', err);
     try{
@@ -3448,8 +3619,9 @@ async function loadSetupOpponents(){
     last_used_at: o.last_used_at || '',
     last_played_at: o.last_played_at || null
   })).filter(o => o.name);
-  renderOpponentSuggestions();
-  renderOpponentQuickPicks((($('opponent') && $('opponent').value) || ''));
+  sortSetupOpponents();
+  const hasRows = renderOpponentDropdown((($('opponent') && $('opponent').value) || ''));
+  if(opponentDropdownOpen) setOpponentDropdownOpen(hasRows);
   await updateOpponentMatchupCard();
   return setupOpponents;
 }
@@ -3523,7 +3695,8 @@ async function updateOpponentMatchupCard({ forceGames = false } = {}){
     return;
   }
 
-  renderOpponentQuickPicks(input.value || '');
+  const hasRows = renderOpponentDropdown(input.value || '');
+  if(opponentDropdownOpen) setOpponentDropdownOpen(hasRows);
   const known = findSavedOpponentByName(input.value);
   if(!known){
     renderMatchupInsight(null);
@@ -3535,10 +3708,11 @@ async function updateOpponentMatchupCard({ forceGames = false } = {}){
   if(normalizeOpponentName((($('opponent') && $('opponent').value) || '')) !== expected) return;
   renderMatchupInsight(buildMatchupRecord(games, known.name));
 }
-async function rememberCurrentOpponent(){
+async function saveOpponentName(opponentName){
   const { userId, teamId } = getGameQueryScope();
-  const name = cleanOpponentName((($('opponent') && $('opponent').value) || state.opponent || ''));
-  if(!teamId || !name) return null;
+  const name = cleanOpponentName(opponentName);
+  if(!name) return null;
+  if(!teamId) throw new Error('Missing team id');
 
   const payload = {
     name,
@@ -3557,6 +3731,27 @@ async function rememberCurrentOpponent(){
   }
   if(data.opponent) mergeSavedOpponent(data.opponent);
   return data.opponent || null;
+}
+async function rememberCurrentOpponent(){
+  const name = cleanOpponentName((($('opponent') && $('opponent').value) || state.opponent || ''));
+  const { teamId } = getGameQueryScope();
+  if(!teamId || !name) return null;
+  return await saveOpponentName(name);
+}
+async function deleteOpponentRecord(opponentId){
+  const { userId, teamId } = getGameQueryScope();
+  if(!teamId) throw new Error('Missing team id');
+  const params = [
+    'id=' + encodeURIComponent(String(opponentId)),
+    'team_id=' + encodeURIComponent(teamId)
+  ];
+  if(userId) params.push('user_id=' + encodeURIComponent(userId));
+  const res = await fetch('/api/opponents?' + params.join('&'), { method:'DELETE' });
+  const data = await res.json().catch(() => ({}));
+  if(!res.ok || !data.success){
+    throw new Error(data.error || 'Opponent delete failed');
+  }
+  return data;
 }
 function buildGamesApiUrl({ limit = 50, id = null, includeLimit = true } = {}){
   const params = [];

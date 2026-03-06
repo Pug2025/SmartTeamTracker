@@ -1,4 +1,5 @@
 export default async function handler(req, res) {
+  res.setHeader("Cache-Control", "no-store");
   if (req.method === "OPTIONS") return res.status(200).end();
 
   const supabaseUrl = process.env.SUPABASE_URL;

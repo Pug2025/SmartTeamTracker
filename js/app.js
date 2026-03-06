@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.3.6';
+const APP_VERSION = '6.3.9';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -3654,7 +3654,7 @@ async function ensureSetupGamesCache(force = false){
 async function fetchScopedOpponents(limit = 100){
   const url = buildOpponentsApiUrl(limit);
   if(!url) return [];
-  const res = await fetch(url);
+  const res = await fetch(url, { cache:'no-store' });
   const data = await res.json();
   if(!res.ok || !data.success) throw new Error(data.error || 'Opponent fetch failed');
   return Array.isArray(data.opponents) ? data.opponents : [];
@@ -3849,7 +3849,7 @@ function buildGamesApiUrl({ limit = 50, id = null, includeLimit = true, opponent
   return '/api/games' + (params.length ? '?' + params.join('&') : '');
 }
 async function fetchScopedGames(limit = 50){
-  const res = await fetch(buildGamesApiUrl({ limit }));
+  const res = await fetch(buildGamesApiUrl({ limit }), { cache:'no-store' });
   const data = await res.json();
   if(!data.success) throw new Error(data.error || 'Fetch failed');
   return data.games || [];

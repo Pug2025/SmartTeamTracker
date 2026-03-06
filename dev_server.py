@@ -720,8 +720,6 @@ class Backend:
             ]
             if user_id:
                 query.append(f"user_id=eq.{quote(user_id, safe='')}")
-            else:
-                query.append("user_id=is.null")
             status, payload = self._supabase_request("GET", f"games?{'&'.join(query)}")
             if not (200 <= status < 300):
                 return status, {"error": "Fetch failed", "details": payload}

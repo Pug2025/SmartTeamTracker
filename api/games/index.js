@@ -123,9 +123,9 @@ export default async function handler(req, res) {
 async function fetchGamesForOpponent({ supabaseUrl, supabaseKey, teamId, userId, opponent }) {
   const normalizedOpponent = normalizeOpponentName(opponent);
   let queryUrl = `${supabaseUrl}/rest/v1/games?select=id,opponent,data&order=created_at.desc&limit=1000&team_id=eq.${encodeURIComponent(teamId)}`;
-  queryUrl += userId
-    ? `&user_id=eq.${encodeURIComponent(userId)}`
-    : `&user_id=is.null`;
+  if (userId) {
+    queryUrl += `&user_id=eq.${encodeURIComponent(userId)}`;
+  }
 
   const response = await fetch(queryUrl, {
     headers: {

@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.3.9';
+const APP_VERSION = '6.3.10';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -233,11 +233,14 @@ const state = {
 
 let per = {1:initP(),2:initP(),3:initP(),4:initP()};
 let setupOpponents = [];
-let setupGamesCache = {
-  scopeKey: '',
-  games: null,
-  loading: null
-};
+function createSetupGamesCache(scopeKey = ''){
+  return {
+    scopeKey,
+    games: null,
+    loading: null
+  };
+}
+let setupGamesCache = createSetupGamesCache();
 let setupOpponentsLoadToken = 0;
 let opponentDropdownOpen = false;
 let opponentDropdownHideTimer = null;
@@ -3293,7 +3296,7 @@ $('opponentDropdown').addEventListener('click', async (e) => {
     try{
       const result = await deleteOpponentAndGames(opponentId, opponentName);
       removeSavedOpponent(opponentId);
-      setupGamesCache.games = null;
+      invalidateSetupGamesCache();
       await refreshSeasonPanelIfOpen();
       if($('historyPanel').style.display === 'block'){
         await loadHistoryPanel();
@@ -3617,37 +3620,47 @@ function removeSavedOpponent(opponentId){
 }
 function clearOpponentSetupState(){
   setupOpponents = [];
-  setupGamesCache = { scopeKey:'', games:null, loading:null };
+  setupGamesCache = createSetupGamesCache();
   const dropdown = $('opponentDropdown');
   if(dropdown) dropdown.innerHTML = '';
   setOpponentDropdownOpen(false);
   renderMatchupInsight(null);
+}
+function invalidateSetupGamesCache(scopeKey = setupGamesCache.scopeKey){
+  setupGamesCache = createSetupGamesCache(scopeKey);
 }
 async function ensureSetupGamesCache(force = false){
   const { teamId } = getGameQueryScope();
   if(!teamId) return [];
 
   const scopeKey = getSetupScopeKey();
-  if(!force && setupGamesCache.games && setupGamesCache.scopeKey === scopeKey){
-    return setupGamesCache.games;
+  if(setupGamesCache.scopeKey !== scopeKey){
+    setupGamesCache = createSetupGamesCache(scopeKey);
   }
-  if(!force && setupGamesCache.loading && setupGamesCache.scopeKey === scopeKey){
-    return await setupGamesCache.loading;
+  if(force){
+    invalidateSetupGamesCache(scopeKey);
   }
 
-  setupGamesCache.scopeKey = scopeKey;
+  const cache = setupGamesCache;
+  if(cache.games !== null){
+    return cache.games;
+  }
+  if(cache.loading){
+    return await cache.loading;
+  }
+
   const loading = fetchScopedGames(500).then((games) => {
-    if(setupGamesCache.scopeKey === scopeKey){
-      setupGamesCache.games = games;
+    if(setupGamesCache === cache){
+      cache.games = games;
     }
     return games;
   });
-  setupGamesCache.loading = loading;
+  cache.loading = loading;
   try{
     return await loading;
   } finally {
-    if(setupGamesCache.loading === loading){
-      setupGamesCache.loading = null;
+    if(setupGamesCache === cache && cache.loading === loading){
+      cache.loading = null;
     }
   }
 }
@@ -3669,7 +3682,7 @@ async function loadSetupOpponents(){
 
   const scopeKey = getSetupScopeKey();
   if(setupGamesCache.scopeKey !== scopeKey){
-    setupGamesCache = { scopeKey, games:null, loading:null };
+    setupGamesCache = createSetupGamesCache(scopeKey);
   }
 
   try{
@@ -3894,7 +3907,7 @@ async function resetSeasonStats(){
     $('seasonBody').innerHTML = '<div style="text-align:center; padding:20px;">No games yet — play some games first!</div>';
     $('btnSeasonReset').classList.add('hidden');
     showStatusToast('Season stats reset', 'success');
-    setupGamesCache.games = [];
+    invalidateSetupGamesCache();
     await updateOpponentMatchupCard({ forceGames:true });
     if($('historyPanel').style.display === 'block'){
       await loadHistoryPanel();
@@ -4100,7 +4113,7 @@ $('historyList').addEventListener('click', async (e) => {
       await deleteGameRecord(gameId);
       if(row) closeHistorySwipeRow(row, true);
       showStatusToast('Game deleted', 'success');
-      setupGamesCache.games = null;
+      invalidateSetupGamesCache();
       await loadHistoryPanel();
       await refreshSeasonPanelIfOpen();
       await updateOpponentMatchupCard({ forceGames:true });
@@ -4177,7 +4190,7 @@ $('gameDetailDelete').addEventListener('click', async ()=>{
   try{
     await deleteGameRecord(currentDetailGameId);
     showStatusToast('Game deleted', 'success');
-    setupGamesCache.games = null;
+    invalidateSetupGamesCache();
     $('gameDetailModal').style.display = 'none';
     await loadHistoryPanel();
     await refreshSeasonPanelIfOpen();

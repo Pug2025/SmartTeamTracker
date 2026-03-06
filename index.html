@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Team Tracker</title>
-<link rel="stylesheet" href="css/styles.css?v=6.2.7">
+<link rel="stylesheet" href="css/styles.css?v=6.2.9">
 <link rel="stylesheet" href="css/auth.css?v=6.2.7">
 </head>
 <body>
@@ -49,10 +49,12 @@
   <div class="top-row">
     <div class="top-title-group">
       <div class="top-title-stack">
-        <h1>Team Tracker</h1>
+        <div class="top-title-line">
+          <h1>Team Tracker</h1>
+          <span id="cloudStatus" class="status-dot warn" role="img" aria-label="Connection status: Checking" title="Checking"></span>
+        </div>
         <div class="top-context" id="headerContext">Game Setup</div>
       </div>
-      <div class="pill warn" id="cloudStatus">Checking</div>
     </div>
     <div class="top-actions">
       <button class="toolbar-btn toolbar-btn-live" id="btnShareLive" style="display:none;">Share Live</button>
@@ -270,8 +272,7 @@
     <!-- Live Dashboard -->
     <div class="dash">
       <div class="dashTop">
-        <div class="t">Game Pulse</div>
-        <div class="small" id="dashLine">P1 • Shot share pending • No xG trend yet</div>
+        <div class="t">Game Stats</div>
       </div>
 
       <div class="ringsRow">
@@ -608,7 +609,7 @@
 <!-- Welcome Modal (first launch only) -->
 <div class="modal" id="welcomeModal"><div class="box">
   <div class="welcome-title">Welcome to Team Tracker</div>
-  <div class="welcome-sub">A real-time game tracking app for hockey coaches</div>
+  <div class="welcome-sub">Track games live and share a spectator view for parents or staff.</div>
   <ul class="welcome-bullets">
     <li><span class="wb-icon" style="color:var(--accent-them);">&#9679;</span><strong>Left column (red)</strong> tracks what happens to your goalie &mdash; shots, goals, and defensive breakdowns</li>
     <li><span class="wb-icon" style="color:var(--accent-us);">&#9679;</span><strong>Right column (blue)</strong> tracks your team's offense &mdash; shots for, goals for, and offensive chances</li>
@@ -629,7 +630,7 @@
 
     <div class="help-section">
       <h3>Getting Started</h3>
-      <p>Enter the opponent name, select your level (U9&ndash;U18), and tap <strong>Start Game</strong>. The period selector at the top lets you switch periods &mdash; tap <strong>Next Period</strong> between periods to advance.</p>
+      <p>Select your team, enter the opponent name, confirm the date, and tap <strong>Start Game</strong>. Team level comes from the selected team, so you only need to set it once in <strong>Manage Teams</strong>. The period selector at the top lets you switch periods &mdash; tap <strong>Next Period</strong> between periods to advance.</p>
     </div>
 
     <hr class="help-divider">
@@ -726,8 +727,10 @@
         <li><strong>Undo</strong> &mdash; The floating UNDO button (bottom right) shows recent events. Tap any event to remove it. You'll get a brief chance to restore it.</li>
         <li><strong>Roster</strong> &mdash; Tap Roster in the header to add player numbers (one per line). These appear as quick-pick buttons when logging shots/goals for.</li>
         <li><strong>+/- Tracking</strong> &mdash; When enabled in setup, you'll be asked to select 5 players on ice after each goal (for and against) to track plus/minus.</li>
+        <li><strong>Live Spectating</strong> &mdash; Tap Share Live during a game to create a view-only link for parents, staff, or another device. The spectator screen updates automatically with score, shot totals, chance quality, and momentum.</li>
         <li><strong>End Game</strong> &mdash; Tap End Game &amp; Score to see a full game summary with goalie/team scores, stats breakdown, and exportable data.</li>
-        <li><strong>Past Games</strong> &mdash; View and compare past game history from the setup screen. Games are saved to the cloud when connected.</li>
+        <li><strong>Past Games</strong> &mdash; View and compare past game history from the setup screen. Swipe left on a saved game to delete it. Games are saved to the cloud when connected.</li>
+        <li><strong>Season Stats</strong> &mdash; Review your active team's record, trends, and recent results from the setup screen. Reset Season clears the saved games for that team.</li>
       </ul>
     </div>
 
@@ -789,7 +792,6 @@
   <div class="spec-intensity-card">
     <div class="spec-intensity-head">
       <span id="specQualityLabel">Chance Quality</span>
-      <span class="spec-card-kicker">Overall</span>
     </div>
     <div class="spec-intensity-track">
       <div id="specQualityFill" class="spec-intensity-fill"></div>
@@ -800,7 +802,6 @@
   <div class="spec-momentum-card">
     <div class="spec-momentum-head">
       <span id="specMomentumLabel">Momentum</span>
-      <span class="spec-card-kicker">Lately</span>
     </div>
     <div class="spec-momentum-track">
       <div class="spec-momentum-midline" aria-hidden="true"></div>
@@ -847,9 +848,9 @@
   </div>
 </div>
 
-<script src="js/spectator.js?v=6.2.7"></script>
+<script src="js/spectator.js?v=6.2.9"></script>
 <script type="module" src="js/auth.js?v=6.2.7"></script>
 <script src="js/teams.js?v=6.2.7"></script>
-<script src="js/app.js?v=6.2.7"></script>
+<script src="js/app.js?v=6.2.9"></script>
 </body>
 </html>

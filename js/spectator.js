@@ -100,7 +100,7 @@
       }
 
       const incomingGameId = d.game.game_id || null;
-      const incomingUpdatedAt = d.game.updated_at || incoming.updatedAt || null;
+      const incomingUpdatedAt = incoming.updatedAt || d.game.updated_at || null;
       const incomingMs = incomingUpdatedAt ? Date.parse(incomingUpdatedAt) : NaN;
 
       // If game id changed, treat as a fresh feed snapshot.
@@ -232,20 +232,42 @@
         player: str(ev.player),
         assist: str(ev.assist),
         strength: str(ev.strength),
-        highDanger: !!ev.highDanger
+        highDanger: !!ev.highDanger,
+        offCtx: str(ev.offCtx || ev.off_ctx),
+        gaCtx: str(ev.gaCtx || ev.ga_ctx),
+        gaCause: str(ev.gaCause || ev.ga_cause)
       }));
   }
 
   function shouldAcceptIncomingState(next, incomingMs) {
     if (!lastState) return true;
 
-    const hasRegression =
-      next.goalsFor < lastState.goalsFor ||
-      next.goalsAgainst < lastState.goalsAgainst ||
-      next.shotsFor < lastState.shotsFor ||
-      next.shotsAgainst < lastState.shotsAgainst;
+    const monotonicKeys = [
+      'goalsFor',
+      'goalsAgainst',
+      'shotsFor',
+      'shotsAgainst',
+      'penaltiesFor',
+      'penaltiesAgainst',
+      'dangerFor',
+      'dangerAgainst',
+      'missedFor',
+      'missedAgainst'
+    ];
+    const hasRegression = monotonicKeys.some((key) => {
+      const nextVal = Number.isFinite(next[key]) ? next[key] : 0;
+      const lastVal = Number.isFinite(lastState[key]) ? lastState[key] : 0;
+      return nextVal < lastVal;
+    });
+    const nextNewestEventMs = newestEventMs(next.events);
+    const lastNewestEventMs = newestEventMs(lastState.events);
+    const hasEventRegression =
+      ((next.events || []).length < (lastState.events || []).length) ||
+      (Number.isFinite(nextNewestEventMs) &&
+        Number.isFinite(lastNewestEventMs) &&
+        nextNewestEventMs < lastNewestEventMs);
 
-    if (hasRegression) {
+    if (hasRegression || hasEventRegression) {
       // Allow regressions only when snapshot timestamp is newer (e.g., undo/reset action).
       if (Number.isFinite(incomingMs) && (!lastUpdateMs || incomingMs > lastUpdateMs)) {
         return true;
@@ -434,23 +456,24 @@
   }
 
   function eventLabel(ev) {
-    const player = ev.player ? ` #${ev.player}` : '';
-    const assist = ev.assist ? ` • A #${ev.assist}` : '';
-
     switch (ev.type) {
-      case 'for_goal': return `We score${player}${assist}`;
-      case 'goal': return `They score${player}`;
-      case 'soft_goal': return `One slips through${player}`;
+      case 'for_goal':
+      case 'goal':
+      case 'soft_goal':
+        return isBreakawayGoalEvent(ev) ? 'BREAKAWAY GOAL!' : 'GOAL!';
       case 'penalty_for': return 'Penalty on them';
       case 'penalty_against': return 'Penalty on us';
       case 'breakaway_for': return 'Our breakaway';
       case 'breakaway_against': return 'Their breakaway';
       case 'odd_man_rush_for': return 'Odd-man rush for us';
       case 'odd_man_rush_against': return 'Odd-man rush for them';
-      case 'missed_chance_for': return 'Our big chance';
-      case 'missed_chance_against': return 'Their big chance';
+      case 'missed_chance_for':
+      case 'missed_chance_against':
+        return 'Missed Opportunity';
       case 'big_save': return 'Big save';
       case 'bad_rebound': return 'Loose rebound';
+      case 'forced_turnover': return 'Forced turnover';
+      case 'dz_turnover': return 'D-zone turnover';
       default: return ev.type || 'Event';
     }
   }
@@ -519,6 +542,22 @@
     el.innerHTML =
       `<span class="spec-split"><span class="spec-split-them">${safeThem}</span>` +
       `<span class="spec-split-sep">-</span><span class="spec-split-us">${safeUs}</span></span>`;
+  }
+
+  function isBreakawayGoalEvent(ev) {
+    if (!ev) return false;
+    if (ev.type === 'for_goal') return ev.offCtx === 'Breakaway';
+    if (ev.type === 'goal' || ev.type === 'soft_goal') {
+      return ev.gaCtx === 'Breakaway' || String(ev.gaCause || '').split('+').includes('BA');
+    }
+    return false;
+  }
+
+  function newestEventMs(events) {
+    if (!Array.isArray(events) || !events.length) return NaN;
+    const newest = events[events.length - 1];
+    if (!newest || !newest.tISO) return NaN;
+    return Date.parse(newest.tISO);
   }
 
   function pulseScore(id) {

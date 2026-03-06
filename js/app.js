@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.2.7';
+const APP_VERSION = '6.2.9';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -130,14 +130,9 @@ function updateHeaderContext(){
   const el = $('headerContext');
   if(!el) return;
 
-  const team = getActiveTeamSafe();
-  const teamName = team ? team.name : 'Team';
-  const opponent = getSetupOpponentText({ preferState:document.body.classList.contains('in-game') });
-
   if(document.body.classList.contains('in-game')){
-    const matchup = opponent ? `${teamName} vs ${opponent}` : `${teamName} live`;
     const periodLabel = sanitizePeriod(state.period) === 4 ? 'OT' : `P${sanitizePeriod(state.period)}`;
-    el.textContent = `${matchup} • ${periodLabel}`;
+    el.textContent = `Live Tracking • ${periodLabel}`;
   } else {
     el.textContent = 'Game Setup';
   }
@@ -317,9 +312,12 @@ $('btnEditSetup').addEventListener('click', ()=>{ toggleSetup(true); });
 function setCloudStatus(text, tone){
   const el = $('cloudStatus');
   if(!el) return;
-  el.textContent = text;
+  const statusText = text || 'Checking';
+  el.textContent = '';
   el.classList.remove('good','warn','bad');
-  el.dataset.tone = tone || '';
+  el.dataset.statusText = statusText;
+  el.setAttribute('aria-label', `Connection status: ${statusText}`);
+  el.title = statusText;
   if(tone) el.classList.add(tone);
 }
 function refreshCloudStatus(){
@@ -334,12 +332,12 @@ function refreshCloudStatus(){
   }catch(_){}
 }
 
-/* Make cloud pill useful: ping /api/ping to show online/offline */
+/* Keep the connection indicator in sync with /api/ping */
 let lastCloudPingAt = 0;
 async function pingCloud(){
   // If this game is already synced, keep that status.
   const el = $('cloudStatus');
-  if(el && /Synced/i.test(el.textContent)) return;
+  if(el && el.dataset.statusText === 'Synced') return;
 
   try{
     setCloudStatus('Checking','warn');
@@ -906,18 +904,22 @@ function showUndoModal(){
     : `<div class="small">No events.</div>`;
   $('undoModal').style.display = 'flex';
 }
+function removeEventById(id){
+  const idx = state.events.findIndex(ev => ev.id === id);
+  if(idx===-1) return false;
+  const [ev] = state.events.splice(idx,1);
+  revert(ev);
+  lastRemoved = ev;
+  showToast('Removed.');
+  renderAll();
+  return true;
+}
 $('undoList').addEventListener('click', e => {
   const row = e.target.closest('.undoRow');
   if(!row)return;
   const id = Number(row.dataset.id);
-  const idx = state.events.findIndex(ev => ev.id === id);
-  if(idx===-1) return;
-  const [ev] = state.events.splice(idx,1);
-  revert(ev);
-  lastRemoved = ev;
   $('undoModal').style.display='none';
-  showToast('Removed.');
-  renderAll();
+  removeEventById(id);
 });
 $('undoClose').addEventListener('click', ()=>$('undoModal').style.display='none');
 function showToast(msg){
@@ -1721,11 +1723,6 @@ function updateMeta(){
     $('xgDiffSub').textContent = 'Quality edge';
   }
 
-  const livePeriod = sanitizePeriod(state.period) === 4 ? 'OT' : `P${sanitizePeriod(state.period)}`;
-  const xgEdge = state.events.length > 0 ? `${sq.xGDiff > 0 ? '+' : ''}${sq.xGDiff.toFixed(1)} xG` : 'No xG trend yet';
-  const shareLine = share === '—' ? 'Shot share pending' : `Shot share ${share}`;
-  $('dashLine').textContent = `${livePeriod} • ${shareLine} • ${xgEdge}`;
-
   // Chance Quality slider
   // Boost goals to 1.0 xG (certainty) — a goal proves the chance was dangerous
   const GF = state.countsF.goals || 0;
@@ -1867,23 +1864,34 @@ function renderLog(){
 }
 
 /* Handle Tag Later from log */
-$('log').addEventListener('click', e=>{
+$('log').addEventListener('click', async e=>{
   const badge = e.target.closest('.badge-tag');
-  if(!badge) return;
-  const id = Number(badge.dataset.id);
-  const ev = state.events.find(x=>x.id===id);
-  if(!ev) return;
+  if(badge){
+    const id = Number(badge.dataset.id);
+    const ev = state.events.find(x=>x.id===id);
+    if(!ev) return;
 
-  // Strength tag badge → open strength picker
-  if(badge.classList.contains('badge-str')){
-    openStrengthPicker(ev, 'Our Team\'s Situation (required)');
+    // Strength tag badge → open strength picker
+    if(badge.classList.contains('badge-str')){
+      openStrengthPicker(ev, 'Our Team\'s Situation (required)');
+      return;
+    }
+
+    // GA context tag badge → open GA context modal
+    ev.needsContext = false;
+    save();
+    openGAContext(ev);
     return;
   }
 
-  // GA context tag badge → open GA context modal
-  ev.needsContext = false;
-  save();
-  openGAContext(ev);
+  const row = e.target.closest('.log-item');
+  if(!row) return;
+  const id = Number(row.dataset.id);
+  const ev = state.events.find(x=>x.id===id);
+  if(!ev) return;
+  const ok = await showConfirm(`Remove "${labelFor(ev)}" from the event list?`);
+  if(!ok) return;
+  removeEventById(id);
 });
 
 /* ===== Summary Building ===== */
@@ -3239,6 +3247,26 @@ async function resetSeasonStats(){
     showStatusToast('Failed to reset season stats', 'error', 3500);
   }
 }
+async function loadSeasonPanel(){
+  $('seasonPanel').style.display = 'block';
+  $('seasonBody').innerHTML = '<div style="text-align:center; padding:20px; color:var(--muted);">Loading...</div>';
+  try{
+    const games = await fetchScopedGames(100);
+    $('btnSeasonReset').classList.toggle('hidden', !games.length);
+    if(!games.length){
+      $('seasonBody').innerHTML = '<div style="text-align:center; padding:20px;">No games yet — play some games first!</div>';
+      return;
+    }
+    renderSeasonDashboard(games);
+  }catch(e){
+    console.error(e);
+    $('seasonBody').innerHTML = '<div style="text-align:center; padding:20px; color:var(--accent-them);">Failed to load. Check your connection.</div>';
+  }
+}
+async function refreshSeasonPanelIfOpen(){
+  if($('seasonPanel').style.display !== 'block') return;
+  await loadSeasonPanel();
+}
 async function loadHistoryPanel(){
   resetHistorySwipeState();
   $('historyPanel').style.display = 'block';
@@ -3416,6 +3444,7 @@ $('historyList').addEventListener('click', async (e) => {
       if(row) closeHistorySwipeRow(row, true);
       showStatusToast('Game deleted', 'success');
       await loadHistoryPanel();
+      await refreshSeasonPanelIfOpen();
     }catch(err){
       console.error(err);
       showStatusToast('Delete failed', 'error', 3500);
@@ -3491,6 +3520,7 @@ $('gameDetailDelete').addEventListener('click', async ()=>{
     showStatusToast('Game deleted', 'success');
     $('gameDetailModal').style.display = 'none';
     await loadHistoryPanel();
+    await refreshSeasonPanelIfOpen();
   }catch(e){
     console.error(e);
     showStatusToast('Error deleting game', 'error', 3500);
@@ -3503,20 +3533,7 @@ $('btnSeason').addEventListener('click', async ()=>{
     showStatusToast('Add your team to view season stats.', 'warn', 3200);
     return;
   }
-  $('seasonPanel').style.display = 'block';
-  $('seasonBody').innerHTML = '<div style="text-align:center; padding:20px; color:var(--muted);">Loading...</div>';
-  try{
-    const games = await fetchScopedGames(100);
-    $('btnSeasonReset').classList.toggle('hidden', !games.length);
-    if(!games.length){
-      $('seasonBody').innerHTML = '<div style="text-align:center; padding:20px;">No games yet — play some games first!</div>';
-      return;
-    }
-    renderSeasonDashboard(games);
-  }catch(e){
-    console.error(e);
-    $('seasonBody').innerHTML = '<div style="text-align:center; padding:20px; color:var(--accent-them);">Failed to load. Check your connection.</div>';
-  }
+  await loadSeasonPanel();
 });
 $('btnSeasonClose').addEventListener('click', ()=>{ $('seasonPanel').style.display='none'; });
 $('btnSeasonReset').addEventListener('click', resetSeasonStats);
@@ -3794,6 +3811,8 @@ function buildLiveState() {
       'penalty_against',
       'breakaway_for',
       'breakaway_against',
+      'forced_turnover',
+      'dz_turnover',
       'odd_man_rush_for',
       'odd_man_rush_against',
       'missed_chance_for',
@@ -3812,7 +3831,10 @@ function buildLiveState() {
       player: e.player || null,
       assist: e.assist || null,
       strength: e.strength || null,
-      highDanger: !!e.highDanger
+      highDanger: !!e.highDanger,
+      offCtx: e.off_ctx || null,
+      gaCtx: e.ga_ctx || null,
+      gaCause: e.ga_cause || null
     }));
 
   return {

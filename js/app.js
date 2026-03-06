@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.3.11';
+const APP_VERSION = '6.3.12';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -117,6 +117,40 @@ function normalizeOpponentName(value){
 }
 function cleanOpponentName(value){
   return String(value || '').trim().replace(/\s+/g, ' ');
+}
+function autoCapitalizeNameWords(value){
+  let shouldCapitalize = true;
+  let result = '';
+  for(const ch of String(value || '')){
+    if(/\s/.test(ch)){
+      result += ch;
+      shouldCapitalize = true;
+      continue;
+    }
+    if(shouldCapitalize && /[a-z]/.test(ch)){
+      result += ch.toUpperCase();
+    } else {
+      result += ch;
+    }
+    shouldCapitalize = false;
+  }
+  return result;
+}
+function applyAutoCapitalizedWordsInput(input){
+  if(!input) return '';
+  const nextValue = autoCapitalizeNameWords(input.value);
+  if(input.value !== nextValue){
+    const start = typeof input.selectionStart === 'number' ? input.selectionStart : null;
+    const end = typeof input.selectionEnd === 'number' ? input.selectionEnd : null;
+    input.value = nextValue;
+    if(start !== null && end !== null){
+      input.setSelectionRange(start, end);
+    }
+  }
+  return input.value;
+}
+function cleanTeamDisplayName(value){
+  return autoCapitalizeNameWords(String(value || '').trim().replace(/\s+/g, ' '));
 }
 function escapeHTML(value){
   return String(value || '').replace(/[&<>"']/g, (ch) => (
@@ -2943,7 +2977,9 @@ function hideTeamForm() {
 
 function saveTeamFromForm() {
   const TM = getTeamManager();
-  const name = $('teamNameInput').value.trim();
+  const nameInput = $('teamNameInput');
+  const name = cleanTeamDisplayName(nameInput.value);
+  nameInput.value = name;
   if (!name) { $('teamNameInput').focus(); return; }
   const level = $('teamLevelInput').value;
   const rosterRaw = $('teamRosterInput').value.split('\n').map(x => x.trim()).filter(Boolean);
@@ -2982,6 +3018,13 @@ $('teamModalClose').onclick = function(){ $('teamModal').style.display='none'; }
 $('btnAddTeam').onclick = function(){ showTeamForm(null); };
 $('teamFormSave').onclick = saveTeamFromForm;
 $('teamFormCancel').onclick = hideTeamForm;
+$('teamNameInput').addEventListener('input', e => {
+  applyAutoCapitalizedWordsInput(e.target);
+});
+$('teamNameInput').addEventListener('blur', e => {
+  const normalized = cleanTeamDisplayName(e.target.value);
+  if(e.target.value !== normalized) e.target.value = normalized;
+});
 $('teamSelect').onchange = function(){
   const TM = getTeamManager();
   TM.setActiveTeamId(this.value || null);
@@ -3209,12 +3252,12 @@ function syncOpponentSetupField(rawValue, { canonicalizeSaved = false } = {}){
 $('opponent').oninput=e=>{
   cancelOpponentDropdownHide();
   opponentDropdownMode = 'filter';
-  syncOpponentSetupField(e.target.value);
+  syncOpponentSetupField(applyAutoCapitalizedWordsInput(e.target));
   const hasRows = renderCurrentOpponentDropdown();
   setOpponentDropdownOpen(hasRows);
 };
 $('opponent').onchange=e=>{
-  syncOpponentSetupField(e.target.value, { canonicalizeSaved:true });
+  syncOpponentSetupField(applyAutoCapitalizedWordsInput(e.target), { canonicalizeSaved:true });
   renderCurrentOpponentDropdown();
 };
 $('opponent').addEventListener('focus', e => {
@@ -3230,7 +3273,7 @@ $('opponent').addEventListener('focus', e => {
   setOpponentDropdownOpen(hasRows);
 });
 $('opponent').addEventListener('blur', e => {
-  syncOpponentSetupField(e.target.value, { canonicalizeSaved:true });
+  syncOpponentSetupField(applyAutoCapitalizedWordsInput(e.target), { canonicalizeSaved:true });
   renderCurrentOpponentDropdown();
   scheduleOpponentDropdownHide();
 });

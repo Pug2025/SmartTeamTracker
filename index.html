@@ -149,7 +149,7 @@
           <label for="opponent">Opponent Name</label>
           <div id="opponentCombobox" class="opponent-combobox">
             <div id="opponentInputShell" class="opponent-input-shell">
-              <input id="opponent" placeholder="e.g. Napanee Stars" autocomplete="off" spellcheck="false" aria-autocomplete="list" aria-haspopup="listbox" aria-controls="opponentDropdown" aria-expanded="false">
+              <input id="opponent" placeholder="e.g. Napanee Stars" autocomplete="off" autocapitalize="words" spellcheck="false" aria-autocomplete="list" aria-haspopup="listbox" aria-controls="opponentDropdown" aria-expanded="false">
               <button id="opponentMenuBtn" class="opponent-menu-btn" type="button" aria-label="Show saved opponents"><span aria-hidden="true">&#9662;</span></button>
             </div>
             <div id="opponentDropdown" class="opponent-dropdown hidden" role="listbox" aria-label="Saved opponents"></div>
@@ -764,7 +764,7 @@
   <!-- Add / Edit form -->
   <div class="team-form" id="teamForm">
     <div class="team-form-title" id="teamFormTitle">Add New Team</div>
-    <input id="teamNameInput" class="auth-input" placeholder="Team name (e.g. Kingston Wolves)" autocomplete="off">
+    <input id="teamNameInput" class="auth-input" placeholder="Team name (e.g. Kingston Wolves)" autocomplete="off" autocapitalize="words">
     <select id="teamLevelInput" class="auth-input" style="padding:10px;">
       <option>U9</option><option selected>U11</option><option>U13</option><option>U15</option><option>U18</option><option>Other</option>
     </select>
@@ -866,6 +866,6 @@
 <script src="js/spectator.js?v=6.2.12"></script>
 <script type="module" src="js/auth.js?v=6.2.7"></script>
 <script src="js/teams.js?v=6.2.7"></script>
-<script src="js/app.js?v=6.3.11"></script>
+<script src="js/app.js?v=6.3.12"></script>
 </body>
 </html>

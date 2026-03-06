@@ -623,13 +623,12 @@
 <!-- Welcome Modal (first launch only) -->
 <div class="modal" id="welcomeModal"><div class="box">
   <div class="welcome-title">Welcome to Team Tracker</div>
-  <div class="welcome-sub">Track games live and share a spectator view for parents or staff.</div>
+  <div class="welcome-sub">Fast bench-side tracking with live spectating, saved opponents, and season history built in.</div>
   <ul class="welcome-bullets">
-    <li><span class="wb-icon" style="color:var(--accent-them);">&#9679;</span><strong>Left column (red)</strong> tracks what happens to your goalie &mdash; shots, goals, and defensive breakdowns</li>
-    <li><span class="wb-icon" style="color:var(--accent-us);">&#9679;</span><strong>Right column (blue)</strong> tracks your team's offense &mdash; shots for, goals for, and offensive chances</li>
-    <li><span class="wb-icon" style="color:var(--good);">&#10003;</span>A goal <strong>counts as a shot automatically</strong> &mdash; don't tap both</li>
-    <li><span class="wb-icon" style="color:var(--warn);">&#9888;</span>After each goal you'll be asked for <strong>context</strong> (screen, breakaway, etc.) &mdash; just tap what fits</li>
-    <li><span class="wb-icon" style="color:var(--muted);">?</span>Tap the <strong>?</strong> button anytime for the full guide</li>
+    <li><span class="wb-icon" style="color:var(--accent-them);">&#9679;</span><strong>Red tracks chances against</strong> &mdash; shots, goals, goalie events, and defensive breakdowns.</li>
+    <li><span class="wb-icon" style="color:var(--accent-us);">&#9679;</span><strong>Blue tracks your offense</strong> &mdash; shots, goals, pressure plays, and scoring chances.</li>
+    <li><span class="wb-icon" style="color:var(--good);">&#10003;</span><strong>Goals count as shots automatically</strong>, and quick prompts handle strength and context for you.</li>
+    <li><span class="wb-icon" style="color:var(--muted);">&#9776;</span>Open <strong>Menu &rarr; Help</strong> any time for the full guide, live spectating details, and setup tips.</li>
   </ul>
   <button class="btn-welcome" id="btnWelcomeDismiss">Got It</button>
 </div></div>
@@ -644,7 +643,7 @@
 
     <div class="help-section">
       <h3>Getting Started</h3>
-      <p>Select your team, enter the opponent name, confirm the date, and tap <strong>Start Game</strong>. Team level comes from the selected team, so you only need to set it once in <strong>Manage Teams</strong>. Saved opponents appear under the opponent field for quick reuse, and picking one shows your head-to-head record and recent scores automatically. The period selector at the top lets you switch periods &mdash; tap <strong>Next Period</strong> between periods to advance.</p>
+      <p>Select your team, enter the opponent name, confirm the date, and tap <strong>Start Game</strong>. Team level comes from the selected team, so you only set it once in <strong>Manage Teams</strong>. The opponent field lets you reuse saved opponents, add a new one from the same box, and instantly see your head-to-head record and recent scores when a match is found. The period selector at the top lets you switch periods &mdash; tap <strong>Next Period</strong> between periods to advance.</p>
     </div>
 
     <hr class="help-divider">
@@ -655,7 +654,7 @@
       <h4>Primary Buttons</h4>
       <ul>
         <li><strong>Shot Against</strong> &mdash; Any shot on net. You'll be asked if it was a <em>High Danger</em> chance (slot area, close range). If you don't respond in 2 seconds it defaults to No. The same HD prompt appears for Shot For too.</li>
-        <li><strong>Goal Against</strong> &mdash; They scored. This counts as a shot automatically. You'll be asked for context (Screen, Deflection/Tip, Cross-Crease, Net-Front Scramble, Clean Look, or Other) and game situation (EV/PP/SH).</li>
+        <li><strong>Goal Against</strong> &mdash; They scored. This counts as a shot automatically. You'll be asked for context (Screen, Deflection/Tip, Cross-Crease, Net-Front Scramble, Clean Look, or Other) and game situation (EV/PP/SH). If an odd-man rush was the trigger, log that first and the goal will be auto-tagged.</li>
       </ul>
       <h4>Goalie Buttons</h4>
       <ul>
@@ -668,7 +667,7 @@
         <li><strong>DZ Turnover</strong> &mdash; Your team turned it over in the defensive zone. If a goal follows within 10 seconds, it's auto-tagged.</li>
         <li><strong>Odd-Man Rush</strong> &mdash; Opponent has a 2-on-1, 3-on-2, etc. If a goal follows, it is auto-tagged as an odd-man-rush goal.</li>
         <li><strong>Missed Chance (No Shot)</strong> &mdash; They had a quality scoring chance but no shot on net (e.g. hit the post, went wide, fanned on it). Counts toward their expected goals at a 12% probability.</li>
-        <li><strong>Penalty for Us</strong> &mdash; Your team took a penalty.</li>
+        <li><strong>Penalty for Us</strong> &mdash; Your team took a penalty. It is counted and logged in the event list.</li>
       </ul>
     </div>
 
@@ -689,11 +688,11 @@
       </ul>
       <h4>Offensive Context</h4>
       <ul>
-        <li><strong>Odd Man Rush</strong> &mdash; Your team created a 2-on-1, 3-on-2, etc.</li>
-        <li><strong>Breakaway</strong> &mdash; Your player got in alone.</li>
-        <li><strong>Forced Turnover</strong> &mdash; Your team won the puck back through good pressure.</li>
+        <li><strong>Breakaway</strong> &mdash; Your player got in alone. If a goal follows soon after, it is auto-tagged.</li>
+        <li><strong>Forced Turnover</strong> &mdash; Your team won the puck back through good pressure. If a goal follows soon after, it is auto-tagged.</li>
+        <li><strong>Odd Man Rush</strong> &mdash; Your team created a 2-on-1, 3-on-2, etc. If a goal follows soon after, it is auto-tagged.</li>
         <li><strong>Missed Chance (No Shot)</strong> &mdash; Your team had a quality scoring chance but no shot on net (e.g. hit the post, went wide, fanned on it). Counts toward your expected goals at a 12% probability.</li>
-        <li><strong>Penalty for Them</strong> &mdash; The other team took a penalty.</li>
+        <li><strong>Penalty for Them</strong> &mdash; The other team took a penalty. It is counted and logged in the event list.</li>
       </ul>
     </div>
 
@@ -702,8 +701,9 @@
     <div class="help-section">
       <h3>Automatic Tracking</h3>
       <ul>
+        <li><strong>Goals Count as Shots</strong> &mdash; Do not log a separate shot after any goal for or against.</li>
         <li><strong>Good Rebounds</strong> &mdash; Awarded automatically. If 4 seconds pass after a shot/big save without another shot, bad rebound, or goal, the goalie gets credit for controlling the rebound.</li>
-        <li><strong>Goal Context</strong> &mdash; Breakaway and rebound goals are auto-tagged when a breakaway/bad rebound was logged within 10/5 seconds.</li>
+        <li><strong>Goal Context</strong> &mdash; Breakaway, odd-man-rush, forced-turnover, DZ-turnover, and rebound goals are auto-tagged when the lead-in event was logged just before the goal.</li>
         <li><strong>High Danger</strong> &mdash; Applies to all shots (for and against). After logging any shot, you get a 2-second prompt asking if it was HD. If you don't respond, it defaults to regular. HD shots count as ~18% goal probability vs ~7% for regular in the xG model.</li>
       </ul>
     </div>
@@ -725,11 +725,11 @@
         <li><strong>Result (35%)</strong> &mdash; Goal differential, with SH goals against weighted less</li>
         <li><strong>Discipline (10%)</strong> &mdash; Penalties drawn vs penalties taken</li>
       </ul>
-      <h4>Shot Quality Stats</h4>
+      <h4>Shot Quality</h4>
       <ul>
-        <li><strong>xGF / xGA</strong> &mdash; Expected goals for/against based on shot danger. HD shots = ~18% goal probability, regular = ~7%.</li>
-        <li><strong>xG Diff</strong> &mdash; Positive = you're generating better chances. Negative = they are.</li>
-        <li><strong>HD Chances</strong> &mdash; High danger shots (close range, slot area).</li>
+        <li><strong>Chance Quality Bar</strong> &mdash; A quick live read on who is generating better looks overall.</li>
+        <li><strong>HD Chances</strong> &mdash; High-danger shots (close range, slot area) are shown directly in the live shot quality section.</li>
+        <li><strong>Expected Goals</strong> &mdash; xG still powers the internal scoring models even though the live dashboard now stays more streamlined.</li>
       </ul>
     </div>
 
@@ -738,11 +738,12 @@
     <div class="help-section">
       <h3>Other Features</h3>
       <ul>
-        <li><strong>Undo</strong> &mdash; The floating UNDO button (bottom right) shows recent events. Tap any event to remove it. You'll get a brief chance to restore it.</li>
+        <li><strong>Event Removal + Undo</strong> &mdash; Tap any event in the live event list to remove it. The floating UNDO button shows recent removals and lets you restore one quickly.</li>
         <li><strong>Roster</strong> &mdash; Tap Roster in the header to add player numbers (one per line). These appear as quick-pick buttons when logging shots/goals for.</li>
         <li><strong>+/- Tracking</strong> &mdash; When enabled in setup, you'll be asked to select 5 players on ice after each goal (for and against) to track plus/minus.</li>
         <li><strong>Live Spectating</strong> &mdash; Tap Share Live during a game to create a view-only link for parents, staff, or another device. The spectator screen updates automatically with score, shot totals, chance quality, and momentum.</li>
         <li><strong>End Game</strong> &mdash; Tap End Game &amp; Score to see a full game summary with goalie/team scores, stats breakdown, and exportable data.</li>
+        <li><strong>Saved Opponents</strong> &mdash; The setup opponent box remembers teams you've played, shows last played dates, and can remove an opponent entirely. Deleting one also removes their saved head-to-head history and season stats.</li>
         <li><strong>Past Games</strong> &mdash; View and compare past game history from the setup screen. Swipe left on a saved game to delete it. Games are saved to the cloud when connected.</li>
         <li><strong>Season Stats</strong> &mdash; Review your active team's record, trends, and recent results from the setup screen. Reset Season clears the saved games for that team.</li>
       </ul>

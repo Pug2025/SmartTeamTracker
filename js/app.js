@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.3.12';
+const APP_VERSION = '6.3.13';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -2688,10 +2688,11 @@ return;
   });
 
   /* First-launch welcome modal */
-  const SEEN_KEY = 'team-tracker-welcome-seen';
+  const SEEN_KEY = 'team-tracker-welcome-seen-v2';
   const hasSeenWelcome = localStorage.getItem(SEEN_KEY);
   if(!hasSeenWelcome){
     $('btnHelp').classList.add('pulse');
+    $('welcomeModal').style.display = 'flex';
   }
   $('btnWelcomeDismiss').onclick = function(){
     $('welcomeModal').style.display = 'none';

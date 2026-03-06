@@ -323,6 +323,7 @@ class Backend:
                 return status, {"error": "Save failed", "details": payload}
             record = payload[0] if isinstance(payload, list) and payload else payload
             game_id = record.get("id") if isinstance(record, dict) else None
+            self.sync_opponent_last_played(game)
             return 200, {"success": True, "id": game_id}
 
         with self.lock:
@@ -336,7 +337,96 @@ class Backend:
             }
             data["games"].append(local_row)
             self._write_local_data(data)
+        self.sync_opponent_last_played(game)
         return 200, {"success": True, "id": next_id}
+
+    def sync_opponent_last_played(self, game: dict[str, Any]) -> None:
+        team_id = str(game.get("team_id") or "").strip()
+        name = " ".join(str(game.get("Opponent") or "").strip().split())
+        user_id = str(game.get("user_id") or "").strip() or None
+        last_played_at = str(game.get("Date") or "").strip() or None
+        normalized_name = normalize_opponent_name(name)
+
+        if not team_id or not name:
+            return
+
+        now_iso = utc_now_iso()
+
+        if self.mode == "supabase":
+            query = [
+                "select=id",
+                f"team_id=eq.{quote(team_id, safe='')}",
+                f"name_normalized=eq.{quote(normalized_name, safe='')}",
+                "limit=1",
+            ]
+            if user_id:
+                query.append(f"user_id=eq.{quote(user_id, safe='')}")
+            else:
+                query.append("user_id=is.null")
+            status, existing = self._supabase_request("GET", f"opponents?{'&'.join(query)}")
+            if not (200 <= status < 300):
+                return
+
+            patch_payload = {"name": name, "last_used_at": now_iso}
+            if last_played_at:
+                patch_payload["last_played_at"] = last_played_at
+
+            if isinstance(existing, list) and existing:
+                record_id = existing[0].get("id")
+                self._supabase_request(
+                    "PATCH",
+                    f"opponents?id=eq.{quote(str(record_id), safe='')}",
+                    payload=patch_payload,
+                    extra_headers={"Prefer": "return=representation"},
+                )
+                return
+
+            insert_payload = {
+                "user_id": user_id,
+                "team_id": team_id,
+                "name": name,
+                "last_used_at": now_iso,
+                "last_played_at": last_played_at,
+            }
+            self._supabase_request(
+                "POST",
+                "opponents",
+                payload=insert_payload,
+                extra_headers={"Prefer": "return=representation"},
+            )
+            return
+
+        with self.lock:
+            data = self._read_local_data()
+            opponents = data.get("opponents", [])
+            match = None
+            for opponent in opponents:
+                same_team = str(opponent.get("team_id") or "") == team_id
+                same_user = (str(opponent.get("user_id") or "").strip() or None) == user_id
+                same_name = normalize_opponent_name(opponent.get("name")) == normalized_name
+                if same_team and same_user and same_name:
+                    match = opponent
+                    break
+
+            if match is not None:
+                match["name"] = name
+                match["last_used_at"] = now_iso
+                if last_played_at:
+                    match["last_played_at"] = last_played_at
+            else:
+                next_id = int(data.get("next_opponent_id", 1))
+                data["next_opponent_id"] = next_id + 1
+                opponents.append(
+                    {
+                        "id": next_id,
+                        "user_id": user_id,
+                        "team_id": team_id,
+                        "name": name,
+                        "last_used_at": now_iso,
+                        "last_played_at": last_played_at,
+                    }
+                )
+            self._write_local_data(data)
 
     def list_games(
         self, limit: int, user_id: str | None, team_id: str | None

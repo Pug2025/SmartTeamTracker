@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.3.3';
+const APP_VERSION = '6.3.5';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -156,8 +156,8 @@ function getStartGameReadiness(){
 }
 function updateScoreLabels(){
   const team = getActiveTeamSafe();
-  $('scoreThemLabel').textContent = compactScoreLabel(getSetupOpponentText({ preferState:true }), 'THEM');
-  $('scoreUsLabel').textContent = compactScoreLabel(team && team.name, 'US');
+  $('scoreThemLabel').textContent = compactScoreLabel(getSetupOpponentText({ preferState:true }), 'Opponent');
+  $('scoreUsLabel').textContent = compactScoreLabel(team && team.name, 'Our Team');
 }
 function updateHeaderContext(){
   const el = $('headerContext');
@@ -3487,8 +3487,9 @@ function renderOpponentDropdown(filterText = '', { showAll = false } = {}){
     rows.push(...visible.map((opponent) => {
       const name = cleanOpponentName(opponent && opponent.name);
       const selected = normalizeOpponentName(name) === currentOpponent;
-      const metaText = opponent && opponent.last_played_at
-        ? `Last played ${escapeHTML(formatShortGameDate(opponent.last_played_at) || opponent.last_played_at)}`
+      const lastPlayedAt = getOpponentLastPlayedDate(name) || (!setupGamesCache.games ? opponent && opponent.last_played_at : null);
+      const metaText = lastPlayedAt
+        ? `Last played ${escapeHTML(formatShortGameDate(lastPlayedAt) || lastPlayedAt)}`
         : 'Saved opponent';
       const deleteBtn = opponent && opponent.id != null
         ? `<button class="opponent-option-delete" type="button" data-id="${escapeHTML(opponent.id)}" aria-label="Delete ${escapeHTML(name)}">&times;</button>`
@@ -3558,6 +3559,20 @@ function buildOpponentListFromGames(games){
     }
   }
   return Array.from(byName.values()).sort(compareOpponentNames);
+}
+function getOpponentLastPlayedDate(opponentName, games = setupGamesCache.games){
+  const normalized = normalizeOpponentName(opponentName);
+  if(!normalized || !Array.isArray(games) || !games.length) return null;
+
+  let latestPlayedAt = '';
+  for(const game of games){
+    const data = game.data || {};
+    if(normalizeOpponentName(data.Opponent || game.opponent || '') !== normalized) continue;
+    const playedAt = sanitizeDateInput(data.Date || game.date || '');
+    if(!isLocalYMD(playedAt)) continue;
+    if(!latestPlayedAt || playedAt > latestPlayedAt) latestPlayedAt = playedAt;
+  }
+  return latestPlayedAt || null;
 }
 function mergeSavedOpponent(opponent){
   const name = cleanOpponentName(opponent && opponent.name);
@@ -3645,6 +3660,12 @@ async function loadSetupOpponents(){
   const scopeKey = getSetupScopeKey();
   if(setupGamesCache.scopeKey !== scopeKey){
     setupGamesCache = { scopeKey, games:null, loading:null };
+  }
+
+  try{
+    await ensureSetupGamesCache();
+  }catch(err){
+    console.warn('Game history fetch failed while loading setup opponents.', err);
   }
 
   let opponents = [];
@@ -3746,16 +3767,22 @@ async function updateOpponentMatchupCard({ forceGames = false } = {}){
 
   const hasRows = renderCurrentOpponentDropdown();
   if(opponentDropdownOpen) setOpponentDropdownOpen(hasRows);
-  const known = findSavedOpponentByName(input.value);
-  if(!known){
+  const opponentName = cleanOpponentName(input.value);
+  if(!opponentName){
     renderMatchupInsight(null);
     return;
   }
 
-  const expected = normalizeOpponentName(input.value);
+  const known = findSavedOpponentByName(opponentName);
+  const expected = normalizeOpponentName(opponentName);
   const games = await ensureSetupGamesCache(forceGames);
   if(normalizeOpponentName((($('opponent') && $('opponent').value) || '')) !== expected) return;
-  renderMatchupInsight(buildMatchupRecord(games, known.name));
+  const matchup = buildMatchupRecord(games, opponentName);
+  if(!known && (!matchup || matchup.gamesPlayed === 0)){
+    renderMatchupInsight(null);
+    return;
+  }
+  renderMatchupInsight(matchup);
 }
 async function saveOpponentName(opponentName){
   const { userId, teamId } = getGameQueryScope();
@@ -3766,8 +3793,7 @@ async function saveOpponentName(opponentName){
   const payload = {
     name,
     team_id: teamId,
-    user_id: userId || null,
-    last_played_at: state.date || getLocalTodayYMD()
+    user_id: userId || null
   };
   const res = await fetch('/api/opponents', {
     method:'POST',

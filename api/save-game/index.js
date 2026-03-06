@@ -59,6 +59,9 @@ export default async function handler(req, res) {
     }
 
     const record = Array.isArray(data) ? data[0] : data;
+    await syncOpponentLastPlayed({ supabaseUrl, supabaseKey, game }).catch((error) => {
+      console.warn("Opponent sync warning:", error);
+    });
     return res.status(200).json({ success: true, id: record.id });
 
   } catch (error) {
@@ -74,4 +77,84 @@ function readBody(req) {
     req.on("data", (chunk) => { body += chunk; });
     req.on("end", () => resolve(body || "{}"));
   });
+}
+
+async function syncOpponentLastPlayed({ supabaseUrl, supabaseKey, game }) {
+  const teamId = String(game.team_id || "").trim();
+  const opponentName = String(game.Opponent || "").trim().replace(/\s+/g, " ");
+  const userId = game.user_id ? String(game.user_id).trim() : null;
+  const lastPlayedAt = String(game.Date || "").trim() || null;
+
+  if (!teamId || !opponentName) return;
+
+  const normalizedName = opponentName.toLowerCase();
+  let lookupUrl = `${supabaseUrl}/rest/v1/opponents?select=id&team_id=eq.${encodeURIComponent(teamId)}&name_normalized=eq.${encodeURIComponent(normalizedName)}&limit=1`;
+  lookupUrl += userId
+    ? `&user_id=eq.${encodeURIComponent(userId)}`
+    : `&user_id=is.null`;
+
+  const lookupRes = await fetch(lookupUrl, {
+    headers: {
+      "apikey": supabaseKey,
+      "Authorization": `Bearer ${supabaseKey}`,
+      "Content-Type": "application/json"
+    }
+  });
+  const lookupData = await lookupRes.json().catch(() => ({}));
+
+  if (!lookupRes.ok) {
+    throw new Error(`Opponent lookup failed: ${JSON.stringify(lookupData)}`);
+  }
+
+  const now = new Date().toISOString();
+  const patchBody = {
+    name: opponentName,
+    last_used_at: now
+  };
+  if (lastPlayedAt) patchBody.last_played_at = lastPlayedAt;
+
+  if (Array.isArray(lookupData) && lookupData.length) {
+    const recordId = lookupData[0].id;
+    const patchRes = await fetch(
+      `${supabaseUrl}/rest/v1/opponents?id=eq.${encodeURIComponent(recordId)}`,
+      {
+        method: "PATCH",
+        headers: {
+          "apikey": supabaseKey,
+          "Authorization": `Bearer ${supabaseKey}`,
+          "Content-Type": "application/json",
+          "Prefer": "return=representation"
+        },
+        body: JSON.stringify(patchBody)
+      }
+    );
+    if (!patchRes.ok) {
+      const patchData = await patchRes.json().catch(() => ({}));
+      throw new Error(`Opponent update failed: ${JSON.stringify(patchData)}`);
+    }
+    return;
+  }
+
+  const insertBody = {
+    user_id: userId,
+    team_id: teamId,
+    name: opponentName,
+    last_used_at: now,
+    last_played_at: lastPlayedAt
+  };
+  const insertRes = await fetch(`${supabaseUrl}/rest/v1/opponents`, {
+    method: "POST",
+    headers: {
+      "apikey": supabaseKey,
+      "Authorization": `Bearer ${supabaseKey}`,
+      "Content-Type": "application/json",
+      "Prefer": "return=representation"
+    },
+    body: JSON.stringify(insertBody)
+  });
+
+  if (!insertRes.ok) {
+    const insertData = await insertRes.json().catch(() => ({}));
+    throw new Error(`Opponent insert failed: ${JSON.stringify(insertData)}`);
+  }
 }

@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.2.18';
+const APP_VERSION = '6.2.19';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;

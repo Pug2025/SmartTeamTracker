@@ -643,7 +643,7 @@
 
     <div class="help-section">
       <h3>Getting Started</h3>
-      <p>Select your team, enter the opponent name, confirm the date, and tap <strong>Start Game</strong>. Team level comes from the selected team, so you only set it once in <strong>Manage Teams</strong>. The opponent field lets you reuse saved opponents, add a new one from the same box, and instantly see your head-to-head record and recent scores when a match is found. The period selector at the top lets you switch periods &mdash; tap <strong>Next Period</strong> between periods to advance.</p>
+      <p>Select your team, enter the opponent name, confirm the date, and tap <strong>Start Game</strong>. Team level comes from the selected team, so you only set it once in <strong>Manage Teams</strong>. The opponent field lets you reuse saved opponents, add a new one from the same box, and instantly see your head-to-head record and recent scores when a match is found. The period selector at the top lets you switch periods at any time, and you can also tap <strong>Next Period</strong> between periods to advance.</p>
     </div>
 
     <hr class="help-divider">
@@ -653,20 +653,20 @@
       <p>Tap these when the opponent has the puck and creates a chance against your team.</p>
       <h4>Primary Buttons</h4>
       <ul>
-        <li><strong>Shot Against</strong> &mdash; Any shot on net. You'll be asked if it was a <em>High Danger</em> chance (slot area, close range). If you don't respond in 2 seconds it defaults to No. The same HD prompt appears for Shot For too.</li>
-        <li><strong>Goal Against</strong> &mdash; They scored. This counts as a shot automatically. You'll be asked for context (Screen, Deflection/Tip, Cross-Crease, Net-Front Scramble, Clean Look, or Other) and game situation (EV/PP/SH). If an odd-man rush was the trigger, log that first and the goal will be auto-tagged.</li>
+        <li><strong>Shot Against</strong> &mdash; Any shot on net. Shots off the post do <strong>not</strong> count as shots here. You'll be asked if it was a <em>High Danger</em> chance (slot area, close range). If you don't respond in 2 seconds it defaults to No. The same HD prompt appears for Shot For too.</li>
+        <li><strong>Goal Against</strong> &mdash; They scored. This counts as a shot automatically. You'll be asked for context (Screen, Deflection/Tip, Cross-Crease, Net-Front Scramble, Clean Look, or Other) and game situation (EV/PP/SH). If a breakaway, DZ turnover, or odd-man rush triggered the goal, log that first and the goal will be auto-tagged.</li>
       </ul>
       <h4>Goalie Buttons</h4>
       <ul>
         <li><strong>Soft Goal</strong> &mdash; A goal your goalie should have stopped. You'll be asked what went wrong: Misplay, Poor Positioning, or Other. Counts against the goalie score more heavily.</li>
-        <li><strong>Bad Rebound</strong> &mdash; Goalie gave up a loose rebound. If a goal follows within 5 seconds, the goal is auto-tagged as rebound-related.</li>
+        <li><strong>Bad Rebound</strong> &mdash; Goalie gave up a dangerous rebound. If a goal follows within 5 seconds, the goal is auto-tagged as rebound-related.</li>
       </ul>
       <h4>Defensive Context</h4>
       <ul>
         <li><strong>Breakaway</strong> &mdash; Opponent got a breakaway. If a goal follows within 10 seconds, it's auto-tagged. Reduces goalie blame.</li>
         <li><strong>DZ Turnover</strong> &mdash; Your team turned it over in the defensive zone. If a goal follows within 10 seconds, it's auto-tagged.</li>
         <li><strong>Odd-Man Rush</strong> &mdash; Opponent has a 2-on-1, 3-on-2, etc. If a goal follows, it is auto-tagged as an odd-man-rush goal.</li>
-        <li><strong>Missed Chance (No Shot)</strong> &mdash; They had a quality scoring chance but no shot on net (e.g. hit the post, went wide, fanned on it). Counts toward their expected goals at a 12% probability.</li>
+        <li><strong>Missed Chance (No Shot)</strong> &mdash; They had a quality scoring chance but no shot on net (e.g. hit the post, went wide, fanned on it). It still counts toward their chance quality.</li>
         <li><strong>Penalty for Us</strong> &mdash; Your team took a penalty. It is counted and logged in the event list.</li>
       </ul>
     </div>
@@ -678,8 +678,8 @@
       <p>Tap these when your team has the puck and creates chances.</p>
       <h4>Primary Buttons</h4>
       <ul>
-        <li><strong>Shot For</strong> &mdash; Your team shot on net. You'll select the shooter from your roster (or tap Unknown), then be asked if it was <em>High Danger</em>.</li>
-        <li><strong>Goal For</strong> &mdash; Your team scored! You'll select the scorer, then optionally an assist, game situation (EV/PP/SH), and +/- players on ice.</li>
+        <li><strong>Shot For</strong> &mdash; Your team shot on net. Shots off the post do <strong>not</strong> count as shots here. You'll select the shooter from your roster (or tap Unknown), then be asked if it was <em>High Danger</em>.</li>
+        <li><strong>Goal For</strong> &mdash; Your team scored. You'll select the scorer, then optionally an assist, game situation (EV/PP/SH), and +/- players on ice.</li>
       </ul>
       <h4>Goalie Positive</h4>
       <ul>
@@ -689,9 +689,9 @@
       <h4>Offensive Context</h4>
       <ul>
         <li><strong>Breakaway</strong> &mdash; Your player got in alone. If a goal follows soon after, it is auto-tagged.</li>
-        <li><strong>Forced Turnover</strong> &mdash; Your team won the puck back through good pressure. If a goal follows soon after, it is auto-tagged.</li>
+        <li><strong>Forced Turnover</strong> &mdash; Your team won the puck back through good pressure. If a goal follows within about 10 seconds, it is auto-tagged.</li>
         <li><strong>Odd Man Rush</strong> &mdash; Your team created a 2-on-1, 3-on-2, etc. If a goal follows soon after, it is auto-tagged.</li>
-        <li><strong>Missed Chance (No Shot)</strong> &mdash; Your team had a quality scoring chance but no shot on net (e.g. hit the post, went wide, fanned on it). Counts toward your expected goals at a 12% probability.</li>
+        <li><strong>Missed Chance (No Shot)</strong> &mdash; Your team had a quality scoring chance but no shot on net (e.g. hit the post, went wide, fanned on it). It still counts toward your chance quality.</li>
         <li><strong>Penalty for Them</strong> &mdash; The other team took a penalty. It is counted and logged in the event list.</li>
       </ul>
     </div>
@@ -704,7 +704,7 @@
         <li><strong>Goals Count as Shots</strong> &mdash; Do not log a separate shot after any goal for or against.</li>
         <li><strong>Good Rebounds</strong> &mdash; Awarded automatically. If 4 seconds pass after a shot/big save without another shot, bad rebound, or goal, the goalie gets credit for controlling the rebound.</li>
         <li><strong>Goal Context</strong> &mdash; Breakaway, odd-man-rush, forced-turnover, DZ-turnover, and rebound goals are auto-tagged when the lead-in event was logged just before the goal.</li>
-        <li><strong>High Danger</strong> &mdash; Applies to all shots (for and against). After logging any shot, you get a 2-second prompt asking if it was HD. If you don't respond, it defaults to regular. HD shots count as ~18% goal probability vs ~7% for regular in the xG model.</li>
+        <li><strong>High Danger</strong> &mdash; Applies to all shots (for and against). After logging any shot, you get a 2-second prompt asking if it was HD. If you don't respond, it defaults to regular. High-danger chances are weighted more heavily than regular ones in the live quality readouts.</li>
       </ul>
     </div>
 
@@ -721,7 +721,7 @@
       <ul>
         <li><strong>Possession (20%)</strong> &mdash; Shot share (your shots vs total shots)</li>
         <li><strong>Danger Control (20%)</strong> &mdash; Breakaways + odd man rushes + forced turnovers created vs given up</li>
-        <li><strong>Shot Quality (15%)</strong> &mdash; Are your chances better quality than theirs (xG differential)</li>
+        <li><strong>Shot Quality (15%)</strong> &mdash; Are your chances better than theirs overall</li>
         <li><strong>Result (35%)</strong> &mdash; Goal differential, with SH goals against weighted less</li>
         <li><strong>Discipline (10%)</strong> &mdash; Penalties drawn vs penalties taken</li>
       </ul>
@@ -729,7 +729,7 @@
       <ul>
         <li><strong>Chance Quality Bar</strong> &mdash; A quick live read on who is generating better looks overall.</li>
         <li><strong>HD Chances</strong> &mdash; High-danger shots (close range, slot area) are shown directly in the live shot quality section.</li>
-        <li><strong>Expected Goals</strong> &mdash; xG still powers the internal scoring models even though the live dashboard now stays more streamlined.</li>
+        <li><strong>Missed Chances</strong> &mdash; Good looks that miss the net or hit the post still feed into the live chance-quality picture.</li>
       </ul>
     </div>
 
@@ -738,8 +738,8 @@
     <div class="help-section">
       <h3>Other Features</h3>
       <ul>
-        <li><strong>Event Removal + Undo</strong> &mdash; Tap any event in the live event list to remove it. The floating UNDO button shows recent removals and lets you restore one quickly.</li>
-        <li><strong>Roster</strong> &mdash; Tap Roster in the header to add player numbers (one per line). These appear as quick-pick buttons when logging shots/goals for.</li>
+        <li><strong>Event Removal + Undo</strong> &mdash; Tap any event in the live event list to remove it. A quick tap on the floating UNDO button reverses the last event, and a long press opens the last 5 events so you can remove a specific one.</li>
+        <li><strong>Roster</strong> &mdash; Tap Roster in the header to add player numbers (one per line). These appear as quick-pick buttons when logging shots/goals for, and a player number is auto-added to the roster if you type it in as a shooter, scorer, or assister.</li>
         <li><strong>+/- Tracking</strong> &mdash; When enabled in setup, you'll be asked to select 5 players on ice after each goal (for and against) to track plus/minus.</li>
         <li><strong>Live Spectating</strong> &mdash; Tap Share Live during a game to create a view-only link for parents, staff, or another device. The spectator screen updates automatically with score, shot totals, chance quality, and momentum.</li>
         <li><strong>End Game</strong> &mdash; Tap End Game &amp; Score to see a full game summary with goalie/team scores, stats breakdown, and exportable data.</li>

@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.2.5';
+const APP_VERSION = '6.2.6';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -3574,11 +3574,11 @@ function renderSeasonDashboard(games){
 
   // Recent form (last 5)
   const recent5 = chrono.slice(-5);
-  const form = recent5.map(d => {
+  const recentResults = recent5.map(d => {
     const gf = Number(d.GF)||0, ga = Number(d.GA)||0;
-    if(gf > ga) return '<span class="season-form-w">W</span>';
-    if(ga > gf) return '<span class="season-form-l">L</span>';
-    return '<span class="season-form-t">T</span>';
+    if(gf > ga) return '<span class="season-result-w">W</span>';
+    if(ga > gf) return '<span class="season-result-l">L</span>';
+    return '<span class="season-result-t">T</span>';
   }).join('');
 
   // Trend arrows (compare last 3 avg to previous 3 avg)
@@ -3608,7 +3608,7 @@ function renderSeasonDashboard(games){
   html += `<div class="season-record">
     <div class="season-record-main">${wins}W – ${losses}L${ties?' – '+ties+'T':''}</div>
     <div class="season-record-sub">${n} game${n>1?'s':''} played</div>
-    <div class="season-form-row">Form: ${form}</div>
+    <div class="season-results-row">Recent Results: ${recentResults}</div>
   </div>`;
 
   // Key stats grid

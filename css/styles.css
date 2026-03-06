@@ -1557,7 +1557,7 @@
   color:var(--muted);
   margin-top:2px;
 }
-.season-form-row{
+.season-results-row{
   margin-top:6px;
   font-size:12px;
   color:var(--muted);
@@ -1566,17 +1566,17 @@
   justify-content:center;
   gap:4px;
 }
-.season-form-w{
+.season-result-w{
   display:inline-block; width:20px; height:20px; line-height:20px;
   text-align:center; border-radius:4px;
   background:var(--good); color:#000; font-weight:800; font-size:11px;
 }
-.season-form-l{
+.season-result-l{
   display:inline-block; width:20px; height:20px; line-height:20px;
   text-align:center; border-radius:4px;
   background:var(--accent-them); color:#000; font-weight:800; font-size:11px;
 }
-.season-form-t{
+.season-result-t{
   display:inline-block; width:20px; height:20px; line-height:20px;
   text-align:center; border-radius:4px;
   background:var(--warn); color:#000; font-weight:800; font-size:11px;

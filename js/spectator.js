@@ -306,15 +306,14 @@
 
     renderSplitValue('specShotLine', s.shotsFor, s.shotsAgainst);
     if ($('specSaves')) $('specSaves').textContent = Number.isFinite(s.saves) ? `${Math.round(s.saves)}` : '0';
+    if ($('specSavesPct')) $('specSavesPct').textContent = `SV% ${formatSavePct(s.svPct, s.shotsAgainst)}`;
     renderSplitValue('specPenaltyLine', s.penaltiesFor, s.penaltiesAgainst);
 
-    const df = Number.isFinite(s.dangerFor)
-      ? s.dangerFor
-      : (s.quality && Number.isFinite(s.quality.hdFor) ? s.quality.hdFor : 0);
-    const da = Number.isFinite(s.dangerAgainst)
-      ? s.dangerAgainst
-      : (s.quality && Number.isFinite(s.quality.hdAgainst) ? s.quality.hdAgainst : 0);
-    renderSplitValue('specDangerLine', df, da);
+    const hdFor = s.quality && Number.isFinite(s.quality.hdFor) ? s.quality.hdFor : 0;
+    const hdAgainst = s.quality && Number.isFinite(s.quality.hdAgainst) ? s.quality.hdAgainst : 0;
+    const chanceFor = hdFor + (Number.isFinite(s.missedFor) ? s.missedFor : 0);
+    const chanceAgainst = hdAgainst + (Number.isFinite(s.missedAgainst) ? s.missedAgainst : 0);
+    renderSplitValue('specDangerLine', chanceFor, chanceAgainst);
 
     renderQuality(s.quality);
     renderMomentum(s.momentum);
@@ -409,13 +408,17 @@
   }
 
   function renderEvents(events) {
+    const eventsEl = $('specEvents');
     if (!events.length) {
-      if ($('specEvents')) $('specEvents').innerHTML = '<div class="spec-event-placeholder">The game feed will appear here</div>';
+      if (eventsEl) eventsEl.innerHTML = '<div class="spec-event-placeholder">The game feed will appear here</div>';
       lastEventFingerprint = '';
       return;
     }
 
     const rows = events.slice().reverse();
+    const prevScrollTop = eventsEl ? eventsEl.scrollTop : 0;
+    const prevScrollHeight = eventsEl ? eventsEl.scrollHeight : 0;
+    const preserveFeedPosition = eventsEl ? prevScrollTop > 4 : false;
     const html = rows.map(ev => {
       const icon = eventVisual(ev.type);
       const label = eventLabel(ev);
@@ -430,12 +433,18 @@
       </div>`;
     }).join('');
 
-    if ($('specEvents')) $('specEvents').innerHTML = html;
+    if (eventsEl) {
+      eventsEl.innerHTML = html;
+      if (preserveFeedPosition) {
+        const nextScrollHeight = eventsEl.scrollHeight;
+        eventsEl.scrollTop = Math.max(0, prevScrollTop + (nextScrollHeight - prevScrollHeight));
+      }
+    }
 
     const newest = rows[0];
     const fp = newest ? `${newest.id || ''}|${newest.tISO || ''}|${newest.type}` : '';
     if (fp && lastEventFingerprint && fp !== lastEventFingerprint) {
-      const first = $('specEvents') ? $('specEvents').querySelector('.spec-event-row') : null;
+      const first = eventsEl ? eventsEl.querySelector('.spec-event-row') : null;
       if (first) {
         first.classList.add('spec-event-new');
         setTimeout(() => first.classList.remove('spec-event-new'), 2000);
@@ -468,10 +477,11 @@
       case 'odd_man_rush_for': return 'Odd-man rush for us';
       case 'odd_man_rush_against': return 'Odd-man rush for them';
       case 'missed_chance_for':
+        return 'We missed a big opportunity';
       case 'missed_chance_against':
-        return 'Missed Opportunity';
+        return 'They missed a big opportunity';
       case 'big_save': return 'Big save';
-      case 'bad_rebound': return 'Loose rebound';
+      case 'bad_rebound': return 'Dangerous rebound';
       case 'forced_turnover': return 'Forced turnover';
       case 'dz_turnover': return 'D-zone turnover';
       default: return ev.type || 'Event';
@@ -558,6 +568,13 @@
     const newest = events[events.length - 1];
     if (!newest || !newest.tISO) return NaN;
     return Date.parse(newest.tISO);
+  }
+
+  function formatSavePct(svPct, shotsAgainst) {
+    if (!Number.isFinite(shotsAgainst) || shotsAgainst <= 0 || !Number.isFinite(svPct)) return '—';
+    const scaled = Math.round(svPct * 10);
+    if (scaled >= 1000) return '1.000';
+    return `.${String(scaled).padStart(3, '0')}`;
   }
 
   function pulseScore(id) {

@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.2.9';
+const APP_VERSION = '6.2.10';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -766,23 +766,38 @@ function addEvent(type, meta={}){
   // Always tag GA causes first (BA/DZ/BR can all apply)
   if(isGoalAgainst){
     tagGACause(ev);
+    let autoTaggedGA = false;
 
     // auto-context shortcuts:
     // - Pure breakaway goal: auto-set Breakaway and skip modal
     // - Pure rebound goal (bad rebound within 5s, no BA/DZ): auto-set Rebound and skip modal
+    // - Odd-man rush goal: auto-set Odd-Man Rush from the main context button
     const pureBreakaway = !!ev.ga_ba && !ev.ga_dz && !ev.ga_br;
     const pureRebound = !!ev.ga_br && !ev.ga_ba && !ev.ga_dz;
+    const autoOddManRush = !!ev.ga_omra && !pureBreakaway && !pureRebound;
 
     if(pureBreakaway){
       ev.ga_ctx = 'Breakaway';
       ev.needsContext = false;
+      autoTaggedGA = true;
       save();
     } else if(pureRebound){
       ev.ga_ctx = 'Net-Front Scramble';
       ev.needsContext = false;
+      autoTaggedGA = true;
+      save();
+    } else if(autoOddManRush){
+      ev.ga_ctx = 'Odd-Man Rush';
+      ev.needsContext = false;
+      autoTaggedGA = true;
       save();
     } else {
       openGAContext(ev);
+    }
+
+    if(autoTaggedGA){
+      renderAll();
+      continueAfterGATag(ev);
     }
   }
 
@@ -991,9 +1006,23 @@ function labelFor(ev){
 }
 
 /* GA Context */
-const GA_TAGS = ['Screen','Deflection/Tip','Cross-Crease','Odd-Man Rush','Net-Front Scramble','Clean Look','Other'];
+const GA_TAGS = ['Screen','Deflection/Tip','Cross-Crease','Net-Front Scramble','Clean Look','Other'];
 const SOFT_GA_TAGS = ['Misplay','Poor Positioning','Other'];
 let lastGAEvent = null;
+function continueAfterGATag(ev, onIceOptional = false){
+  if(!ev) return;
+  if(prefs.trackPlusMinus){
+    openMultiPicker({
+      title:onIceOptional ? '5 Players On Ice (optional)' : '5 Players On Ice (for +/-)',
+      max:5,
+      event:ev,
+      field:'onIce',
+      exclude:[]
+    });
+  } else {
+    openStrengthPicker(ev, 'Our Team\'s Situation (required)');
+  }
+}
 function openGAContext(ev){
   lastGAEvent = ev;
 
@@ -1015,11 +1044,7 @@ $('gaGrid').addEventListener('click', e=>{
   $('gaOverlay').style.display='none';
   renderAll();
 
-  if(prefs.trackPlusMinus){
-    openMultiPicker({title:'5 Players On Ice (for +/-)', max:5, event:lastGAEvent, field:'onIce', exclude:[]});
-  } else {
-    openStrengthPicker(lastGAEvent, 'Our Team\'s Situation (required)');
-  }
+  continueAfterGATag(lastGAEvent);
   lastGAEvent=null;
 });
 $('gaSkip').addEventListener('click', ()=>{
@@ -1029,11 +1054,7 @@ $('gaSkip').addEventListener('click', ()=>{
     save();
     renderAll();
 
-    if(prefs.trackPlusMinus){
-      openMultiPicker({title:'5 Players On Ice (optional)', max:5, event:lastGAEvent, field:'onIce', exclude:[]});
-    } else {
-      openStrengthPicker(lastGAEvent, 'Our Team\'s Situation (required)');
-    }
+    continueAfterGATag(lastGAEvent, true);
   }
 });
 

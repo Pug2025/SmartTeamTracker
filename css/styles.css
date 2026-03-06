@@ -105,29 +105,33 @@
     align-items:center;
   }
   body:not(.in-game) .top-row{
-    position:relative;
-    justify-content:center;
-    padding:14px 14px 10px;
+    display:grid;
+    grid-template-columns:44px minmax(0, 1fr) 44px;
+    align-items:center;
+    padding:16px 18px 12px;
+    min-height:64px;
+    gap:0;
   }
   body:not(.in-game) .top-title-group{
-    position:absolute;
-    left:50%;
-    transform:translateX(-50%);
+    grid-column:2;
     flex:none;
     justify-content:center;
     align-items:center;
-    width:max-content;
-    max-width:calc(100% - 96px);
+    width:100%;
+    max-width:none;
   }
   body:not(.in-game) .top-title-stack{
     align-items:center;
+    width:100%;
   }
   body:not(.in-game) .top-title-line{
     justify-content:center;
+    width:100%;
   }
   body:not(.in-game) .top-row h1{
-    font-size:34px;
-    letter-spacing:-1.1px;
+    font-size:36px;
+    letter-spacing:-1.2px;
+    line-height:1.05;
   }
   body:not(.in-game) #cloudStatus{
     display:none;
@@ -139,10 +143,8 @@
     flex-shrink:0;
   }
   body:not(.in-game) .top-actions{
-    position:absolute;
-    right:14px;
-    top:50%;
-    transform:translateY(-50%);
+    grid-column:3;
+    justify-self:end;
   }
   .btn-icon{
     width:30px;
@@ -481,8 +483,11 @@
   }
   input[type="date"]{
     width:100%;
+    max-width:100%;
     min-width:0;
     display:block;
+    inline-size:100%;
+    padding-right:12px;
   }
   .btn-start{
     width:100%;
@@ -523,6 +528,9 @@
     display:grid;
     grid-template-columns:minmax(0, 1fr);
     gap:12px;
+  }
+  .setup-fields > .input-group{
+    min-width:0;
   }
   .setup-field-span{
     grid-column:1 / -1;
@@ -2239,7 +2247,9 @@
     padding:10px 12px 8px;
   }
   body:not(.in-game) .top-row{
-    padding:12px 12px 8px;
+    grid-template-columns:40px minmax(0, 1fr) 40px;
+    padding:14px 14px 10px;
+    min-height:58px;
   }
   .top-title-group{
     gap:10px;
@@ -2248,10 +2258,7 @@
     font-size:16px;
   }
   body:not(.in-game) .top-row h1{
-    font-size:28px;
-  }
-  body:not(.in-game) .top-actions{
-    right:12px;
+    font-size:32px;
   }
   .top-context{
     font-size:11px;
@@ -2329,13 +2336,12 @@
     padding:9px 10px 7px;
   }
   body:not(.in-game) .top-row{
-    padding:10px 10px 7px;
+    grid-template-columns:36px minmax(0, 1fr) 36px;
+    padding:12px 12px 8px;
+    min-height:52px;
   }
   body:not(.in-game) .top-row h1{
-    font-size:24px;
-  }
-  body:not(.in-game) .top-actions{
-    right:10px;
+    font-size:28px;
   }
   .wrap{
     padding:10px 10px 16px;

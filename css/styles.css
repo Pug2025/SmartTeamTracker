@@ -457,7 +457,7 @@
     margin-bottom:14px;
   }
   .setup-date-field{
-    width:min(100%, 272px);
+    width:min(100%, 232px);
     min-width:0;
     margin-left:auto;
     margin-right:auto;
@@ -467,12 +467,12 @@
   }
   .setup-date-shell{
     position:relative;
-    min-height:46px;
+    min-height:42px;
     display:flex;
     align-items:center;
     justify-content:center;
-    padding:12px 16px;
-    border-radius:14px;
+    padding:10px 14px;
+    border-radius:13px;
     border:1px solid rgba(255,255,255,0.08);
     background:rgba(6,8,10,0.96);
     overflow:hidden;
@@ -484,9 +484,9 @@
     background:#07090d;
   }
   .setup-date-display{
-    font-size:15px;
+    font-size:14px;
     font-weight:600;
-    letter-spacing:-0.2px;
+    letter-spacing:-0.1px;
     color:#eef3f8;
     text-align:center;
     white-space:nowrap;
@@ -2396,6 +2396,9 @@
 }
 
 @media (max-width: 430px){
+  .setup-date-field{
+    width:min(100%, 220px);
+  }
   .top-row{
     padding:9px 10px 7px;
   }

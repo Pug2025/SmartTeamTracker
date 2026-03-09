@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.3.15';
+const APP_VERSION = '6.3.16';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -3311,6 +3311,7 @@ document.querySelectorAll('.modal').forEach(m=>
     if(mid==='strengthModal'){ strengthTarget=null; }
     if(mid==='gaOverlay'){ lastGAEvent=null; }
     if(mid==='onIceModal'){ multiPick.eventRef=null; }
+    if(mid==='playerDetailModal'){ currentPlayerDetailKey = null; }
   })
 );
 
@@ -4068,6 +4069,8 @@ async function resetSeasonStats(){
     $('playerStatsBody').innerHTML = NO_GAMES_MESSAGE;
     $('btnSeasonReset').classList.add('hidden');
     $('btnPlayerStatsReset').classList.add('hidden');
+    $('playerDetailModal').style.display = 'none';
+    currentPlayerDetailKey = null;
     showStatusToast('Season stats reset', 'success');
     invalidateSetupGamesCache();
     await updateOpponentMatchupCard({ forceGames:true });
@@ -4110,6 +4113,8 @@ async function loadPlayerStatsPanel(){
   }catch(e){
     console.error(e);
     $('btnPlayerStatsReset').classList.add('hidden');
+    $('playerDetailModal').style.display = 'none';
+    currentPlayerDetailKey = null;
     $('playerStatsBody').innerHTML = '<div style="text-align:center; padding:20px; color:var(--accent-them);">Failed to load. Check your connection.</div>';
   }
 }
@@ -4404,18 +4409,105 @@ $('btnPlayerStats').addEventListener('click', async ()=>{
   await loadPlayerStatsPanel();
 });
 $('btnPlayerStatsReset').addEventListener('click', resetSeasonStats);
-$('btnPlayerStatsClose').addEventListener('click', ()=>{ $('playerStatsPanel').style.display='none'; });
+$('btnPlayerStatsClose').addEventListener('click', ()=>{
+  $('playerStatsPanel').style.display='none';
+  $('playerDetailModal').style.display='none';
+  currentPlayerDetailKey = null;
+});
+$('playerDetailClose').addEventListener('click', ()=>{
+  $('playerDetailModal').style.display='none';
+  currentPlayerDetailKey = null;
+});
 
-function comparePlayerSeasonRows(a, b){
-  const pointDiff = (Number(b.points) || 0) - (Number(a.points) || 0);
+const PLAYER_SORT_OPTIONS = [
+  { key:'points', label:'PTS' },
+  { key:'goals', label:'Goals' },
+  { key:'assists', label:'Assists' },
+  { key:'shots', label:'Shots' },
+  { key:'pm', label:'+/-' },
+  { key:'recent', label:'Recent' }
+];
+const playerStatsViewState = {
+  sortKey:'points',
+  games:[],
+  players:[],
+  playerMap:new Map()
+};
+let currentPlayerDetailKey = null;
+
+function formatPlayerDisplayLabel(player){
+  const raw = String(player || '').trim();
+  if(!raw) return 'Unknown';
+  return /^\d+$/.test(raw) ? `#${raw}` : raw;
+}
+function formatSignedNumber(value){
+  const num = Number(value || 0);
+  return num > 0 ? `+${num}` : String(num);
+}
+function sanitizePlayerSortKey(value){
+  return PLAYER_SORT_OPTIONS.some((option) => option.key === value) ? value : 'points';
+}
+function getGameDateTimestamp(rawDate){
+  if(isLocalYMD(rawDate)) return Date.parse(`${rawDate}T12:00:00`);
+  const parsed = Date.parse(String(rawDate || ''));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+function formatGameDateLabel(rawDate){
+  return isLocalYMD(rawDate) ? formatSetupDate(rawDate) : String(rawDate || '—');
+}
+function sumPlayerLogs(logs, field){
+  return (logs || []).reduce((sum, log) => sum + Number(log && log[field] || 0), 0);
+}
+function averagePlayerLogs(logs, field){
+  if(!(logs || []).length) return 0;
+  return sumPlayerLogs(logs, field) / logs.length;
+}
+function buildPlayerSparkline(values, color = '#4da3ff'){
+  const series = (values || []).map((value) => Number(value || 0));
+  if(!series.length){
+    return '';
+  }
+  const width = 120;
+  const height = 28;
+  const min = Math.min(...series, 0);
+  const max = Math.max(...series, 0);
+  const range = max - min || 1;
+  const step = series.length > 1 ? width / (series.length - 1) : 0;
+  const points = series.map((value, index) => {
+    const x = series.length > 1 ? index * step : width / 2;
+    const y = height - (((value - min) / range) * height);
+    return `${x},${y.toFixed(2)}`;
+  }).join(' ');
+  const baselineY = height - (((0 - min) / range) * height);
+  return `<svg class="player-sparkline" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true">
+    <line x1="0" y1="${baselineY.toFixed(2)}" x2="${width}" y2="${baselineY.toFixed(2)}" stroke="rgba(255,255,255,0.08)" stroke-width="1" />
+    <polyline points="${points}" fill="none" stroke="${color}" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" />
+  </svg>`;
+}
+function getPlayerSortValue(player, sortKey){
+  switch(sortKey){
+    case 'goals': return Number(player.goals || 0);
+    case 'assists': return Number(player.assists || 0);
+    case 'shots': return Number(player.shots || 0);
+    case 'pm': return Number(player.pm || 0);
+    case 'recent': return Number(player.recentPoints || 0);
+    default: return Number(player.points || 0);
+  }
+}
+function comparePlayerSeasonRows(a, b, sortKey = 'points'){
+  const activeSort = sanitizePlayerSortKey(sortKey);
+  const primaryDiff = getPlayerSortValue(b, activeSort) - getPlayerSortValue(a, activeSort);
+  if(primaryDiff) return primaryDiff;
+
+  const pointDiff = Number(b.points || 0) - Number(a.points || 0);
   if(pointDiff) return pointDiff;
-  const goalDiff = (Number(b.goals) || 0) - (Number(a.goals) || 0);
+  const goalDiff = Number(b.goals || 0) - Number(a.goals || 0);
   if(goalDiff) return goalDiff;
-  const assistDiff = (Number(b.assists) || 0) - (Number(a.assists) || 0);
+  const assistDiff = Number(b.assists || 0) - Number(a.assists || 0);
   if(assistDiff) return assistDiff;
-  const shotDiff = (Number(b.shots) || 0) - (Number(a.shots) || 0);
+  const shotDiff = Number(b.shots || 0) - Number(a.shots || 0);
   if(shotDiff) return shotDiff;
-  const pmDiff = (Number(b.pm) || 0) - (Number(a.pm) || 0);
+  const pmDiff = Number(b.pm || 0) - Number(a.pm || 0);
   if(pmDiff) return pmDiff;
 
   const aLabel = String(a.player || '');
@@ -4429,96 +4521,320 @@ function comparePlayerSeasonRows(a, b){
   if(bNumeric) return 1;
   return aLabel.localeCompare(bLabel, undefined, { numeric:true, sensitivity:'base' });
 }
+function computePlayerTrend(logs){
+  const recentLogs = (logs || []).slice(-5);
+  const previousLogs = (logs || []).slice(-10, -5);
+  const recentAvg = averagePlayerLogs(recentLogs, 'points');
+  const previousAvg = averagePlayerLogs(previousLogs, 'points');
+  const delta = recentAvg - previousAvg;
 
+  if(!previousLogs.length){
+    if(recentAvg >= 1){
+      return { tone:'up', label:'Producing lately', shortLabel:'Hot' };
+    }
+    return { tone:'flat', label:'Getting started', shortLabel:'New' };
+  }
+  if(delta > 0.25){
+    return { tone:'up', label:'Trending up', shortLabel:'Trending Up' };
+  }
+  if(delta < -0.25){
+    return { tone:'down', label:'Trending down', shortLabel:'Trending Down' };
+  }
+  return { tone:'flat', label:'Steady lately', shortLabel:'Steady' };
+}
+function computePointStreak(logs){
+  let streak = 0;
+  for(let i = (logs || []).length - 1; i >= 0; i--){
+    if(Number(logs[i].points || 0) > 0) streak += 1;
+    else break;
+  }
+  return streak;
+}
+function selectBestPlayerGame(logs){
+  const sorted = (logs || []).slice().sort((a, b) =>
+    (Number(b.points || 0) - Number(a.points || 0)) ||
+    (Number(b.goals || 0) - Number(a.goals || 0)) ||
+    (Number(b.assists || 0) - Number(a.assists || 0)) ||
+    (Number(b.shots || 0) - Number(a.shots || 0)) ||
+    (getGameDateTimestamp(b.date) - getGameDateTimestamp(a.date))
+  );
+  return sorted[0] || null;
+}
 function aggregatePlayerSeasonStats(games){
   const playerMap = new Map();
   let gamesWithPlayers = 0;
+  const chronoGames = (games || []).slice().sort((a, b) => {
+    const aData = a && a.data ? a.data : {};
+    const bData = b && b.data ? b.data : {};
+    return getGameDateTimestamp(aData.Date || a.date) - getGameDateTimestamp(bData.Date || b.date);
+  });
 
-  for(const game of games || []){
-    const rows = Array.isArray(game && game.data && game.data.players) ? game.data.players : [];
+  for(const game of chronoGames){
+    const data = game && game.data ? game.data : {};
+    const rows = Array.isArray(data.players) ? data.players : [];
     if(!rows.length) continue;
-    gamesWithPlayers++;
+    gamesWithPlayers += 1;
 
-    const seenInGame = new Set();
+    const rawDate = data.Date || game.date || '';
+    const opponent = String(data.Opponent || game.opponent || 'Opponent').trim() || 'Opponent';
+    const gf = Number(data.GF || 0);
+    const ga = Number(data.GA || 0);
+    const result = gf > ga ? 'w' : gf < ga ? 'l' : 't';
+
     for(const row of rows){
       const player = String(row && row.player || '').trim();
       if(!player) continue;
       if(!playerMap.has(player)){
-        playerMap.set(player, { player, games:0, goals:0, assists:0, shots:0, pm:0, points:0 });
+        playerMap.set(player, {
+          player,
+          games:0,
+          goals:0,
+          assists:0,
+          shots:0,
+          pm:0,
+          points:0,
+          logs:[]
+        });
       }
       const target = playerMap.get(player);
-      if(!seenInGame.has(player)){
-        target.games += 1;
-        seenInGame.add(player);
-      }
-      target.goals += Number(row && row.goals || 0);
-      target.assists += Number(row && row.assists || 0);
-      target.shots += Number(row && row.shots || 0);
-      target.pm += Number(row && row.pm || 0);
+      const goals = Number(row && row.goals || 0);
+      const assists = Number(row && row.assists || 0);
+      const shots = Number(row && row.shots || 0);
+      const pm = Number(row && row.pm || 0);
+      const points = goals + assists;
+
+      target.games += 1;
+      target.goals += goals;
+      target.assists += assists;
+      target.shots += shots;
+      target.pm += pm;
       target.points = target.goals + target.assists;
+      target.logs.push({
+        gameId: String(game && (game.id || game.game_id || data.gameId) || ''),
+        opponent,
+        date: rawDate,
+        dateLabel: formatGameDateLabel(rawDate),
+        goals,
+        assists,
+        shots,
+        pm,
+        points,
+        gf,
+        ga,
+        result
+      });
     }
   }
 
-  const players = [...playerMap.values()].sort(comparePlayerSeasonRows);
+  const players = [...playerMap.values()].map((player) => {
+    player.logs.sort((a, b) => getGameDateTimestamp(a.date) - getGameDateTimestamp(b.date));
+    player.recentLogs = player.logs.slice(-5);
+    player.recentPoints = sumPlayerLogs(player.recentLogs, 'points');
+    player.recentGoals = sumPlayerLogs(player.recentLogs, 'goals');
+    player.recentAssists = sumPlayerLogs(player.recentLogs, 'assists');
+    player.pointsPerGame = player.games ? (player.points / player.games) : 0;
+    player.shotsPerGame = player.games ? (player.shots / player.games) : 0;
+    player.pointStreak = computePointStreak(player.logs);
+    player.multiPointGames = player.logs.filter((log) => Number(log.points || 0) >= 2).length;
+    player.bestGame = selectBestPlayerGame(player.logs);
+    player.pointsSeries = player.logs.map((log) => Number(log.points || 0));
+    player.shotsSeries = player.logs.map((log) => Number(log.shots || 0));
+    player.pmSeries = player.logs.map((log) => Number(log.pm || 0));
+
+    const trend = computePlayerTrend(player.logs);
+    player.trendTone = trend.tone;
+    player.trendLabel = trend.label;
+    player.trendShort = trend.shortLabel;
+    player.recentSummary = player.recentLogs.length
+      ? `Last ${player.recentLogs.length}: ${player.recentGoals}G • ${player.recentAssists}A • ${player.recentPoints}PTS`
+      : 'No recent games';
+    return player;
+  });
+
   return { players, gamesWithPlayers };
 }
+function renderPlayerSortBar(){
+  return `<div class="player-season-sortbar">${PLAYER_SORT_OPTIONS.map((option) => `
+    <button class="player-sort-btn ${playerStatsViewState.sortKey === option.key ? 'active' : ''}" type="button" data-sort="${option.key}">
+      ${escapeHTML(option.label)}
+    </button>
+  `).join('')}</div>`;
+}
+function renderPlayerSeasonRow(player, rank){
+  const stats = [
+    ['PTS', player.points],
+    ['G', player.goals],
+    ['A', player.assists],
+    ['S', player.shots],
+    ['+/-', formatSignedNumber(player.pm)]
+  ];
+  return `<button class="player-season-row" type="button" data-player="${encodeURIComponent(player.player)}">
+    <div class="player-season-row-head">
+      <div class="player-season-rank">${rank}</div>
+      <div class="player-season-identity">
+        <div class="player-season-name">${escapeHTML(formatPlayerDisplayLabel(player.player))}</div>
+        <div class="player-season-sub">${player.games} GP • ${escapeHTML(player.recentSummary)}</div>
+      </div>
+      <div class="player-season-trend ${player.trendTone}">${escapeHTML(player.trendShort)}</div>
+    </div>
+    <div class="player-season-row-stats">${stats.map(([label, value]) => `
+      <div class="player-season-stat">
+        <div class="k">${escapeHTML(label)}</div>
+        <div class="v">${escapeHTML(String(value))}</div>
+      </div>
+    `).join('')}</div>
+    <div class="player-season-row-spark">${buildPlayerSparkline(player.pointsSeries.slice(-8), '#4da3ff')}</div>
+  </button>`;
+}
+function renderPlayerDetail(playerKey){
+  const player = playerStatsViewState.playerMap.get(playerKey);
+  if(!player){
+    $('playerDetailModal').style.display = 'none';
+    currentPlayerDetailKey = null;
+    return;
+  }
 
+  currentPlayerDetailKey = playerKey;
+  $('playerDetailTitle').textContent = formatPlayerDisplayLabel(player.player);
+  $('playerDetailMeta').textContent = `${player.points} PTS • ${player.goals} G • ${player.assists} A • ${player.games} GP`;
+
+  const bestGame = player.bestGame;
+  const bestGameLabel = bestGame
+    ? `${bestGame.dateLabel} vs ${bestGame.opponent}`
+    : 'No games yet';
+  const lastFiveLabel = player.recentLogs.length
+    ? `${player.recentGoals}G • ${player.recentAssists}A • ${player.recentPoints}PTS`
+    : 'No recent games';
+  let html = `<div class="player-detail-grid">
+    <div class="player-detail-card"><div class="k">Points / Game</div><div class="v">${player.pointsPerGame.toFixed(1)}</div></div>
+    <div class="player-detail-card"><div class="k">Shots / Game</div><div class="v">${player.shotsPerGame.toFixed(1)}</div></div>
+    <div class="player-detail-card"><div class="k">Point Streak</div><div class="v">${player.pointStreak ? `${player.pointStreak} game${player.pointStreak === 1 ? '' : 's'}` : 'None'}</div></div>
+    <div class="player-detail-card"><div class="k">Multi-Point Games</div><div class="v">${player.multiPointGames}</div></div>
+  </div>`;
+  html += `<div class="player-detail-section">
+    <div class="player-detail-section-title">Recent Form</div>
+    <div class="player-detail-grid">
+      <div class="player-detail-card"><div class="k">Last 5</div><div class="v">${escapeHTML(lastFiveLabel)}</div></div>
+      <div class="player-detail-card"><div class="k">Trend</div><div class="v">${escapeHTML(player.trendLabel)}</div></div>
+      <div class="player-detail-card"><div class="k">Best Game</div><div class="v">${bestGame ? escapeHTML(`${bestGame.points} PTS`) : '—'}</div><div class="small" style="margin-top:6px; color:var(--muted);">${escapeHTML(bestGameLabel)}</div></div>
+    </div>
+  </div>`;
+  html += `<div class="player-detail-section">
+    <div class="player-detail-section-title">Trends</div>
+    <div class="player-detail-chart-grid">
+      <div class="player-detail-chart">
+        <div class="player-detail-chart-label">Points By Game</div>
+        ${buildPlayerSparkline(player.pointsSeries, '#4da3ff')}
+      </div>
+      <div class="player-detail-chart">
+        <div class="player-detail-chart-label">Shots By Game</div>
+        ${buildPlayerSparkline(player.shotsSeries, '#6ec7ff')}
+      </div>
+      <div class="player-detail-chart">
+        <div class="player-detail-chart-label">+/- By Game</div>
+        ${buildPlayerSparkline(player.pmSeries, '#4caf50')}
+      </div>
+    </div>
+  </div>`;
+  html += `<div class="player-detail-section">
+    <div class="player-detail-section-title">Game Log</div>
+    <div class="player-detail-log-wrap">
+      <table>
+        <tr><th>Date</th><th>Opponent</th><th>Res</th><th>G</th><th>A</th><th>PTS</th><th>S</th><th>+/-</th></tr>
+        ${player.logs.slice().reverse().map((log) => `
+          <tr>
+            <td>${escapeHTML(log.dateLabel)}</td>
+            <td>${escapeHTML(log.opponent)}</td>
+            <td><span class="player-detail-result ${log.result}">${log.result.toUpperCase()}</span></td>
+            <td>${log.goals}</td>
+            <td>${log.assists}</td>
+            <td class="points">${log.points}</td>
+            <td>${log.shots}</td>
+            <td>${escapeHTML(formatSignedNumber(log.pm))}</td>
+          </tr>
+        `).join('')}
+      </table>
+    </div>
+  </div>`;
+
+  $('playerDetailBody').innerHTML = html;
+  $('playerDetailModal').style.display = 'flex';
+}
 function renderPlayerStatsDashboard(games){
   const body = $('playerStatsBody');
   if(!body) return;
 
-  if(!games.length){
+  playerStatsViewState.games = Array.isArray(games) ? games.slice() : [];
+  if(!playerStatsViewState.games.length){
     body.innerHTML = NO_GAMES_MESSAGE;
+    $('btnPlayerStatsReset').classList.add('hidden');
+    $('playerDetailModal').style.display = 'none';
+    currentPlayerDetailKey = null;
     return;
   }
 
-  const { players, gamesWithPlayers } = aggregatePlayerSeasonStats(games);
+  const { players, gamesWithPlayers } = aggregatePlayerSeasonStats(playerStatsViewState.games);
+  playerStatsViewState.players = players;
+  playerStatsViewState.playerMap = new Map(players.map((player) => [player.player, player]));
   if(!players.length){
     body.innerHTML = NO_PLAYER_STATS_MESSAGE;
+    $('playerDetailModal').style.display = 'none';
+    currentPlayerDetailKey = null;
     return;
   }
 
-  const pointsLeader = players[0];
-  const goalsLeader = players.slice().sort((a, b) => ((Number(b.goals) || 0) - (Number(a.goals) || 0)) || comparePlayerSeasonRows(a, b))[0];
-  const assistsLeader = players.slice().sort((a, b) => ((Number(b.assists) || 0) - (Number(a.assists) || 0)) || comparePlayerSeasonRows(a, b))[0];
-  const formatLeaderLabel = (player) => /^\d+$/.test(String(player || '').trim()) ? `#${player}` : String(player || 'Unknown');
-  const gamesNote = gamesWithPlayers === games.length
-    ? `Ranked by total points across ${gamesWithPlayers} saved game${gamesWithPlayers === 1 ? '' : 's'}.`
-    : `Ranked by total points across ${gamesWithPlayers} of ${games.length} saved games with player data.`;
+  playerStatsViewState.sortKey = sanitizePlayerSortKey(playerStatsViewState.sortKey);
+  const sortedPlayers = players.slice().sort((a, b) => comparePlayerSeasonRows(a, b, playerStatsViewState.sortKey));
+  const leadersByPoints = players.slice().sort((a, b) => comparePlayerSeasonRows(a, b, 'points'));
+  const pointsLeader = leadersByPoints[0];
+  const goalsLeader = players.slice().sort((a, b) => comparePlayerSeasonRows(a, b, 'goals'))[0];
+  const assistsLeader = players.slice().sort((a, b) => comparePlayerSeasonRows(a, b, 'assists'))[0];
+  const pmLeader = players.slice().sort((a, b) => comparePlayerSeasonRows(a, b, 'pm'))[0];
+  const gamesNote = gamesWithPlayers === playerStatsViewState.games.length
+    ? `Ranked by total points across ${gamesWithPlayers} saved game${gamesWithPlayers === 1 ? '' : 's'}. Tap any player for trends and a full game log.`
+    : `Ranked by total points across ${gamesWithPlayers} of ${playerStatsViewState.games.length} saved games with player data. Tap any player for trends and a full game log.`;
 
-  let html = `<div class="player-season-meta">${gamesNote}</div>`;
+  let html = `<div class="player-season-meta">${escapeHTML(gamesNote)}</div>`;
   html += `<div class="player-season-summary">
     <div class="player-season-chip">
       <div class="k">Points Leader</div>
-      <div class="v">${formatLeaderLabel(pointsLeader.player)} • ${pointsLeader.points}</div>
+      <div class="v">${escapeHTML(formatPlayerDisplayLabel(pointsLeader.player))} • ${pointsLeader.points}</div>
     </div>
     <div class="player-season-chip">
       <div class="k">Goals Leader</div>
-      <div class="v">${formatLeaderLabel(goalsLeader.player)} • ${goalsLeader.goals}</div>
+      <div class="v">${escapeHTML(formatPlayerDisplayLabel(goalsLeader.player))} • ${goalsLeader.goals}</div>
     </div>
     <div class="player-season-chip">
       <div class="k">Assists Leader</div>
-      <div class="v">${formatLeaderLabel(assistsLeader.player)} • ${assistsLeader.assists}</div>
+      <div class="v">${escapeHTML(formatPlayerDisplayLabel(assistsLeader.player))} • ${assistsLeader.assists}</div>
+    </div>
+    <div class="player-season-chip">
+      <div class="k">Best +/-</div>
+      <div class="v">${escapeHTML(formatPlayerDisplayLabel(pmLeader.player))} • ${escapeHTML(formatSignedNumber(pmLeader.pm))}</div>
     </div>
   </div>`;
-  html += '<div class="player-season-table-wrap"><table class="player-season-table"><tr><th>#</th><th>GP</th><th>PTS</th><th>G</th><th>A</th><th>S</th><th>+/-</th></tr>';
+  html += renderPlayerSortBar();
+  html += `<div class="player-season-list">${sortedPlayers.map((player, index) => renderPlayerSeasonRow(player, index + 1)).join('')}</div>`;
+  body.innerHTML = html;
 
-  for(const player of players){
-    const pm = Number(player.pm || 0);
-    html += `<tr>
-      <td>${player.player}</td>
-      <td>${player.games}</td>
-      <td class="points">${player.points}</td>
-      <td>${player.goals}</td>
-      <td>${player.assists}</td>
-      <td>${player.shots}</td>
-      <td>${pm > 0 ? '+' : ''}${pm}</td>
-    </tr>`;
+  if(currentPlayerDetailKey && $('playerDetailModal').style.display === 'flex'){
+    renderPlayerDetail(currentPlayerDetailKey);
+  }
+}
+$('playerStatsBody').addEventListener('click', (e) => {
+  const sortBtn = e.target.closest('.player-sort-btn');
+  if(sortBtn){
+    playerStatsViewState.sortKey = sanitizePlayerSortKey(sortBtn.dataset.sort);
+    renderPlayerStatsDashboard(playerStatsViewState.games);
+    return;
   }
 
-  html += '</table></div>';
-  body.innerHTML = html;
-}
+  const row = e.target.closest('.player-season-row');
+  if(!row) return;
+  const playerKey = decodeURIComponent(row.dataset.player || '');
+  if(!playerKey) return;
+  renderPlayerDetail(playerKey);
+});
 
 function renderSeasonDashboard(games){
   // Extract data from all games

@@ -895,6 +895,14 @@
     border-color:rgba(255,159,10,0.24);
     color:#ffd08b;
   }
+  .setup-active-actions{
+    display:grid;
+    gap:10px;
+    margin-top:12px;
+  }
+  .setup-active-actions .btn-start{
+    margin-top:0;
+  }
   .setup-tertiary{
     display:flex;
     align-items:center;
@@ -940,6 +948,53 @@
   .setup-panel-btn{
     font-size:11px;
     padding:6px 11px;
+  }
+  .player-season-summary{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(120px, 1fr));
+    gap:8px;
+    margin-bottom:12px;
+  }
+  .player-season-chip{
+    padding:10px 12px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,0.08);
+    background:rgba(255,255,255,0.03);
+  }
+  .player-season-chip .k{
+    font-size:11px;
+    font-weight:700;
+    color:#9aa6b2;
+    text-transform:uppercase;
+    letter-spacing:0.6px;
+  }
+  .player-season-chip .v{
+    margin-top:5px;
+    font-size:18px;
+    font-weight:800;
+    color:#eef4fb;
+    line-height:1.15;
+  }
+  .player-season-meta{
+    margin-bottom:10px;
+    color:#93a1b0;
+    line-height:1.45;
+  }
+  .player-season-table-wrap{
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  .player-season-table td:first-child,
+  .player-season-table th:first-child{
+    text-align:left;
+  }
+  .player-season-table td:first-child{
+    font-weight:800;
+    color:#eef4fb;
+  }
+  .player-season-table td.points{
+    font-weight:800;
+    color:#eef4fb;
   }
   .btn-danger-ghost{
     border-color:rgba(255,69,58,0.35);

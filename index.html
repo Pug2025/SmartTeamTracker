@@ -194,11 +194,16 @@
       </div>
 
       <div id="setupRequirement" class="setup-inline-note">Select your team and enter the opponent to start.</div>
-      <div id="resumeBanner" class="banner setup-resume hidden">Resumed saved game. You can continue immediately or adjust setup before you restart.</div>
+      <div id="resumeBanner" class="banner setup-resume hidden">Your current game is saved. Resume it or start a new one.</div>
+      <div id="setupActiveActions" class="setup-active-actions hidden">
+        <button id="btnResumeGame" class="btn-start" type="button">Resume Game</button>
+        <button id="btnSetupNewGame" class="btn-start btn-start-secondary" type="button">Start New Game</button>
+      </div>
       <button id="btnStartGame" class="btn-start" disabled>Start Game</button>
       <div class="setup-tertiary">
         <button id="btnHistory" class="btn-tertiary-link" type="button">Past Games</button>
         <button id="btnSeason" class="btn-tertiary-link" type="button">Season Stats</button>
+        <button id="btnPlayerStats" class="btn-tertiary-link" type="button">Player Stats</button>
       </div>
     </div>
 
@@ -224,6 +229,16 @@
         </div>
       </div>
       <div id="seasonBody" class="small" style="color:#aaa;">Loading...</div>
+    </div>
+
+    <div id="playerStatsPanel" class="card" style="display:none; margin-top:14px;">
+      <div class="setup-panel-head">
+        <h3 style="margin:0; font-size:16px;">Player Stats</h3>
+        <div class="setup-panel-actions">
+          <button class="btn-std setup-panel-btn" id="btnPlayerStatsClose" type="button">Close</button>
+        </div>
+      </div>
+      <div id="playerStatsBody" class="small" style="color:#aaa;">Loading...</div>
     </div>
   </div>
 

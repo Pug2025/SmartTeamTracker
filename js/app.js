@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.3.13';
+const APP_VERSION = '6.3.15';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -204,18 +204,62 @@ function updateHeaderContext(){
     el.textContent = 'Game Setup';
   }
 }
+function normalizeGameState(value){
+  return value === 'active' || value === 'summary' ? value : 'setup';
+}
+function inferLoadedGameState(loaded){
+  if(loaded && Object.prototype.hasOwnProperty.call(loaded, 'gameState')){
+    return normalizeGameState(loaded.gameState);
+  }
+  return Array.isArray(loaded && loaded.events) && loaded.events.length ? 'active' : 'setup';
+}
+function hasPersistedGame(){
+  return normalizeGameState(state.gameState) !== 'setup';
+}
+function setSetupLocked(locked){
+  const ids = ['teamSelect', 'btnManageTeams', 'opponent', 'opponentMenuBtn', 'date', 'togglePM'];
+  ids.forEach((id) => {
+    const el = $(id);
+    if(!el) return;
+    el.disabled = !!locked;
+  });
+  if(locked) setOpponentDropdownOpen(false);
+}
+function updateSetupGameActions(){
+  const resumeBanner = $('resumeBanner');
+  const activeActions = $('setupActiveActions');
+  const startBtn = $('btnStartGame');
+  const savedGame = hasPersistedGame();
+  const gameState = normalizeGameState(state.gameState);
+
+  if(resumeBanner){
+    resumeBanner.textContent = gameState === 'summary'
+      ? 'Your finished game is still saved. Resume it or start a new one.'
+      : 'Your current game is saved. Resume it or start a new one.';
+    resumeBanner.classList.toggle('hidden', !savedGame);
+  }
+  if(activeActions) activeActions.classList.toggle('hidden', !savedGame);
+  if(startBtn) startBtn.classList.toggle('hidden', savedGame);
+  setSetupLocked(savedGame);
+}
 function updateSetupReadiness(){
   const requirement = $('setupRequirement');
   const startBtn = $('btnStartGame');
   const historyBtn = $('btnHistory');
   const seasonBtn = $('btnSeason');
+  const playerStatsBtn = $('btnPlayerStats');
   const setupChip = $('setupChip');
 
-  if(!requirement || !startBtn || !historyBtn || !seasonBtn) return;
+  if(!requirement || !startBtn || !historyBtn || !seasonBtn || !playerStatsBtn) return;
 
   const { team, opponent, ready } = getStartGameReadiness();
+  const savedGame = hasPersistedGame();
 
-  if(team){
+  if(savedGame){
+    requirement.textContent = normalizeGameState(state.gameState) === 'summary'
+      ? 'This game summary is still saved. Resume it or start fresh.'
+      : 'This game is already in progress. Resume it or start fresh.';
+  } else if(team){
     requirement.textContent = ready
       ? 'Everything is set. Start tracking when the game begins.'
       : 'Enter the opponent name to unlock Start Game.';
@@ -231,15 +275,19 @@ function updateSetupReadiness(){
 
   historyBtn.disabled = !team;
   seasonBtn.disabled = !team;
+  playerStatsBtn.disabled = !team;
   historyBtn.classList.toggle('disabled', !team);
   seasonBtn.classList.toggle('disabled', !team);
+  playerStatsBtn.classList.toggle('disabled', !team);
 
+  updateSetupGameActions();
   updateHeaderContext();
   updateScoreLabels();
 }
 
 /* ===== State ===== */
 const state = {
+  gameState:'setup',
   opponent:'',
   level:'U11',
   date:null,
@@ -324,10 +372,12 @@ function toggleSetup(showSetup){
     $('setupContainer').style.display='block';
     $('gameControls').style.display='none';
     $('btnUndo').style.display='none';
+    $('summaryPanel').classList.add('hidden');
     setInGameHeader(false);
     updateSetupReadiness();
   } else {
     $('setupContainer').style.display='none';
+    $('summaryPanel').classList.add('hidden');
     $('gameControls').style.display='block';
     $('btnUndo').style.display='flex';
     setInGameHeader(true);
@@ -372,6 +422,7 @@ $('btnStartGame').addEventListener('click', ()=>{
   // Starting from setup must not carry an existing live share session forward.
   if(state.shareCode) stopLiveShare();
 
+  state.gameState = 'active';
   save();
   validateState('start game');
   toggleSetup(false);
@@ -2007,7 +2058,7 @@ function compBar(label, score, color){
   </div>`;
 }
 
-function endGame(){
+function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}){
   const K=computeGoalieScore(), T=computeTeamScore();
   const sq = computeShotQuality();
   const date = state.date || getLocalTodayYMD();
@@ -2208,10 +2259,16 @@ function endGame(){
   }
 
   // === Show summary, hide game controls ===
+  $('setupContainer').style.display = 'none';
   $('gameControls').style.display = 'none';
   $('btnUndo').style.display = 'none';
   $('summaryPanel').classList.remove('hidden');
-  window.scrollTo({top:0,behavior:'smooth'});
+  setInGameHeader(true);
+  if(scrollBehavior){
+    window.scrollTo({top:0,behavior:scrollBehavior});
+  }
+
+  if(!finalize) return;
 
   // Save summary row automatically on end-game
   const cloudShare = (SF+SA) ? (SF/(SF+SA)) : 0.5;
@@ -2244,7 +2301,8 @@ function endGame(){
     GA_BA: gaStats.BA,
     GA_DZ: gaStats.DZ,
     GA_BR: gaStats.BR,
-    GA_Other: gaStats.Other
+    GA_Other: gaStats.Other,
+    players: buildSavedGamePlayerRows()
   };
 
   gameData.gameId = state.gameId;
@@ -2252,6 +2310,71 @@ function endGame(){
 
   // Push final state to spectators (keeps the record so they see the final score)
   if(state.shareCode) endLiveShare();
+  else save();
+}
+
+function endGame(){
+  state.gameState = 'summary';
+  validateState('end game');
+  renderSummaryScreen({ finalize:true, scrollBehavior:'smooth' });
+}
+
+function resumeSavedGame({ scrollToGame = true } = {}){
+  const gameState = normalizeGameState(state.gameState);
+  if(gameState === 'summary'){
+    renderSummaryScreen({ finalize:false, scrollBehavior:'auto' });
+    return;
+  }
+
+  state.gameState = 'active';
+  save();
+  toggleSetup(false);
+  highlightPeriod();
+  renderAll();
+  if(scrollToGame){
+    requestAnimationFrame(() => {
+      requestAnimationFrame(scrollGameplayIntoView);
+    });
+  }
+}
+
+function resetCurrentGame(){
+  if(state.shareCode) stopLiveShare();
+
+  state.gameState = 'setup';
+  state.events = [];
+  cancelRecentGoodCredit();
+  lastRemoved = null;
+  state.date = syncSetupDateField(getLocalTodayYMD());
+  state.period = 1;
+  state.opponent = '';
+  $('opponent').value = '';
+  updateOpponentMatchupCard().catch(err => console.error(err));
+  state.countsA = {shots:0, goals:0, softGoals:0, smothers:0, badRebounds:0, bigSaves:0};
+  state.countsF = {shots:0, goals:0};
+  state.team = {breakawaysAgainst:0, dzTurnovers:0, breakawaysFor:0, oddManRushFor:0, oddManRushAgainst:0, penaltiesFor:0, penaltiesAgainst:0, missedChancesFor:0, missedChancesAgainst:0, forcedTurnovers:0};
+  per = {1:initP(), 2:initP(), 3:initP(), 4:initP()};
+
+  state.gameId = Math.random().toString(36).slice(2);
+  state.startedAt = new Date().toISOString();
+  state.lastEventId = 0;
+
+  save();
+  validateState('new game reset');
+  toggleSetup(true);
+  highlightPeriod();
+  renderAll();
+  $('summaryPanel').classList.add('hidden');
+
+  try{ localStorage.removeItem(LAST_SAVED_KEY); }catch(_){}
+  pingCloud();
+}
+
+async function confirmStartNewGame(message = 'Start a new game? This will clear the current one.'){
+  const ok = await showConfirm(message);
+  if(!ok) return false;
+  resetCurrentGame();
+  return true;
 }
 
 async function saveGameToCloud(game){
@@ -2367,6 +2490,35 @@ function computePlayerStats(){
   return result;
 }
 
+function buildSavedGamePlayerRows(){
+  const roster = sortRoster((state.roster || []).map(x => String(x).trim()).filter(Boolean));
+  const map = new Map();
+
+  for(const n of roster){
+    map.set(n, { player:n, shots:0, goals:0, assists:0, pm:0 });
+  }
+
+  const stats = computePlayerStats();
+  for(const p of stats){
+    const key = String(p.player || '').trim();
+    if(!key) continue;
+    if(!map.has(key)){
+      map.set(key, { player:key, shots:0, goals:0, assists:0, pm:0 });
+    }
+    map.set(key, {
+      player: key,
+      shots: Number(p.shots || 0),
+      goals: Number(p.goals || 0),
+      assists: Number(p.assists || 0),
+      pm: Number(p.pm || 0)
+    });
+  }
+
+  const order = sortRoster([...map.keys()].filter(k => k !== 'Unattributed'));
+  if(map.has('Unattributed')) order.push('Unattributed');
+  return order.map((player) => map.get(player));
+}
+
 function exportGameCSV(){
   const K=computeGoalieScore(), T=computeTeamScore();
   const date = state.date || getLocalTodayYMD();
@@ -2439,45 +2591,15 @@ function updateDebugLines(){}
 
 /* Plus/minus table */
 function makePlusMinusTable(){
-  // Build a complete list from the roster (so players with 0 stats still show)
-  const roster = sortRoster((state.roster || []).map(x => String(x).trim()).filter(Boolean));
-
-  // Start everyone at 0
-  const map = new Map();
-  for(const n of roster){
-    map.set(n, { player: n, shots: 0, goals: 0, assists: 0, pm: 0 });
-  }
-
-  // Overlay actual stats (shots/goals/assists/pm) from game events
-  const stats = computePlayerStats(); // returns [{player, shots, goals, assists, pm}, ...]
-  for(const p of stats){
-    const key = String(p.player).trim();
-    if(!key) continue;
-
-    // If a player wasn't in roster for some reason, still include them
-    if(!map.has(key)){
-      map.set(key, { player: key, shots: 0, goals: 0, assists: 0, pm: 0 });
-    }
-
-    map.set(key, {
-      player: key,
-      shots: Number(p.shots || 0),
-      goals: Number(p.goals || 0),
-      assists: Number(p.assists || 0),
-      pm: Number(p.pm || 0)
-    });
-  }
-
-  const order = sortRoster([...map.keys()]);
-  if(!order.length){
+  const rows = buildSavedGamePlayerRows();
+  if(!rows.length){
     return '<div class="small" style="margin-top:4px;">No player data.</div>';
   }
 
   // IMPORTANT: column order is Shots / Goals / Assists / +/-
   let html = '<table><tr><th>#</th><th>S</th><th>G</th><th>A</th><th>+/-</th></tr>';
 
-  for(const n of order){
-    const p = map.get(n);
+  for(const p of rows){
     const pm = Number(p.pm || 0);
 
     html += `<tr>
@@ -2631,8 +2753,16 @@ return;
   pingCloud();
 
   load().then(loaded=>{
+    let shouldResaveLoadedState = false;
     if(loaded && Array.isArray(loaded.events)){
       Object.assign(state, loaded);
+      const loadedGameState = inferLoadedGameState(loaded);
+      shouldResaveLoadedState = state.gameState !== loadedGameState;
+      state.gameState = loadedGameState;
+      if(state.gameState === 'summary' && state.shareCode){
+        state.shareCode = null;
+        shouldResaveLoadedState = true;
+      }
       state.period = sanitizePeriod(state.period);
       state.date = sanitizeDateInput(state.date);
       state.events.sort((a,b)=>new Date(a.tISO)-new Date(b.tISO));
@@ -2640,10 +2770,13 @@ return;
       rebuildFromEvents();
     }
 
-    // Decide whether this is a real resume
-    const hasEvents = Array.isArray(state.events) && state.events.length > 0;
+    const gameState = normalizeGameState(state.gameState);
+    const hasSavedGame = gameState !== 'setup';
 
-    if(hasEvents){
+    if(gameState === 'summary'){
+      $('resumeBanner').classList.remove('hidden');
+      renderSummaryScreen({ finalize:false, scrollBehavior:'auto' });
+    } else if(hasSavedGame){
       $('resumeBanner').classList.remove('hidden');
       toggleSetup(false);
     } else {
@@ -2658,9 +2791,10 @@ return;
       state.date = $('date').value || todayStr;
     }
     state.date = syncSetupDateField(state.date);
+    if(shouldResaveLoadedState) save();
 
     // Sync setup inputs from state (except opponent when not resuming)
-    if(hasEvents){
+    if(hasSavedGame){
       $('opponent').value = state.opponent || '';
     }
     $('level').value = state.level || $('level').value;
@@ -2871,6 +3005,7 @@ window.onAuthReady = () => {
   setupOpponentsLoadToken += 1;
   refreshTeamUI();
   refreshSeasonPanelIfOpen().catch(err => console.error(err));
+  refreshPlayerStatsPanelIfOpen().catch(err => console.error(err));
   if($('historyPanel').style.display === 'block'){
     loadHistoryPanel().catch(err => console.error(err));
   }
@@ -3140,86 +3275,29 @@ $('btnNextPeriod').onclick=()=>{
 $('btnEnd').onclick=endGame;
 
 $('btnBackToGame').onclick=()=>{
+  state.gameState = 'active';
+  save();
   $('summaryPanel').classList.add('hidden');
   $('gameControls').style.display='block';
   setInGameHeader(true);
   $('btnUndo').style.display='flex';
+  renderAll();
 };
 
 $('btnNewFromSummary').onclick=async()=>{
-  const ok = await showConfirm('Start a new game?');
-  if(!ok) return;
-
-  // Stop live share if active
-  if(state.shareCode) stopLiveShare();
-
-  $('resumeBanner').classList.add('hidden');
-
-  state.events=[];
-  cancelRecentGoodCredit();
-  lastRemoved = null;
-  state.date = syncSetupDateField(getLocalTodayYMD());
-  state.period = 1;
-  state.opponent='';
-  $('opponent').value = '';
-  updateOpponentMatchupCard().catch(err => console.error(err));
-  state.countsA={shots:0,goals:0,softGoals:0,smothers:0,badRebounds:0,bigSaves:0};
-  state.countsF={shots:0,goals:0};
-  state.team={breakawaysAgainst:0,dzTurnovers:0,breakawaysFor:0,oddManRushFor:0,oddManRushAgainst:0,penaltiesFor:0,penaltiesAgainst:0,missedChancesFor:0,missedChancesAgainst:0,forcedTurnovers:0};
-  per={1:initP(),2:initP(),3:initP(),4:initP()};
-
-  state.gameId = Math.random().toString(36).slice(2);
-  state.startedAt = new Date().toISOString();
-  state.lastEventId = 0;
-
-  save();
-  validateState('new game from summary');
-  toggleSetup(true);
-  highlightPeriod();
-  renderAll();
-  $('summaryPanel').classList.add('hidden');
-
-  try{ localStorage.removeItem(LAST_SAVED_KEY); }catch(_){}
-  pingCloud();
+  await confirmStartNewGame('Start a new game? This will clear the current game and summary.');
 };
 
 $('btnReset').onclick=async()=>{
-  const ok = await showConfirm('Clear current game and start fresh?');
-  if(!ok) return;
+  await confirmStartNewGame('Start a new game? This will clear the current one.');
+};
 
-  // Stop live share if active
-  if(state.shareCode) stopLiveShare();
+$('btnResumeGame').onclick=()=>{
+  resumeSavedGame();
+};
 
-  // Hide "Resumed saved game" banner when starting a truly new game
-  $('resumeBanner').classList.add('hidden');
-
-  state.events=[];
-  cancelRecentGoodCredit();
-  lastRemoved = null;
-  state.date = syncSetupDateField(getLocalTodayYMD());
-  state.period = 1;
-  state.opponent='';
-  $('opponent').value = '';
-  updateOpponentMatchupCard().catch(err => console.error(err));
-  state.countsA={shots:0,goals:0,softGoals:0,smothers:0,badRebounds:0,bigSaves:0};
-  state.countsF={shots:0,goals:0};
-  state.team={breakawaysAgainst:0,dzTurnovers:0,breakawaysFor:0,oddManRushFor:0,oddManRushAgainst:0,penaltiesFor:0,penaltiesAgainst:0,missedChancesFor:0,missedChancesAgainst:0,forcedTurnovers:0};
-  per={1:initP(),2:initP(),3:initP(),4:initP()};
-
-  state.gameId = Math.random().toString(36).slice(2);
-  state.startedAt = new Date().toISOString();
-  state.lastEventId = 0;
-
-  save();
-  validateState('new game reset');
-  toggleSetup(true);
-  highlightPeriod();
-  renderAll();
-  $('summaryPanel').classList.add('hidden');
-
-  // reset cloud pill to connectivity
-  try{ localStorage.removeItem(LAST_SAVED_KEY); }catch(_){}
-  pingCloud();
+$('btnSetupNewGame').onclick=async()=>{
+  await confirmStartNewGame('Start a new game? This will clear the current one.');
 };
 
 /* Modals close on backdrop click — with state cleanup for stateful modals */
@@ -3344,13 +3422,14 @@ $('opponentDropdown').addEventListener('click', async (e) => {
     const row = deleteBtn.closest('.opponent-option');
     const nameBtn = row ? row.querySelector('.opponent-option-main') : null;
     const opponentName = nameBtn ? nameBtn.dataset.name || nameBtn.textContent || 'this opponent' : 'this opponent';
-    const ok = await showConfirm(`Delete "${cleanOpponentName(opponentName)}" and all saved games against them? This will remove their head-to-head history and season stats.`);
+    const ok = await showConfirm(`Delete "${cleanOpponentName(opponentName)}" and all saved games against them? This will remove their head-to-head history, player stats, and season stats.`);
     if(!ok) return;
     try{
       const result = await deleteOpponentAndGames(opponentId, opponentName);
       removeSavedOpponent(opponentId);
       invalidateSetupGamesCache();
       await refreshSeasonPanelIfOpen();
+      await refreshPlayerStatsPanelIfOpen();
       if($('historyPanel').style.display === 'block'){
         await loadHistoryPanel();
       }
@@ -3985,7 +4064,8 @@ async function resetSeasonStats(){
     if(!res.ok || !data.success){
       throw new Error(data.error || 'Reset failed');
     }
-    $('seasonBody').innerHTML = '<div style="text-align:center; padding:20px;">No games yet — play some games first!</div>';
+    $('seasonBody').innerHTML = NO_GAMES_MESSAGE;
+    $('playerStatsBody').innerHTML = NO_GAMES_MESSAGE;
     $('btnSeasonReset').classList.add('hidden');
     showStatusToast('Season stats reset', 'success');
     invalidateSetupGamesCache();
@@ -3993,6 +4073,7 @@ async function resetSeasonStats(){
     if($('historyPanel').style.display === 'block'){
       await loadHistoryPanel();
     }
+    await refreshPlayerStatsPanelIfOpen();
   }catch(e){
     console.error(e);
     showStatusToast('Failed to reset season stats', 'error', 3500);
@@ -4005,7 +4086,7 @@ async function loadSeasonPanel(){
     const games = await fetchScopedGames(100);
     $('btnSeasonReset').classList.toggle('hidden', !games.length);
     if(!games.length){
-      $('seasonBody').innerHTML = '<div style="text-align:center; padding:20px;">No games yet — play some games first!</div>';
+      $('seasonBody').innerHTML = NO_GAMES_MESSAGE;
       return;
     }
     renderSeasonDashboard(games);
@@ -4017,6 +4098,21 @@ async function loadSeasonPanel(){
 async function refreshSeasonPanelIfOpen(){
   if($('seasonPanel').style.display !== 'block') return;
   await loadSeasonPanel();
+}
+async function loadPlayerStatsPanel(){
+  $('playerStatsPanel').style.display = 'block';
+  $('playerStatsBody').innerHTML = '<div style="text-align:center; padding:20px; color:var(--muted);">Loading...</div>';
+  try{
+    const games = await fetchScopedGames(100);
+    renderPlayerStatsDashboard(games);
+  }catch(e){
+    console.error(e);
+    $('playerStatsBody').innerHTML = '<div style="text-align:center; padding:20px; color:var(--accent-them);">Failed to load. Check your connection.</div>';
+  }
+}
+async function refreshPlayerStatsPanelIfOpen(){
+  if($('playerStatsPanel').style.display !== 'block') return;
+  await loadPlayerStatsPanel();
 }
 async function loadHistoryPanel(){
   resetHistorySwipeState();
@@ -4197,6 +4293,7 @@ $('historyList').addEventListener('click', async (e) => {
       invalidateSetupGamesCache();
       await loadHistoryPanel();
       await refreshSeasonPanelIfOpen();
+      await refreshPlayerStatsPanelIfOpen();
       await updateOpponentMatchupCard({ forceGames:true });
     }catch(err){
       console.error(err);
@@ -4275,6 +4372,7 @@ $('gameDetailDelete').addEventListener('click', async ()=>{
     $('gameDetailModal').style.display = 'none';
     await loadHistoryPanel();
     await refreshSeasonPanelIfOpen();
+    await refreshPlayerStatsPanelIfOpen();
     await updateOpponentMatchupCard({ forceGames:true });
   }catch(e){
     console.error(e);
@@ -4283,6 +4381,9 @@ $('gameDetailDelete').addEventListener('click', async ()=>{
 });
 
 /* ===== Season Dashboard ===== */
+const NO_GAMES_MESSAGE = '<div style="text-align:center; padding:20px;">No games yet — play some games first!</div>';
+const NO_PLAYER_STATS_MESSAGE = '<div style="text-align:center; padding:20px;">No saved player data yet. Player stats will start with games completed after this update.</div>';
+
 $('btnSeason').addEventListener('click', async ()=>{
   if(!getActiveTeamSafe()){
     showStatusToast('Add your team to view season stats.', 'warn', 3200);
@@ -4292,12 +4393,134 @@ $('btnSeason').addEventListener('click', async ()=>{
 });
 $('btnSeasonClose').addEventListener('click', ()=>{ $('seasonPanel').style.display='none'; });
 $('btnSeasonReset').addEventListener('click', resetSeasonStats);
+$('btnPlayerStats').addEventListener('click', async ()=>{
+  if(!getActiveTeamSafe()){
+    showStatusToast('Add your team to view player stats.', 'warn', 3200);
+    return;
+  }
+  await loadPlayerStatsPanel();
+});
+$('btnPlayerStatsClose').addEventListener('click', ()=>{ $('playerStatsPanel').style.display='none'; });
+
+function comparePlayerSeasonRows(a, b){
+  const pointDiff = (Number(b.points) || 0) - (Number(a.points) || 0);
+  if(pointDiff) return pointDiff;
+  const goalDiff = (Number(b.goals) || 0) - (Number(a.goals) || 0);
+  if(goalDiff) return goalDiff;
+  const assistDiff = (Number(b.assists) || 0) - (Number(a.assists) || 0);
+  if(assistDiff) return assistDiff;
+  const shotDiff = (Number(b.shots) || 0) - (Number(a.shots) || 0);
+  if(shotDiff) return shotDiff;
+  const pmDiff = (Number(b.pm) || 0) - (Number(a.pm) || 0);
+  if(pmDiff) return pmDiff;
+
+  const aLabel = String(a.player || '');
+  const bLabel = String(b.player || '');
+  if(aLabel === 'Unattributed') return 1;
+  if(bLabel === 'Unattributed') return -1;
+  const aNumeric = /^\d+$/.test(aLabel);
+  const bNumeric = /^\d+$/.test(bLabel);
+  if(aNumeric && bNumeric) return Number(aLabel) - Number(bLabel);
+  if(aNumeric) return -1;
+  if(bNumeric) return 1;
+  return aLabel.localeCompare(bLabel, undefined, { numeric:true, sensitivity:'base' });
+}
+
+function aggregatePlayerSeasonStats(games){
+  const playerMap = new Map();
+  let gamesWithPlayers = 0;
+
+  for(const game of games || []){
+    const rows = Array.isArray(game && game.data && game.data.players) ? game.data.players : [];
+    if(!rows.length) continue;
+    gamesWithPlayers++;
+
+    const seenInGame = new Set();
+    for(const row of rows){
+      const player = String(row && row.player || '').trim();
+      if(!player) continue;
+      if(!playerMap.has(player)){
+        playerMap.set(player, { player, games:0, goals:0, assists:0, shots:0, pm:0, points:0 });
+      }
+      const target = playerMap.get(player);
+      if(!seenInGame.has(player)){
+        target.games += 1;
+        seenInGame.add(player);
+      }
+      target.goals += Number(row && row.goals || 0);
+      target.assists += Number(row && row.assists || 0);
+      target.shots += Number(row && row.shots || 0);
+      target.pm += Number(row && row.pm || 0);
+      target.points = target.goals + target.assists;
+    }
+  }
+
+  const players = [...playerMap.values()].sort(comparePlayerSeasonRows);
+  return { players, gamesWithPlayers };
+}
+
+function renderPlayerStatsDashboard(games){
+  const body = $('playerStatsBody');
+  if(!body) return;
+
+  if(!games.length){
+    body.innerHTML = NO_GAMES_MESSAGE;
+    return;
+  }
+
+  const { players, gamesWithPlayers } = aggregatePlayerSeasonStats(games);
+  if(!players.length){
+    body.innerHTML = NO_PLAYER_STATS_MESSAGE;
+    return;
+  }
+
+  const pointsLeader = players[0];
+  const goalsLeader = players.slice().sort((a, b) => ((Number(b.goals) || 0) - (Number(a.goals) || 0)) || comparePlayerSeasonRows(a, b))[0];
+  const assistsLeader = players.slice().sort((a, b) => ((Number(b.assists) || 0) - (Number(a.assists) || 0)) || comparePlayerSeasonRows(a, b))[0];
+  const formatLeaderLabel = (player) => /^\d+$/.test(String(player || '').trim()) ? `#${player}` : String(player || 'Unknown');
+  const gamesNote = gamesWithPlayers === games.length
+    ? `Ranked by total points across ${gamesWithPlayers} saved game${gamesWithPlayers === 1 ? '' : 's'}.`
+    : `Ranked by total points across ${gamesWithPlayers} of ${games.length} saved games with player data.`;
+
+  let html = `<div class="player-season-meta">${gamesNote}</div>`;
+  html += `<div class="player-season-summary">
+    <div class="player-season-chip">
+      <div class="k">Points Leader</div>
+      <div class="v">${formatLeaderLabel(pointsLeader.player)} • ${pointsLeader.points}</div>
+    </div>
+    <div class="player-season-chip">
+      <div class="k">Goals Leader</div>
+      <div class="v">${formatLeaderLabel(goalsLeader.player)} • ${goalsLeader.goals}</div>
+    </div>
+    <div class="player-season-chip">
+      <div class="k">Assists Leader</div>
+      <div class="v">${formatLeaderLabel(assistsLeader.player)} • ${assistsLeader.assists}</div>
+    </div>
+  </div>`;
+  html += '<div class="player-season-table-wrap"><table class="player-season-table"><tr><th>#</th><th>GP</th><th>PTS</th><th>G</th><th>A</th><th>S</th><th>+/-</th></tr>';
+
+  for(const player of players){
+    const pm = Number(player.pm || 0);
+    html += `<tr>
+      <td>${player.player}</td>
+      <td>${player.games}</td>
+      <td class="points">${player.points}</td>
+      <td>${player.goals}</td>
+      <td>${player.assists}</td>
+      <td>${player.shots}</td>
+      <td>${pm > 0 ? '+' : ''}${pm}</td>
+    </tr>`;
+  }
+
+  html += '</table></div>';
+  body.innerHTML = html;
+}
 
 function renderSeasonDashboard(games){
   // Extract data from all games
   const stats = games.map(g => g.data || {}).filter(d => d.GF != null);
   if(!stats.length){
-    $('seasonBody').innerHTML = '<div style="text-align:center; padding:20px;">No game data to analyze.</div>';
+    $('seasonBody').innerHTML = NO_GAMES_MESSAGE;
     return;
   }
 

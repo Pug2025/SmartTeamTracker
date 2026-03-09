@@ -27,7 +27,7 @@
 .auth-sub {
   font-size: 13px;
   color: #888;
-  margin-bottom: 32px;
+  margin-bottom: 24px;
 }
 
 .auth-google-btn {
@@ -55,7 +55,7 @@
 .auth-divider {
   display: flex;
   align-items: center;
-  margin: 20px 0;
+  margin: 16px 0;
   gap: 12px;
 }
 .auth-divider::before,
@@ -79,7 +79,7 @@
   border: 1px solid #333;
   color: #fff;
   padding: 14px;
-  border-radius: 10px;
+  border-radius: 12px;
   font-size: 16px;
   outline: none;
   margin-bottom: 10px;
@@ -149,7 +149,7 @@
 .auth-guest-divider {
   height: 1px;
   background: #222;
-  margin: 16px 0;
+  margin: 12px 0;
 }
 
 .auth-guest-btn {

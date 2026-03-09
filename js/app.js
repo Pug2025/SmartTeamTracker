@@ -4067,6 +4067,7 @@ async function resetSeasonStats(){
     $('seasonBody').innerHTML = NO_GAMES_MESSAGE;
     $('playerStatsBody').innerHTML = NO_GAMES_MESSAGE;
     $('btnSeasonReset').classList.add('hidden');
+    $('btnPlayerStatsReset').classList.add('hidden');
     showStatusToast('Season stats reset', 'success');
     invalidateSetupGamesCache();
     await updateOpponentMatchupCard({ forceGames:true });
@@ -4104,9 +4105,11 @@ async function loadPlayerStatsPanel(){
   $('playerStatsBody').innerHTML = '<div style="text-align:center; padding:20px; color:var(--muted);">Loading...</div>';
   try{
     const games = await fetchScopedGames(100);
+    $('btnPlayerStatsReset').classList.toggle('hidden', !games.length);
     renderPlayerStatsDashboard(games);
   }catch(e){
     console.error(e);
+    $('btnPlayerStatsReset').classList.add('hidden');
     $('playerStatsBody').innerHTML = '<div style="text-align:center; padding:20px; color:var(--accent-them);">Failed to load. Check your connection.</div>';
   }
 }
@@ -4400,6 +4403,7 @@ $('btnPlayerStats').addEventListener('click', async ()=>{
   }
   await loadPlayerStatsPanel();
 });
+$('btnPlayerStatsReset').addEventListener('click', resetSeasonStats);
 $('btnPlayerStatsClose').addEventListener('click', ()=>{ $('playerStatsPanel').style.display='none'; });
 
 function comparePlayerSeasonRows(a, b){

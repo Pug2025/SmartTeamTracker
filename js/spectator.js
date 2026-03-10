@@ -580,13 +580,23 @@
   function pulseScore(id) {
     const el = $(id);
     if (!el) return;
-    const flashClass = id === 'specGF' ? 'score-flash-us' : 'score-flash-them';
+    const isUs = id === 'specGF';
+    const flashClass = isUs ? 'score-flash-us' : 'score-flash-them';
     el.classList.remove('score-bump', 'score-flash-us', 'score-flash-them');
     void el.offsetWidth;
     el.classList.add('score-bump', flashClass);
     setTimeout(() => {
       el.classList.remove('score-bump', flashClass);
     }, 520);
+    // Flash the scoreboard block border
+    const block = el.closest('.spec-score-block');
+    if(block){
+      const blockFlash = isUs ? 'flash-us' : 'flash-them';
+      block.classList.remove('flash-us', 'flash-them');
+      void block.offsetWidth;
+      block.classList.add(blockFlash);
+      setTimeout(() => block.classList.remove(blockFlash), 800);
+    }
   }
 
   function toNum(v) {

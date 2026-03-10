@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Team Tracker</title>
-<link rel="stylesheet" href="css/styles.css?v=6.3.8">
+<link rel="stylesheet" href="css/styles.css?v=6.3.16">
 <link rel="stylesheet" href="css/auth.css?v=6.2.7">
 </head>
 <body>
@@ -194,11 +194,16 @@
       </div>
 
       <div id="setupRequirement" class="setup-inline-note">Select your team and enter the opponent to start.</div>
-      <div id="resumeBanner" class="banner setup-resume hidden">Resumed saved game. You can continue immediately or adjust setup before you restart.</div>
+      <div id="resumeBanner" class="banner setup-resume hidden">Your current game is saved. Resume it or start a new one.</div>
+      <div id="setupActiveActions" class="setup-active-actions hidden">
+        <button id="btnResumeGame" class="btn-start" type="button">Resume Game</button>
+        <button id="btnSetupNewGame" class="btn-start btn-start-secondary" type="button">Start New Game</button>
+      </div>
       <button id="btnStartGame" class="btn-start" disabled>Start Game</button>
       <div class="setup-tertiary">
         <button id="btnHistory" class="btn-tertiary-link" type="button">Past Games</button>
         <button id="btnSeason" class="btn-tertiary-link" type="button">Season Stats</button>
+        <button id="btnPlayerStats" class="btn-tertiary-link" type="button">Player Stats</button>
       </div>
     </div>
 
@@ -224,6 +229,17 @@
         </div>
       </div>
       <div id="seasonBody" class="small" style="color:#aaa;">Loading...</div>
+    </div>
+
+    <div id="playerStatsPanel" class="card" style="display:none; margin-top:14px;">
+      <div class="setup-panel-head">
+        <h3 style="margin:0; font-size:16px;">Player Stats</h3>
+        <div class="setup-panel-actions">
+          <button class="btn-std btn-danger-ghost setup-panel-btn hidden" id="btnPlayerStatsReset" type="button">Reset Season</button>
+          <button class="btn-std setup-panel-btn" id="btnPlayerStatsClose" type="button">Close</button>
+        </div>
+      </div>
+      <div id="playerStatsBody" class="small" style="color:#aaa;">Loading...</div>
     </div>
   </div>
 
@@ -620,6 +636,18 @@
   </div>
 </div></div>
 
+<!-- Player Detail Modal -->
+<div class="modal" id="playerDetailModal"><div class="box" style="max-height:85vh; overflow-y:auto;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+    <div>
+      <h3 style="margin:0; font-size:16px;" id="playerDetailTitle">Player Detail</h3>
+      <div class="small" id="playerDetailMeta" style="margin-top:4px; color:var(--muted);"></div>
+    </div>
+    <button class="btn-std" id="playerDetailClose" style="font-size:11px; padding:4px 10px;">Close</button>
+  </div>
+  <div id="playerDetailBody" class="small"></div>
+</div></div>
+
 <!-- Welcome Modal (first launch only) -->
 <div class="modal" id="welcomeModal"><div class="box">
   <div class="welcome-title">Welcome to Team Tracker</div>
@@ -867,6 +895,6 @@
 <script src="js/spectator.js?v=6.2.12"></script>
 <script type="module" src="js/auth.js?v=6.2.7"></script>
 <script src="js/teams.js?v=6.2.7"></script>
-<script src="js/app.js?v=6.3.12"></script>
+<script src="js/app.js?v=6.3.16"></script>
 </body>
 </html>

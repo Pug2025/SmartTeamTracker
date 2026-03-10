@@ -200,6 +200,7 @@
         <button id="btnSetupNewGame" class="btn-start btn-start-secondary" type="button">Start New Game</button>
       </div>
       <button id="btnStartGame" class="btn-start" disabled>Start Game</button>
+      <div class="btn-start-hint" id="startHint"></div>
       <div class="setup-tertiary">
         <button id="btnHistory" class="btn-tertiary-link" type="button">Past Games</button>
         <button id="btnSeason" class="btn-tertiary-link" type="button">Season Stats</button>
@@ -208,38 +209,38 @@
     </div>
 
     <!-- Game History Panel -->
-    <div id="historyPanel" class="card" style="display:none; margin-top:14px;">
+    <div id="historyPanel" class="card panel-card">
       <div class="setup-panel-head">
-        <h3 style="margin:0; font-size:16px;">Game History</h3>
+        <h3 class="modal-title">Game History</h3>
         <div class="setup-panel-actions">
           <button class="btn-std setup-panel-btn" id="btnHistoryClose" type="button">Close</button>
         </div>
       </div>
       <div class="history-hint">Swipe left on a game to delete it.</div>
-      <div id="historyList" class="small" style="color:#aaa;">Loading...</div>
+      <div id="historyList"><div class="skeleton-loader"><div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line"></div></div></div>
     </div>
 
     <!-- Season Dashboard Panel -->
-    <div id="seasonPanel" class="card" style="display:none; margin-top:14px;">
+    <div id="seasonPanel" class="card panel-card">
       <div class="setup-panel-head">
-        <h3 style="margin:0; font-size:16px;">Season Dashboard</h3>
+        <h3 class="modal-title">Season Dashboard</h3>
         <div class="setup-panel-actions">
           <button class="btn-std btn-danger-ghost setup-panel-btn hidden" id="btnSeasonReset" type="button">Reset Season</button>
           <button class="btn-std setup-panel-btn" id="btnSeasonClose" type="button">Close</button>
         </div>
       </div>
-      <div id="seasonBody" class="small" style="color:#aaa;">Loading...</div>
+      <div id="seasonBody"><div class="skeleton-loader"><div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line"></div></div></div>
     </div>
 
-    <div id="playerStatsPanel" class="card" style="display:none; margin-top:14px;">
+    <div id="playerStatsPanel" class="card panel-card">
       <div class="setup-panel-head">
-        <h3 style="margin:0; font-size:16px;">Player Stats</h3>
+        <h3 class="modal-title">Player Stats</h3>
         <div class="setup-panel-actions">
           <button class="btn-std btn-danger-ghost setup-panel-btn hidden" id="btnPlayerStatsReset" type="button">Reset Season</button>
           <button class="btn-std setup-panel-btn" id="btnPlayerStatsClose" type="button">Close</button>
         </div>
       </div>
-      <div id="playerStatsBody" class="small" style="color:#aaa;">Loading...</div>
+      <div id="playerStatsBody"><div class="skeleton-loader"><div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line"></div></div></div>
     </div>
   </div>
 
@@ -307,7 +308,7 @@
 
       <div class="ringsRow">
         <div class="ringCard">
-          <div class="small" style="margin-bottom:6px;">Goalie Score</div>
+          <div class="small mb-sm">Goalie Score</div>
           <div class="scoreRing">
             <svg viewBox="0 0 80 80" class="ringSvg">
               <circle class="ringBg" cx="40" cy="40" r="35"></circle>
@@ -317,7 +318,7 @@
           </div>
         </div>
         <div class="ringCard">
-          <div class="small" style="margin-bottom:6px;">Team Score</div>
+          <div class="small mb-sm">Team Score</div>
           <div class="scoreRing">
             <svg viewBox="0 0 80 80" class="ringSvg">
               <circle class="ringBg" cx="40" cy="40" r="35"></circle>
@@ -351,7 +352,7 @@
       </div>
 
       <!-- Offensive Context -->
-      <div class="dash-section-label" style="color:var(--accent-us);">Offensive</div>
+      <div class="dash-section-label dash-label-us">Offensive</div>
       <div class="dashGrid">
         <div class="dashTile"><div class="k">Breakaways</div><div class="v" id="baForVal">0</div></div>
         <div class="dashTile"><div class="k">Odd Man Rush</div><div class="v" id="omrForVal">0</div></div>
@@ -361,7 +362,7 @@
       </div>
 
       <!-- Defensive Context -->
-      <div class="dash-section-label" style="color:var(--accent-them);">Defensive</div>
+      <div class="dash-section-label dash-label-them">Defensive</div>
       <div class="dashGrid">
         <div class="dashTile"><div class="k">Breakaways Ag</div><div class="v" id="baAgVal">0</div></div>
         <div class="dashTile"><div class="k">D-Zone TO</div><div class="v" id="dzVal">0</div></div>
@@ -370,9 +371,9 @@
         <div class="dashTile"><div class="k">Penalties Taken</div><div class="v" id="penAgVal">0</div></div>
       </div>
 
-      <div class="card" style="margin-top:10px;">
-        <div class="small" style="margin-bottom:8px;">By Period</div>
-        <div class="dashGrid periodGrid" style="grid-template-columns:repeat(2,1fr);">
+      <div class="card card-mt">
+        <div class="small mb-md">By Period</div>
+        <div class="dashGrid periodGrid period-grid-2col">
           <div class="dashTile"><div class="k">P1</div><div class="v" id="p1Line">—</div><div class="s">—</div></div>
           <div class="dashTile"><div class="k">P2</div><div class="v" id="p2Line">—</div><div class="s">—</div></div>
           <div class="dashTile"><div class="k">P3</div><div class="v" id="p3Line">—</div><div class="s">—</div></div>
@@ -384,8 +385,8 @@
     <!-- Log -->
     <div class="log-container" id="log"></div>
 
-    <div class="rowbtn" style="justify-content:center; margin-top:20px;">
-      <button class="btn-std" id="btnEnd" style="border-color:var(--good); color:var(--good);">End Game &amp; Score</button>
+    <div class="rowbtn flex-center mt-3xl">
+      <button class="btn-std btn-end-game" id="btnEnd">End Game &amp; Score</button>
       <button class="btn-std" id="btnReset">New Game</button>
     </div>
 
@@ -407,9 +408,9 @@
     </div>
 
     <!-- Rings: Goalie + Team Score -->
-    <div class="ringsRow" style="margin-top:16px;">
+    <div class="ringsRow rings-mt">
       <div class="ringCard">
-        <div class="small" style="margin-bottom:6px;">Goalie Score</div>
+        <div class="small mb-sm">Goalie Score</div>
         <div class="scoreRing">
           <svg viewBox="0 0 80 80" class="ringSvg">
             <circle class="ringBg" cx="40" cy="40" r="35"></circle>
@@ -419,7 +420,7 @@
         </div>
       </div>
       <div class="ringCard">
-        <div class="small" style="margin-bottom:6px;">Team Score</div>
+        <div class="small mb-sm">Team Score</div>
         <div class="scoreRing">
           <svg viewBox="0 0 80 80" class="ringSvg">
             <circle class="ringBg" cx="40" cy="40" r="35"></circle>
@@ -462,13 +463,13 @@
 
     <!-- Defensive Context (Them = left column) -->
     <div class="sum-section">
-      <div class="sum-section-label" style="color:var(--accent-them);">Defensive</div>
+      <div class="sum-section-label dash-label-them">Defensive</div>
       <div class="dashGrid" id="sumDefenseGrid"></div>
     </div>
 
     <!-- Offensive Context (Us = right column) -->
     <div class="sum-section">
-      <div class="sum-section-label" style="color:var(--accent-us);">Offensive</div>
+      <div class="sum-section-label dash-label-us">Offensive</div>
       <div class="dashGrid" id="sumOffenseGrid"></div>
     </div>
 
@@ -513,25 +514,25 @@
 <!-- MODALS -->
 <!-- Roster modal -->
 <div class="modal" id="rosterModal"><div class="box">
-  <div class="small" style="margin-bottom:6px;">Roster (one # per line)</div>
-  <textarea id="rosterArea" style="width:100%; height:150px; background:#000; border:1px solid #333; color:#fff; padding:8px;"></textarea>
+  <div class="small mb-sm">Roster (one # per line)</div>
+  <textarea id="rosterArea" class="textarea-dark textarea-roster"></textarea>
   <div class="rowbtn">
     <button class="btn-std" id="btnRosterSave">Save</button>
-    <button class="btn-std" id="btnRosterClose" style="border-color:#444;">Close</button>
+    <button class="btn-std btn-muted-border" id="btnRosterClose">Close</button>
   </div>
 </div></div>
 
 <!-- Player picker -->
 <div class="modal" id="pickerModal"><div class="box">
-  <div class="small" style="margin-bottom:8px;" id="pickerTitle">Select Player</div>
+  <div class="small mb-md" id="pickerTitle">Select Player</div>
   <div class="pickerGrid" id="pickerGrid"></div>
-  <div style="display:flex; gap:8px; margin-top:12px;">
-    <input id="pickerInput" placeholder="#" type="tel" style="flex:1;">
+  <div class="flex-row mt-xl">
+    <input id="pickerInput" placeholder="#" type="tel" class="flex-1">
     <button class="btn-std" id="pickerAdd">Use</button>
   </div>
-  <div class="rowbtn" style="justify-content:space-between;">
-    <button class="btn-std" id="pickerNone" style="display:none;">No Assist</button>
-    <div style="display:flex; gap:8px;">
+  <div class="rowbtn flex-between">
+    <button class="btn-std hidden" id="pickerNone">No Assist</button>
+    <div class="flex-row">
       <button class="btn-std" id="pickerUnknown">Unknown</button>
       <button class="btn-std" id="pickerCancel">Cancel</button>
     </div>
@@ -540,8 +541,8 @@
 
 <!-- GA Context -->
 <div class="modal" id="gaOverlay"><div class="box">
-  <div class="small" style="margin-bottom:8px;">Goal Against Context</div>
-  <div class="pickerGrid" id="gaGrid" style="grid-template-columns:1fr 1fr;"></div>
+  <div class="small mb-md">Goal Against Context</div>
+  <div class="pickerGrid picker-2col" id="gaGrid"></div>
   <div class="rowbtn">
     <button class="btn-std" id="gaSkip">Tag Later</button>
   </div>
@@ -549,32 +550,32 @@
 
 <!-- Multi Picker -->
 <div class="modal" id="onIceModal"><div class="box">
-  <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+  <div class="flex-between mb-md">
     <span class="small" id="onIceTitle">On Ice</span>
     <span class="small"><span id="onIceCount">0</span>/<span id="onIceMax">5</span></span>
   </div>
   <div class="pickerGrid" id="onIceGrid"></div>
-    <div style="display:flex; gap:8px; margin-top:12px;">
-    <input id="onIceInput" placeholder="#" type="tel" style="flex:1;">
+  <div class="flex-row mt-xl">
+    <input id="onIceInput" placeholder="#" type="tel" class="flex-1">
     <button class="btn-std" id="onIceAdd">Use</button>
   </div>
 
-  <div class="rowbtn" style="justify-content:space-between; margin-top:12px;">
+  <div class="rowbtn flex-between rowbtn-mt-lg">
     <button class="btn-std" id="onIceUnknownPlus">Unk +</button>
     <button class="btn-std" id="onIceUnknownMinus">Unk -</button>
     <button class="btn-std" id="onIceClear">Clear</button>
   </div>
   <div class="rowbtn">
-    <button class="btn-std" id="onIceUse" style="border-color:var(--good); color:var(--good);">Use</button>
+    <button class="btn-std btn-end-game" id="onIceUse">Use</button>
     <button class="btn-std" id="onIceCancel">Skip</button>
   </div>
-  <div class="small" id="onIceUnknownBadge" style="text-align:center; margin-top:6px; opacity:0.5;"></div>
+  <div class="small on-ice-badge" id="onIceUnknownBadge"></div>
 </div></div>
 
 <!-- Strength -->
 <div class="modal" id="strengthModal"><div class="box">
-  <div class="small" style="margin-bottom:8px;" id="strengthTitle">Our Team's Situation</div>
-  <div class="pickerGrid" style="grid-template-columns:1fr;">
+  <div class="small mb-md" id="strengthTitle">Our Team's Situation</div>
+  <div class="pickerGrid picker-1col">
     <div class="pickerBtn" data-strength="EV">Even Strength (5v5)</div>
     <div class="pickerBtn" data-strength="PP">Our Power Play (PP)</div>
     <div class="pickerBtn" data-strength="SH">We Are Short Handed (SH)</div>
@@ -584,9 +585,9 @@
 
 <!-- High Danger prompt -->
 <div class="modal" id="dangerModal"><div class="box">
-  <div class="small" style="margin-bottom:8px;" id="dangerTitle">High Danger Chance?</div>
-  <div class="pickerGrid" style="grid-template-columns:1fr 1fr;">
-    <div class="pickerBtn" data-danger="yes" style="border-color:var(--warn); color:var(--warn);">Yes</div>
+  <div class="small mb-md" id="dangerTitle">High Danger Chance?</div>
+  <div class="pickerGrid picker-2col">
+    <div class="pickerBtn picker-danger-yes" data-danger="yes">Yes</div>
     <div class="pickerBtn" data-danger="no">No</div>
   </div>
 </div></div>
@@ -594,7 +595,7 @@
 <!-- Copy -->
 <div class="modal" id="copyModal"><div class="box">
   <div class="small">Summary Text</div>
-  <textarea id="copyArea" style="width:100%; height:200px; background:#000; color:#fff; margin-top:8px;"></textarea>
+  <textarea id="copyArea" class="textarea-dark textarea-copy"></textarea>
   <div class="rowbtn">
     <button class="btn-std" id="btnCopySelect">Select All</button>
     <button class="btn-std" id="btnCopyClose">Close</button>
@@ -604,11 +605,11 @@
 <!-- Undo List -->
 <div class="modal" id="undoModal"><div class="box">
   <div class="small">Undo Event</div>
-  <div class="undoList" id="undoList" style="max-height:250px; overflow:auto; margin-top:8px;"></div>
+  <div class="undoList undo-scroll" id="undoList"></div>
   <div class="rowbtn"><button class="btn-std" id="undoClose">Cancel</button></div>
 </div></div>
 
-<div class="toast" id="toast">Removed. <button id="toastRestore" style="background:none; border:none; color:var(--accent-us); font-weight:700;">Restore</button></div>
+<div class="toast" id="toast">Removed. <button id="toastRestore" class="toast-restore">Restore</button></div>
 
 <!-- Status Toast -->
 <div class="status-toast" id="statusToast"></div>
@@ -625,25 +626,25 @@
 </div>
 
 <!-- Game Detail Modal -->
-<div class="modal" id="gameDetailModal"><div class="box" style="max-height:80vh; overflow-y:auto;">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-    <h3 style="margin:0; font-size:16px;" id="gameDetailTitle">Game Detail</h3>
-    <button class="btn-std" id="gameDetailClose" style="font-size:11px; padding:4px 10px;">Close</button>
+<div class="modal" id="gameDetailModal"><div class="box modal-scroll-sm">
+  <div class="modal-head">
+    <h3 class="modal-title" id="gameDetailTitle">Game Detail</h3>
+    <button class="btn-std btn-close-sm" id="gameDetailClose">Close</button>
   </div>
   <div id="gameDetailBody" class="small"></div>
-  <div style="margin-top:16px; text-align:center;">
-    <button class="btn-std" id="gameDetailDelete" style="border-color:var(--accent-them); color:var(--accent-them); font-size:12px;">Delete Game</button>
+  <div class="mt-2xl text-center">
+    <button class="btn-std btn-accent-them" id="gameDetailDelete">Delete Game</button>
   </div>
 </div></div>
 
 <!-- Player Detail Modal -->
-<div class="modal" id="playerDetailModal"><div class="box" style="max-height:85vh; overflow-y:auto;">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+<div class="modal" id="playerDetailModal"><div class="box modal-scroll">
+  <div class="modal-head">
     <div>
-      <h3 style="margin:0; font-size:16px;" id="playerDetailTitle">Player Detail</h3>
-      <div class="small" id="playerDetailMeta" style="margin-top:4px; color:var(--muted);"></div>
+      <h3 class="modal-title" id="playerDetailTitle">Player Detail</h3>
+      <div class="small mt-sm" id="playerDetailMeta"></div>
     </div>
-    <button class="btn-std" id="playerDetailClose" style="font-size:11px; padding:4px 10px;">Close</button>
+    <button class="btn-std btn-close-sm" id="playerDetailClose">Close</button>
   </div>
   <div id="playerDetailBody" class="small"></div>
 </div></div>
@@ -653,19 +654,19 @@
   <div class="welcome-title">Welcome to Team Tracker</div>
   <div class="welcome-sub">Fast bench-side tracking with live spectating, saved opponents, and season history built in.</div>
   <ul class="welcome-bullets">
-    <li><span class="wb-icon" style="color:var(--accent-them);">&#9679;</span><strong>Red tracks chances against</strong> &mdash; shots, goals, goalie events, and defensive breakdowns.</li>
-    <li><span class="wb-icon" style="color:var(--accent-us);">&#9679;</span><strong>Blue tracks your offense</strong> &mdash; shots, goals, pressure plays, and scoring chances.</li>
-    <li><span class="wb-icon" style="color:var(--good);">&#10003;</span><strong>Goals count as shots automatically</strong>, and quick prompts handle strength and context for you.</li>
-    <li><span class="wb-icon" style="color:var(--muted);">&#9776;</span>Open <strong>Menu &rarr; Help</strong> any time for the full guide, live spectating details, and setup tips.</li>
+    <li><span class="wb-icon wb-icon-them">&#9679;</span><strong>Red tracks chances against</strong> &mdash; shots, goals, goalie events, and defensive breakdowns.</li>
+    <li><span class="wb-icon wb-icon-us">&#9679;</span><strong>Blue tracks your offense</strong> &mdash; shots, goals, pressure plays, and scoring chances.</li>
+    <li><span class="wb-icon wb-icon-good">&#10003;</span><strong>Goals count as shots automatically</strong>, and quick prompts handle strength and context for you.</li>
+    <li><span class="wb-icon wb-icon-muted">&#9776;</span>Open <strong>Menu &rarr; Help</strong> any time for the full guide, live spectating details, and setup tips.</li>
   </ul>
   <button class="btn-welcome" id="btnWelcomeDismiss">Got It</button>
 </div></div>
 
 <!-- Help Modal (? button) -->
-<div class="modal" id="helpModal"><div class="box" style="max-height:85vh; padding:16px;">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-    <h2 style="margin:0; font-size:18px;">How to Use Team Tracker</h2>
-    <button class="btn-std" id="btnHelpClose" style="font-size:11px; padding:4px 10px;">Close</button>
+<div class="modal" id="helpModal"><div class="box help-box">
+  <div class="modal-head-lg">
+    <h2 class="modal-title-lg">How to Use Team Tracker</h2>
+    <button class="btn-std btn-close-sm" id="btnHelpClose">Close</button>
   </div>
   <div class="help-scroll">
 
@@ -677,7 +678,7 @@
     <hr class="help-divider">
 
     <div class="help-section">
-      <h3 style="color:var(--accent-them);">Left Column &mdash; Them (Defense / Goalie)</h3>
+      <h3 class="help-h3-them">Left Column &mdash; Them (Defense / Goalie)</h3>
       <p>Tap these when the opponent has the puck and creates a chance against your team.</p>
       <h4>Primary Buttons</h4>
       <ul>
@@ -702,7 +703,7 @@
     <hr class="help-divider">
 
     <div class="help-section">
-      <h3 style="color:var(--accent-us);">Right Column &mdash; Us (Offense)</h3>
+      <h3 class="help-h3-us">Right Column &mdash; Us (Offense)</h3>
       <p>Tap these when your team has the puck and creates chances.</p>
       <h4>Primary Buttons</h4>
       <ul>
@@ -781,10 +782,10 @@
 </div></div>
 
 <!-- Team Manager Modal -->
-<div class="modal" id="teamModal"><div class="box" style="max-height:85vh; overflow-y:auto;">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-    <h3 style="margin:0; font-size:16px;" id="teamModalTitle">Manage Teams</h3>
-    <button class="btn-std" id="teamModalClose" style="font-size:11px; padding:4px 10px;">Close</button>
+<div class="modal" id="teamModal"><div class="box modal-scroll">
+  <div class="modal-head-lg">
+    <h3 class="modal-title" id="teamModalTitle">Manage Teams</h3>
+    <button class="btn-std btn-close-sm" id="teamModalClose">Close</button>
   </div>
 
   <!-- Team list -->
@@ -794,18 +795,18 @@
   <div class="team-form" id="teamForm">
     <div class="team-form-title" id="teamFormTitle">Add New Team</div>
     <input id="teamNameInput" class="auth-input" placeholder="Team name (e.g. Kingston Wolves)" autocomplete="off" autocapitalize="words">
-    <select id="teamLevelInput" class="auth-input" style="padding:10px;">
+    <select id="teamLevelInput" class="auth-input team-select-pad">
       <option>U9</option><option selected>U11</option><option>U13</option><option>U15</option><option>U18</option><option>Other</option>
     </select>
-    <div class="small" style="margin:6px 0 2px; color:#888;">Roster — optional, one # per line (you can also add players during the game)</div>
-    <textarea id="teamRosterInput" style="width:100%; height:100px; background:#000; border:1px solid #333; color:#fff; padding:8px; border-radius:6px;" placeholder="e.g.&#10;7&#10;11&#10;23&#10;99"></textarea>
-    <div class="rowbtn" style="margin-top:10px;">
-      <button class="btn-std" id="teamFormSave" style="border-color:var(--good); color:var(--good); flex:1;">Save Team</button>
-      <button class="btn-std" id="teamFormCancel" style="border-color:#444;">Cancel</button>
+    <div class="small team-roster-hint">Roster — optional, one # per line (you can also add players during the game)</div>
+    <textarea id="teamRosterInput" class="textarea-dark textarea-team-roster" placeholder="e.g.&#10;7&#10;11&#10;23&#10;99"></textarea>
+    <div class="rowbtn rowbtn-mt">
+      <button class="btn-std btn-confirm-good" id="teamFormSave">Save Team</button>
+      <button class="btn-std btn-muted-border" id="teamFormCancel">Cancel</button>
     </div>
   </div>
 
-  <button class="btn-std" id="btnAddTeam" style="margin-top:10px; width:100%; border-color:var(--accent-us); color:var(--accent-us);">+ Add Another Team</button>
+  <button class="btn-std mt-lg btn-full-width btn-accent-us" id="btnAddTeam">+ Add Another Team</button>
 </div></div>
 
 </div><!-- End appShell -->

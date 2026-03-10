@@ -273,6 +273,13 @@ function updateSetupReadiness(){
   startBtn.classList.toggle('disabled', !ready);
   startBtn.textContent = ready ? 'Start Game' : team ? 'Enter Opponent to Start' : 'Add Team to Start';
 
+  const hint = $('startHint');
+  if(hint){
+    if(!ready && !team) hint.textContent = 'Select or create a team first, then add an opponent.';
+    else if(!ready && team) hint.textContent = 'Type an opponent name above to get started.';
+    else hint.textContent = '';
+  }
+
   historyBtn.disabled = !team;
   seasonBtn.disabled = !team;
   playerStatsBtn.disabled = !team;
@@ -4085,7 +4092,7 @@ async function resetSeasonStats(){
 }
 async function loadSeasonPanel(){
   $('seasonPanel').style.display = 'block';
-  $('seasonBody').innerHTML = '<div style="text-align:center; padding:20px; color:var(--muted);">Loading...</div>';
+  $('seasonBody').innerHTML = SKELETON_HTML;
   try{
     const games = await fetchScopedGames(100);
     $('btnSeasonReset').classList.toggle('hidden', !games.length);
@@ -4096,7 +4103,7 @@ async function loadSeasonPanel(){
     renderSeasonDashboard(games);
   }catch(e){
     console.error(e);
-    $('seasonBody').innerHTML = '<div style="text-align:center; padding:20px; color:var(--accent-them);">Failed to load. Check your connection.</div>';
+    $('seasonBody').innerHTML = '<div class="text-center" style="padding:20px; color:var(--accent-them);">Failed to load. Check your connection.</div>';
   }
 }
 async function refreshSeasonPanelIfOpen(){
@@ -4105,7 +4112,7 @@ async function refreshSeasonPanelIfOpen(){
 }
 async function loadPlayerStatsPanel(){
   $('playerStatsPanel').style.display = 'block';
-  $('playerStatsBody').innerHTML = '<div style="text-align:center; padding:20px; color:var(--muted);">Loading...</div>';
+  $('playerStatsBody').innerHTML = SKELETON_HTML;
   try{
     const games = await fetchScopedGames(100);
     $('btnPlayerStatsReset').classList.toggle('hidden', !games.length);
@@ -4115,7 +4122,7 @@ async function loadPlayerStatsPanel(){
     $('btnPlayerStatsReset').classList.add('hidden');
     $('playerDetailModal').style.display = 'none';
     currentPlayerDetailKey = null;
-    $('playerStatsBody').innerHTML = '<div style="text-align:center; padding:20px; color:var(--accent-them);">Failed to load. Check your connection.</div>';
+    $('playerStatsBody').innerHTML = '<div class="text-center" style="padding:20px; color:var(--accent-them);">Failed to load. Check your connection.</div>';
   }
 }
 async function refreshPlayerStatsPanelIfOpen(){
@@ -4125,17 +4132,17 @@ async function refreshPlayerStatsPanelIfOpen(){
 async function loadHistoryPanel(){
   resetHistorySwipeState();
   $('historyPanel').style.display = 'block';
-  $('historyList').innerHTML = '<div style="text-align:center; padding:20px; color:var(--muted);">Loading...</div>';
+  $('historyList').innerHTML = SKELETON_HTML;
   try{
     const games = await fetchScopedGames(50);
     if(!games.length){
-      $('historyList').innerHTML = '<div style="text-align:center; padding:20px;">No past games found.</div>';
+      $('historyList').innerHTML = '<div class="text-center" style="padding:20px;">No past games found.</div>';
       return;
     }
     renderHistoryList(games);
   }catch(e){
     console.error(e);
-    $('historyList').innerHTML = '<div style="text-align:center; padding:20px; color:var(--accent-them);">Failed to load games. Check your connection.</div>';
+    $('historyList').innerHTML = '<div class="text-center" style="padding:20px; color:var(--accent-them);">Failed to load games. Check your connection.</div>';
   }
 }
 $('btnHistory').addEventListener('click', async ()=>{
@@ -4389,8 +4396,9 @@ $('gameDetailDelete').addEventListener('click', async ()=>{
 });
 
 /* ===== Season Dashboard ===== */
-const NO_GAMES_MESSAGE = '<div style="text-align:center; padding:20px;">No games yet — play some games first!</div>';
-const NO_PLAYER_STATS_MESSAGE = '<div style="text-align:center; padding:20px;">No saved player data yet. Player stats will start with games completed after this update.</div>';
+const SKELETON_HTML = '<div class="skeleton-loader"><div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line"></div></div>';
+const NO_GAMES_MESSAGE = '<div class="text-center" style="padding:20px;">No games yet — play some games first!</div>';
+const NO_PLAYER_STATS_MESSAGE = '<div class="text-center" style="padding:20px;">No saved player data yet. Player stats will start with games completed after this update.</div>';
 
 $('btnSeason').addEventListener('click', async ()=>{
   if(!getActiveTeamSafe()){

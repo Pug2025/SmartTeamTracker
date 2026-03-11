@@ -1,388 +1,575 @@
-# UX Audit Roadmap — SmartTeamTracker
+# UX Audit Roadmap — Round 4 (Monetisation-Ready)
 
-Precise, ordered changes. Each item specifies the file, the element, and exactly what changes.
+Previous rounds addressed layout density, button consistency, colour tokens, radius tokens, skeleton loaders, focus rings, animations, modal consistency, and hat trick celebrations. This round targets the remaining gap between "polished hobby project" and "product someone would pay for."
 
 ---
 
-## PRIORITY 1: Setup Screen — Fit on One Phone Screen (~667px viewport)
+## PHASE 1 — High Priority (Conversion & Perceived Value)
 
-**Goal:** The entire setup screen (from header to Start Game button) must be visible without scrolling on a standard iPhone (375×667 logical pixels).
+These three changes most directly affect whether a user perceives this as a paid-tier product.
 
-**Current problem:** The setup card has ~28px top padding, 18px section-label margins, 14px input-group margins, a full matchup card, toggle row with description text, an inline note, and generous spacing that pushes the Start Game button well below the fold.
+### 1A. Coach Screen: Increase Button Visual Hierarchy
 
-### 1A. Collapse vertical spacing in setup card
+**Problem:** 14 buttons visible at once, all at roughly the same visual weight. Primary actions (Shot/Goal) are not visually distinct enough from context buttons (Breakaway, DZ Turnover) in low-light rink conditions.
+
 **File:** `css/styles.css`
 
-| Element | Current | Change To |
-|---------|---------|-----------|
-| `.setup-card` padding (line 430) | `28px 24px 22px` | `20px 20px 16px` |
-| `.setup-card` margin-top (line 431) | `18px` | `10px` |
-| `.setup-eyebrow` margin-bottom (line 448) | `12px` | `8px` |
-| `.setup-section-label` margin (line 493) | `18px 0 10px` | `12px 0 6px` |
-| `.input-group` margin-bottom (line 502) | `14px` | `10px` |
-| `.setup-toggle-row` padding (line 870) | `14px 16px` | `10px 14px` |
-| `.btn-start` margin-top (line 610) | `12px` | `8px` |
-| `.btn-start` padding (line 606) | `16px 18px` | `14px 16px` |
-| `.setup-tertiary` margin-top (line 903) | `14px` | `10px` |
-| `.setup-fields` gap (line 639) | `12px` | `8px` |
+| Element | Current | Change To | Rationale |
+|---------|---------|-----------|-----------|
+| `.g-btn.primary` box-shadow | `0 4px 12px rgba(0,0,0,0.5)` | `0 6px 18px rgba(0,0,0,0.6)` | Deeper shadow lifts primaries off the surface |
+| `.theme-them .g-btn.primary` background | `#3a0e0e` | `#441010` | Slightly brighter to widen gap vs context |
+| `.theme-us .g-btn.primary` background | `#0f2b45` | `#123350` | Same — slightly brighter |
+| `.theme-them .g-btn.ctx` opacity | (none) | Add `opacity: 0.82` | Recesses context buttons visually |
+| `.theme-us .g-btn.ctx` opacity | (none) | Add `opacity: 0.82` | Same |
+| `.theme-them .g-btn.ctx` border-color | `rgba(90,26,26,0.6)` | `rgba(90,26,26,0.4)` | Softer border to reduce parity with primaries |
+| `.theme-us .g-btn.ctx` border-color | `rgba(26,58,90,0.6)` | `rgba(26,58,90,0.4)` | Same |
 
-### 1B. Reduce header title size on setup screen
+**Test:** On a phone at arm's length, the four primary buttons (Shot Against, Goal Against, Shot For, Goal For) should be the first things your eye finds. Context buttons should feel "available but secondary."
+
+### 1B. Coach Screen: Surface SV% in Sticky Header
+
+**Problem:** Save percentage — the coach's most-checked stat — requires scrolling past the entire button grid to see in the dashboard.
+
+**File:** `js/app.js` — in the function that updates `liveSF_sub` and `liveSA_sub` text.
+
+**Current behaviour:** `liveSA_sub` shows `SA: {n}`. `liveSF_sub` shows `SF: {n}`.
+
+**Change:** When in-game and `shotsAgainst > 0`, change `liveSA_sub` to show `SA: {n} · {svPct}` where `svPct` is formatted as `.XXX` (e.g., `.917`). When `shotsAgainst === 0`, keep `SA: 0`.
+
+Find the render function that sets these sub-labels (search for `liveSA_sub` in `app.js`) and add:
+
+```javascript
+// After setting SA count:
+const sa = state.countsA.shots;
+const ga = state.countsA.goals;
+if (sa > 0) {
+  const saves = sa - ga;
+  const svPct = (saves / sa);
+  const svStr = svPct >= 1 ? '1.000' : '.' + String(Math.round(svPct * 1000)).padStart(3, '0');
+  $('liveSA_sub').textContent = `SA: ${sa} · ${svStr}`;
+} else {
+  $('liveSA_sub').textContent = 'SA: 0';
+}
+```
+
+**No new elements.** This modifies the text content of an existing element only.
+
+### 1C. Setup Screen: Promote History/Stats Links to Feature Pills
+
+**Problem:** "Past Games," "Season Stats," and "Player Stats" are styled as bare text links at the bottom of setup. They look like footnotes, not features. These represent the app's long-term value — the exact thing that justifies a subscription.
+
 **File:** `css/styles.css`
 
-| Element | Current | Change To |
-|---------|---------|-----------|
-| `body:not(.in-game) .top-row h1` (line 144) | `font-size:36px` | `font-size:28px` |
-| `body:not(.in-game) .top-row` min-height (line 125) | `64px` | `52px` |
-| `body:not(.in-game) .top-row` padding (line 124) | `16px 18px 12px` | `12px 16px 8px` |
+Replace the `.setup-tertiary` and `.btn-tertiary-link` styles:
 
-### 1C. Compact the setup card heading
-**File:** `css/styles.css`
-
-| Element | Current | Change To |
-|---------|---------|-----------|
-| `.setup-card h2` (line 466) | `font-size:31px` | `font-size:24px` |
-| `body:not(.in-game) .setup-card h2` (line 471) | `font-size:28px` | `font-size:22px` |
-| `.setup-sub` margin-top (line 474) | `8px` | `4px` |
-| `.setup-sub` font-size (line 476) | `14px` | `13px` |
-
-### 1D. Reduce input field padding
-**File:** `css/styles.css`
-
-| Element | Current | Change To |
-|---------|---------|-----------|
-| `input, select, textarea` padding (line 556) | `14px 15px` | `12px 14px` |
-| `.setup-date-shell` min-height (line 515) | `42px` | `38px` |
-| `.setup-date-shell` padding (line 519) | `10px 14px` | `8px 12px` |
-
-### 1E. Compact toggle row copy
-**File:** `css/styles.css`
-
-| Element | Current | Change To |
-|---------|---------|-----------|
-| `.setup-toggle-copy` margin-top (line 881) | `4px` | `2px` |
-| `.setup-toggle-copy` font-size (line 882) | `12px` | `11px` |
-| `.setup-toggle-copy` line-height (line 883) | `1.4` | `1.3` |
-
-### 1F. Hide the matchup card by default, show only on opponent selection
-**File:** `index.html` — Already has `class="matchup-card hidden"` on `#matchupInsight` (line 157). **No change needed** — just confirm it stays hidden until an opponent with history is selected.
-
-### 1G. Update responsive breakpoints to match
-**File:** `css/styles.css`
+```css
+.setup-tertiary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+.btn-tertiary-link {
+  padding: 10px 8px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+  border-radius: 14px;
+  color: #8ebeff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: center;
+  transition: border-color 0.18s ease, background 0.18s ease, transform 0.08s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-tertiary-link:active {
+  transform: scale(0.98);
+  background: rgba(77,163,255,0.08);
+}
+.btn-tertiary-link:disabled {
+  color: #4e5864;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+```
 
 At `@media (max-width: 430px)`:
-| Element | Current | Change To |
-|---------|---------|-----------|
-| `.setup-card` padding (line 2739) | `14px 14px 14px` | `12px 12px 12px` |
-| `.setup-card h2` (line 2743) | `font-size:22px` | `font-size:20px` |
-| `body:not(.in-game) .setup-card h2` (line 2745) | `font-size:20px` | `font-size:18px` |
-| `.btn-start` padding (line 2824) | `13px 15px` | `12px 14px` |
-| `.btn-start` font-size (line 2825) | `16px` | `15px` |
-
----
-
-## PRIORITY 2: Coach Screen Buttons — All Fit on One Phone Screen
-
-**Goal:** All tracking buttons (Shot/Goal/Smother/Save/Context rows) for both columns must be visible without scrolling, above the Next Period bar, on a 375×667 viewport.
-
-**Current problem:** `.h-lg` buttons are 74px tall, `.h-md` buttons are 52px min-height, context labels add margins, and the gap is 8px. Total height for one column: ~74+74+52+52 + context-label + 52+52+52 + gaps ≈ 530px+ before the Next Period bar. With header+scoreboard (~160px), this overflows.
-
-### 2A. Reduce primary button heights
-**File:** `css/styles.css`
-
-| Element | Current | Change To |
-|---------|---------|-----------|
-| `.h-lg` height (line 1005) | `74px` | `58px` |
-| `.h-lg` font-size (line 1006) | `16px` | `15px` |
-| `.h-md` min-height (line 1011) | `52px` | `40px` |
-| `.h-md` font-size (line 1012) | `13px` | `12px` |
-
-### 2B. Reduce grid and column gaps
-**File:** `css/styles.css`
-
-| Element | Current | Change To |
-|---------|---------|-----------|
-| `.split-grid` gap (line 960) | `8px` | `6px` |
-| `.col-zone` gap (line 966) | `8px` | `5px` |
-| `.context-row` gap (line 1068) | `6px` | `4px` |
-| `.split-grid` margin-top (line 961) | `8px` | `4px` |
-
-### 2C. Compact context labels
-**File:** `css/styles.css`
-
-| Element | Current | Change To |
-|---------|---------|-----------|
-| `.def-context-label` font-size (line 1072) | `10px` | `9px` |
-| `.def-context-label` margin-top (line 1076) | `4px` | `2px` |
-
-### 2D. Compact col-label (Them/Us)
-**File:** `css/styles.css`
-
-| Element | Current | Change To |
-|---------|---------|-----------|
-| `.col-label` margin-bottom (line 1061) | `4px` | `2px` |
-| `.col-label` font-size (line 1057) | `10px` | `9px` |
-
-### 2E. Reduce Next Period bar
-**File:** `css/styles.css`
-
-| Element | Current | Change To |
-|---------|---------|-----------|
-| `.next-period-wrap` margin-top (line 1081) | `10px` | `6px` |
-| `.next-period-btn` height (line 1090) | `44px` | `38px` |
-| `.next-period-btn` font-size (line 1087) | `14px` | `13px` |
-
-### 2F. Reduce scoreboard height when in-game
-**File:** `css/styles.css`
-
-| Element | Current | Change To |
-|---------|---------|-----------|
-| `.score-block` min-height (line 332) | `64px` | `56px` |
-| `.score-block` padding (line 330) | `10px 10px` | `8px 8px` |
-| `.score-val` font-size (line 345) | `30px` | `26px` |
-| `.scoreboard-row` padding bottom (line 244) | `8px` | `6px` |
-| `body.in-game .top-row` padding (line 115) | `10px 14px` | `8px 12px` |
-
----
-
-## PRIORITY 3: Button System Consistency
-
-**Goal:** Unify border-radius, transition timing, and active states across all button types.
-
-### 3A. Standardize border-radius to 12px for all buttons
-**File:** `css/styles.css`
-
-| Element | Current | Change To |
-|---------|---------|-----------|
-| `.g-btn` border-radius (line 972) | `14px` | `12px` |
-| `.btn-start` border-radius (line 609) | `16px` | `12px` |
-| `.btn-std` border-radius (line 1727) | `10px` | `12px` |
-| `.btn-icon` border-radius (line 165) | `9px` | `10px` |
-| `.toolbar-btn` border-radius (line 186) | `9px` | `10px` |
-
-### 3B. Standardize active press effect
-**File:** `css/styles.css`
-
-Every button currently uses slightly different scale values. Standardize:
-- All standard buttons: `transform: scale(0.97)` on `:active`
-- `.g-btn:active` (line 990): change `scale(0.95)` → `scale(0.97)`
-- `.btn-icon:active` (line 179): change `scale(0.9)` → `scale(0.95)`
-- `.btn-start:active` (line 617): keep `scale(0.98)` (large button, subtler)
-
-### 3C. Remove dashed border from context buttons
-**File:** `css/styles.css`
-
-The dashed borders on `.ctx` buttons make them look unfinished/placeholder.
-
-| Element | Current | Change To |
-|---------|---------|-----------|
-| `.theme-them .g-btn.ctx` border-style (line 1028) | `dashed` | `solid` |
-| `.theme-them .g-btn.ctx` border-color (line 1027) | `#5a1a1a` | `rgba(90,26,26,0.6)` |
-| `.theme-us .g-btn.ctx` border-style (line 1050) | `dashed` | `solid` |
-| `.theme-us .g-btn.ctx` border-color (line 1049) | `#1a3a5a` | `rgba(26,58,90,0.6)` |
-
-Context buttons differentiate by: lighter background + smaller text + thinner border (already present). Dashed is redundant.
-
----
-
-## PRIORITY 4: Color Token Cleanup
-
-**Goal:** Reduce the number of ad-hoc gray values to a consistent scale.
-
-### 4A. Define gray scale in CSS variables
-**File:** `css/styles.css` — Add to `:root` (line 1):
-
 ```css
---gray-50: #0a0a0a;
---gray-100: #111111;
---gray-200: #1a1a1a;
---gray-300: #222222;
---gray-400: #333333;
---gray-500: #444444;
---gray-600: #888888;
---gray-700: #aaaaaa;
---gray-800: #cccccc;
---gray-900: #eeeeee;
+.setup-tertiary {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.btn-tertiary-link {
+  padding: 9px 6px;
+  font-size: 12px;
+}
 ```
 
-### 4B. Replace hardcoded grays with variables
-**File:** `css/styles.css` — Systematic find-and-replace:
-
-| Hardcoded | Replace With | Occurrences (approx) |
-|-----------|-------------|---------------------|
-| `#0a0a0a` | `var(--gray-50)` | 3 |
-| `#111` / `#111111` | `var(--gray-100)` / `var(--panel)` | 12 |
-| `#1a1a1a` | `var(--gray-200)` | 14 |
-| `#222` / `#222222` | `var(--gray-300)` | 10 |
-| `#333` / `#333333` | `var(--gray-400)` | 18 |
-| `#444` / `#444444` | `var(--gray-500)` | 8 |
-
-This makes future theme changes trivial and eliminates drift.
+**No HTML changes.** Same three buttons, new visual treatment.
 
 ---
 
-## PRIORITY 5: Scoreboard & Header Refinement
+## PHASE 2 — Medium Priority (Polish & Trust Signals)
 
-### 5A. Add safe-area insets for notched phones
-**File:** `css/styles.css`
+### 2A. Setup Screen: Hide Redundant Disabled CTA
 
-Add to `.sticky-header`:
-```css
-padding-top: env(safe-area-inset-top, 0px);
+**Problem:** When no team exists, both the "Team Required" chip and the disabled "Add Team to Start" button convey the same message. Two signals of incompleteness feel uncertain.
+
+**File:** `js/app.js` — in `updateSetupReadiness()`.
+
+**Change:** When `!team`, hide `btnStartGame` entirely (not just disable it) and let the "Add Your Team" card be the sole CTA. The chip stays as a label.
+
+```javascript
+// In updateSetupReadiness(), after determining `team` and `ready`:
+if (!team) {
+  startBtn.style.display = 'none';
+} else {
+  startBtn.style.display = '';
+}
 ```
 
-Add to `body`:
-```css
-padding-left: env(safe-area-inset-left, 0px);
-padding-right: env(safe-area-inset-right, 0px);
-```
+**Revert display on team selection** — the existing flow already calls `updateSetupReadiness()` when the team changes, so this is self-correcting.
 
-### 5B. Tighten quality bar spacing
+### 2B. Setup Screen: Reserve Space for Matchup Card
+
+**Problem:** When an opponent with history is selected, the matchup card animates in and causes layout shift below the opponent field.
+
 **File:** `css/styles.css`
 
-| Element | Current | Change To |
-|---------|---------|-----------|
-| `.quality-bar-wrap` padding (line 288) | `0 10px 6px 10px` | `0 10px 4px 10px` |
-
----
-
-## PRIORITY 6: Live Dashboard Density (Below-Fold, Lower Priority)
-
-### 6A. Reduce dashboard tile minimum heights
-**File:** `css/styles.css`
-
-| Element | Current | Change To |
-|---------|---------|-----------|
-| `.dashTile` min-height (line 1168) | `70px` | `60px` |
-| `.dashTile` padding (line 1167) | `10px` | `8px 10px` |
-| `.dashTile .v` font-size (line 1181) | `26px` | `22px` |
-| `.dashTile .v` margin-top (line 1180) | `8px` | `5px` |
-
-### 6B. Reduce rings row size
-**File:** `css/styles.css`
-
-| Element | Current | Change To |
-|---------|---------|-----------|
-| `.scoreRing` width/height (line 1519-1520) | `80px` | `72px` |
-| `.scoreRing .val` font-size (line 1548) | `24px` | `20px` |
-| `.ringsRow` margin-bottom (line 1402) | `10px` | `8px` |
-
-### 6C. Reduce dash section label spacing
-**File:** `css/styles.css`
-
-| Element | Current | Change To |
-|---------|---------|-----------|
-| `.dash-section-label` margin (line 1154) | `14px 0 6px 4px` | `10px 0 4px 4px` |
-
----
-
-## PRIORITY 7: Auth Screen Polish
-
-### 7A. Reduce bottom margin on auth subtitle
-**File:** `css/auth.css`
-
-| Element | Current | Change To |
-|---------|---------|-----------|
-| `.auth-sub` margin-bottom (line 30) | `32px` | `24px` |
-| `.auth-divider` margin (line 58) | `20px 0` | `16px 0` |
-| `.auth-guest-divider` margin (line 152) | `16px 0` | `12px 0` |
-
-### 7B. Unify auth button border-radius with app standard (12px)
-**File:** `css/auth.css`
-
-| Element | Current | Change To |
-|---------|---------|-----------|
-| `.auth-google-btn` border-radius (line 43) | `12px` | `12px` (already correct) |
-| `.auth-input` border-radius (line 83) | `10px` | `12px` |
-| `.auth-submit-btn` border-radius (line 109) | `12px` | `12px` (already correct) |
-| `.auth-guest-btn` border-radius (line 161) | `12px` | `12px` (already correct) |
-
-Only `.auth-input` needs to change: 10px → 12px.
-
----
-
-## PRIORITY 8: Spectator View Fine-Tuning
-
-### 8A. Add safe-area insets
-**File:** `css/styles.css`
-
-Add to `.spectator-view`:
-```css
-padding-top: max(14px, env(safe-area-inset-top, 14px));
-padding-bottom: max(18px, env(safe-area-inset-bottom, 18px));
-```
-
-### 8B. Reduce score font size slightly on small phones
-**File:** `css/styles.css` — Already handled at 380px breakpoint (line 2861). No change needed.
-
-### 8C. Add connection state styling for spectator
-**File:** `css/styles.css` — Add new rules:
+Add a transition to the matchup card's appearance:
 
 ```css
-.spec-status.connecting { color: var(--warn); }
-.spec-status.disconnected { color: var(--accent-them); }
+.matchup-card {
+  /* existing styles stay */
+  transition: opacity 0.25s ease, max-height 0.3s ease;
+  overflow: hidden;
+}
+.matchup-card.hidden {
+  display: block !important;
+  max-height: 0;
+  opacity: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  overflow: hidden;
+}
 ```
 
----
+**Override** the global `.hidden { display: none !important }` specifically for this card so it can transition smoothly. When shown, remove the `hidden` class and the card expands into its natural height.
 
-## PRIORITY 9: Transition & Animation Consistency
+**File:** `js/app.js` — wherever `matchupInsight.classList.add/remove('hidden')` is called, no JS changes needed if the CSS handles the visual transition.
 
-### 9A. Standardize transition timing
+### 2C. Setup Screen: Relocate +/- Toggle Below Start Game
+
+**Problem:** The Track +/- toggle sits between the form fields and the Start Game button, creating a speed bump on the critical path for coaches who don't know what +/- means.
+
+**File:** `index.html`
+
+Move the `setup-toggle-row` block (the one containing `togglePM`) from its current position (between the date field and `setupRequirement`) to immediately **after** `btnStartGame` and before `setup-tertiary`:
+
+```html
+<!-- After btnStartGame and startHint, before setup-tertiary -->
+<div class="setup-section-label">Options</div>
+<div class="setup-toggle-row">
+  <div>
+    <div class="setup-toggle-title">Track +/-</div>
+    <div class="setup-toggle-copy">Prompt for the five skaters on the ice after each goal.</div>
+  </div>
+  <label class="switch"><input type="checkbox" id="togglePM" checked><span class="slider"></span></label>
+</div>
+```
+
+Remove the old "Tracking" section label and toggle from their current position.
+
+### 2D. Coach Screen: Increase Context Label Visibility
+
+**Problem:** "Defensive Context" and "Offensive Context" labels are 9px at 0.6 opacity — effectively invisible in rink conditions.
+
 **File:** `css/styles.css`
 
-Currently transitions range from `0.08s` to `0.5s` with no system. Establish:
-- **Micro-interactions** (button press): `0.1s ease-out`
-- **State changes** (focus, hover): `0.18s ease`
-- **Layout shifts** (expand/collapse): `0.25s ease`
-- **Data animations** (bars, rings): `0.4s ease`
-
-Specific changes:
 | Element | Current | Change To |
 |---------|---------|-----------|
-| `.g-btn` transform transition (line 984) | `0.08s ease-out` | `0.1s ease-out` |
-| `.btn-icon` transition (line 177) | `0.08s` | `0.1s ease-out` |
-| `.toolbar-btn` transition (line 192) | `0.08s, 0.1s` | `0.1s ease-out` |
+| `.def-context-label` font-size | `9px` | `10px` |
+| `.def-context-label` opacity | `0.6` | `0.8` |
+| Add `.def-context-label` border-bottom | (none) | `1px solid currentColor; padding-bottom: 3px; opacity of border: use rgba` |
 
----
+Specific addition:
+```css
+.def-context-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  opacity: 0.8;
+  margin-top: 2px;
+  padding-bottom: 3px;
+}
+.theme-them .def-context-label {
+  border-bottom: 1px solid rgba(255,69,58,0.15);
+}
+.theme-us .def-context-label {
+  border-bottom: 1px solid rgba(77,163,255,0.15);
+}
+```
 
-## PRIORITY 10: Modal & Toast Consistency
+### 2E. Coach Screen: Distinguish Next Period Button
 
-### 10A. Unify modal border-radius
+**Problem:** The Next Period button blends into the dashboard below it. At intermission, the coach needs to find it quickly.
+
 **File:** `css/styles.css`
 
 | Element | Current | Change To |
 |---------|---------|-----------|
-| `.modal .box` border-radius (line 1505) | `16px` | `20px` |
-| `.confirm-box` border-radius (line 1845) | `16px` | `20px` |
+| `.next-period-btn` border-color | `#555` | `rgba(255,159,10,0.45)` |
+| `.next-period-btn` background | `linear-gradient(135deg, #222, #1a1a1a)` | `linear-gradient(135deg, #252218, #1a1a1a)` |
+| `.next-period-btn` color | `#fff` | `#ffd68a` |
 
-### 10B. Add subtle border-top accent to modals (match setup-card style)
+Warm tone signals "transition action" — distinct from the blue/red game-tracking buttons above and the neutral dashboard below.
+
+### 2F. Spectator Screen: KPI Split-Value Axis Labels
+
+**Problem:** Spectator KPI cards show "X - Y" but don't clarify which is Them and which is Us. The colour coding exists in CSS but is too subtle at a glance.
+
+**File:** `index.html` — Inside each `spec-kpi-card` that uses split values.
+
+Add micro-labels to the KPI label row:
+
+```html
+<div class="spec-kpi-card">
+  <div class="spec-kpi-label">Shots <span class="spec-kpi-axis">T - U</span></div>
+  <div class="spec-kpi-value" id="specShotLine">0-0</div>
+</div>
+```
+
+Repeat for Scoring Chances and Penalties cards.
+
 **File:** `css/styles.css` — Add:
 
 ```css
-.modal .box::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 20px; right: 20px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(77,163,255,0.3), transparent);
-  border-radius: 999px;
+.spec-kpi-axis {
+  float: right;
+  font-size: 9px;
+  color: #5c6f8e;
+  letter-spacing: 1px;
+  font-weight: 600;
 }
-.modal .box { position: relative; overflow: hidden; }
+```
+
+### 2G. Spectator Screen: Stale Feed Warning
+
+**Problem:** Parents staring at an unchanging screen don't know if the game is slow or the feed is broken.
+
+**File:** `js/spectator.js`
+
+After each successful `renderState()` call, start/reset a 30-second timer. If the timer fires without a new update, add a CSS class to `specMetaLine`:
+
+```javascript
+let staleTimer = null;
+function resetStaleTimer() {
+  if (staleTimer) clearTimeout(staleTimer);
+  const meta = $('specMetaLine');
+  if (meta) meta.classList.remove('spec-meta-stale');
+  staleTimer = setTimeout(() => {
+    if (!spectatorEnded && meta) meta.classList.add('spec-meta-stale');
+  }, 30000);
+}
+```
+
+Call `resetStaleTimer()` at the end of every successful `renderState()`.
+
+**File:** `css/styles.css` — Add:
+
+```css
+.spec-meta-stale {
+  color: rgba(255,159,10,0.6);
+}
 ```
 
 ---
 
-## Implementation Order
+## PHASE 3 — New Features (Experiential Value)
 
-1. **P1 (Setup fits on screen)** — CSS-only, ~25 property changes
-2. **P2 (Coach buttons fit on screen)** — CSS-only, ~15 property changes
-3. **P3 (Button consistency)** — CSS-only, ~10 property changes
-4. **P4 (Color tokens)** — CSS-only, variable definitions + ~65 replacements
-5. **P5 (Header/scoreboard)** — CSS-only, ~3 additions
-6. **P6 (Dashboard density)** — CSS-only, ~8 property changes
-7. **P7 (Auth polish)** — CSS-only, ~4 property changes
-8. **P8 (Spectator)** — CSS-only, ~3 additions
-9. **P9 (Transitions)** — CSS-only, ~3 property changes
-10. **P10 (Modals)** — CSS-only, ~2 property changes + 1 new rule
+### 3A. Period-End Flash Summary
 
-**Total: ~0 HTML changes, ~130 CSS property changes, ~65 color token replacements.**
-**All changes are CSS-only. No JavaScript modifications. No structural HTML changes.**
+**Trigger:** Coach taps "Next Period" button.
+
+**Visual:** A card overlays the top of the game controls area for 4 seconds, showing a one-line period summary:
+
+> **P1 Complete** — 8-5 shots, 1-0 goals, SV% .833
+
+Auto-dismisses after 4 seconds or on tap. Slides in from the top of the `.wrap` container, not fixed-position (so it doesn't cover the header).
+
+**File:** `js/app.js` — In the Next Period handler (find `btnNextPeriod` click listener):
+
+After advancing the period, call a new function:
+
+```javascript
+function showPeriodSummary(completedPeriod) {
+  const p = per[completedPeriod];
+  if (!p) return;
+
+  const sf = p.F_shots;
+  const sa = p.A_shots;
+  const gf = p.F_goals;
+  const ga = p.A_goals;
+  const saves = sa - ga;
+  const svPct = sa > 0
+    ? (saves / sa >= 1 ? '1.000' : '.' + String(Math.round((saves / sa) * 1000)).padStart(3, '0'))
+    : '—';
+  const pLabel = completedPeriod === 4 ? 'OT' : `P${completedPeriod}`;
+
+  const el = document.createElement('div');
+  el.className = 'period-summary-flash';
+  el.innerHTML =
+    `<div class="period-summary-label">${pLabel} Complete</div>` +
+    `<div class="period-summary-line">${sa}-${sf} shots · ${ga}-${gf} goals · SV% ${svPct}</div>`;
+
+  const wrap = document.querySelector('.wrap');
+  const controls = $('gameControls');
+  if (wrap && controls) {
+    wrap.insertBefore(el, controls);
+  } else {
+    document.body.appendChild(el);
+  }
+
+  el.addEventListener('click', () => { if (el.parentNode) el.remove(); });
+  setTimeout(() => {
+    el.classList.add('period-summary-exit');
+    setTimeout(() => { if (el.parentNode) el.remove(); }, 300);
+  }, 4000);
+}
+```
+
+**File:** `css/styles.css` — Add:
+
+```css
+.period-summary-flash {
+  background: linear-gradient(180deg, rgba(18,20,25,0.97), rgba(10,11,13,0.99));
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  text-align: center;
+  animation: period-summary-in 0.3s ease-out;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.period-summary-label {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--warn);
+  margin-bottom: 4px;
+}
+.period-summary-line {
+  font-size: 14px;
+  font-weight: 600;
+  color: #eef3f8;
+}
+@keyframes period-summary-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.period-summary-exit {
+  animation: period-summary-out 0.3s ease-in forwards;
+}
+@keyframes period-summary-out {
+  to { opacity: 0; transform: translateY(-8px); }
+}
+```
+
+### 3B. Spectator "Just Joined" Context Card
+
+**Trigger:** On first successful data render in spectator mode.
+
+**Visual:** A dismissible card above the KPI grid showing a single-line game summary:
+
+> **P2 · Up 3-1 · 14-8 shots · SV% .917**
+
+Auto-dismisses after 8 seconds or on tap.
+
+**File:** `js/spectator.js` — After the first `renderState()` call (when `!lastState && incoming`):
+
+```javascript
+function showJoinedContext(s) {
+  const existing = document.querySelector('.spec-joined-card');
+  if (existing) return;
+
+  const pLabel = s.period === 4 ? 'OT' : `P${s.period}`;
+  const diff = s.goalsFor - s.goalsAgainst;
+  const result = diff > 0 ? `Up ${s.goalsFor}-${s.goalsAgainst}`
+    : diff < 0 ? `Down ${s.goalsFor}-${s.goalsAgainst}`
+    : `Tied ${s.goalsFor}-${s.goalsAgainst}`;
+  const sa = s.shotsAgainst || 0;
+  const ga = s.goalsAgainst || 0;
+  const saves = sa - ga;
+  const svStr = sa > 0
+    ? (saves / sa >= 1 ? '1.000' : '.' + String(Math.round((saves / sa) * 1000)).padStart(3, '0'))
+    : '—';
+
+  const el = document.createElement('div');
+  el.className = 'spec-joined-card';
+  el.textContent = `${pLabel} · ${result} · ${s.shotsAgainst}-${s.shotsFor} shots · SV% ${svStr}`;
+  el.addEventListener('click', () => { if (el.parentNode) el.remove(); });
+
+  const kpi = document.querySelector('.spec-kpi-grid');
+  if (kpi && kpi.parentNode) {
+    kpi.parentNode.insertBefore(el, kpi);
+  }
+
+  setTimeout(() => {
+    el.classList.add('spec-joined-exit');
+    setTimeout(() => { if (el.parentNode) el.remove(); }, 300);
+  }, 8000);
+}
+```
+
+Call `showJoinedContext(incoming)` in `fetchLiveState` when `!lastState && incoming && hasSeenLiveData` (first render).
+
+**File:** `css/styles.css` — Add:
+
+```css
+.spec-joined-card {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  background: rgba(9,14,24,0.84);
+  border: 1px solid #203149;
+  border-radius: 14px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #d5deee;
+  cursor: pointer;
+  animation: period-summary-in 0.3s ease-out;
+  -webkit-tap-highlight-color: transparent;
+}
+.spec-joined-exit {
+  animation: period-summary-out 0.3s ease-in forwards;
+}
+```
+
+### 3C. Coach Haptic Patterns on Goal
+
+**Trigger:** Goal For or Goal Against is recorded.
+
+**Current:** `vibrate(HAPTIC.tap)` — a single short pulse for all events.
+
+**Change:** Define distinct haptic patterns for goals:
+
+**File:** `js/app.js` — Find the `HAPTIC` constant definition and add:
+
+```javascript
+// Add to HAPTIC object:
+goalFor: [40, 60, 40],      // double-tap: quick-pause-quick
+goalAgainst: [80],           // single longer pulse
+```
+
+Then in the Goal For handler, use `vibrate(HAPTIC.goalFor)` instead of `vibrate(HAPTIC.tap)`. In the Goal Against handler, use `vibrate(HAPTIC.goalAgainst)`.
+
+---
+
+## PHASE 4 — Low Priority (Fit & Finish)
+
+### 4A. Coach Screen: Subtle FAB Ring
+
+**File:** `css/styles.css`
+
+| Element | Current | Change To |
+|---------|---------|-----------|
+| `.fab-undo` border | `2px solid var(--gray-500)` | `2px solid rgba(77,163,255,0.2)` |
+
+### 4B. Setup Screen: Calendar Icon on Date Field
+
+**File:** `index.html` — Inside `.setup-date-shell`, after `#dateDisplay`:
+
+```html
+<svg class="date-field-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+  <line x1="16" y1="2" x2="16" y2="6"/>
+  <line x1="8" y1="2" x2="8" y2="6"/>
+  <line x1="3" y1="10" x2="21" y2="10"/>
+</svg>
+```
+
+**File:** `css/styles.css` — Add:
+
+```css
+.date-field-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6b7d94;
+  pointer-events: none;
+}
+```
+
+### 4C. Spectator Screen: Truncate Insight Text on Narrow Screens
+
+**File:** `css/styles.css` — At `@media (max-width: 400px)`:
+
+```css
+.spec-intensity-text,
+.spec-momentum-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+```
+
+### 4D. Spectator Screen: Game Feed Start Anchor
+
+**File:** `js/spectator.js` — In `renderEvents()`, after building the event rows HTML, append a footer if events exist:
+
+```javascript
+if (rows.length) {
+  const earliest = rows[rows.length - 1];
+  const startTime = formatTimeLabel(earliest.tISO);
+  html += `<div class="spec-event-anchor">Game started${startTime ? ' at ' + escapeHtml(startTime) : ''}</div>`;
+}
+```
+
+**File:** `css/styles.css` — Add:
+
+```css
+.spec-event-anchor {
+  text-align: center;
+  font-size: 11px;
+  color: #4a5d7a;
+  padding: 12px 0 8px;
+  border-top: 1px solid #182336;
+}
+```
+
+---
+
+## Implementation Order & Estimates
+
+| Phase | Scope | Files Touched | Nature |
+|-------|-------|---------------|--------|
+| **1A** Button hierarchy | `css/styles.css` | CSS only |
+| **1B** SV% in header | `js/app.js` | ~8 lines JS |
+| **1C** Feature pills | `css/styles.css` | CSS only |
+| **2A** Hide redundant CTA | `js/app.js` | ~4 lines JS |
+| **2B** Matchup card transition | `css/styles.css` | CSS only |
+| **2C** Move +/- toggle | `index.html` | HTML move |
+| **2D** Context label visibility | `css/styles.css` | CSS only |
+| **2E** Next Period distinction | `css/styles.css` | CSS only |
+| **2F** KPI axis labels | `index.html`, `css/styles.css` | HTML + CSS |
+| **2G** Stale feed warning | `js/spectator.js`, `css/styles.css` | ~10 lines JS + CSS |
+| **3A** Period-end summary | `js/app.js`, `css/styles.css` | ~25 lines JS + CSS |
+| **3B** Joined context card | `js/spectator.js`, `css/styles.css` | ~25 lines JS + CSS |
+| **3C** Haptic patterns | `js/app.js` | ~4 lines JS |
+| **4A** FAB ring | `css/styles.css` | CSS only |
+| **4B** Calendar icon | `index.html`, `css/styles.css` | HTML + CSS |
+| **4C** Text truncation | `css/styles.css` | CSS only |
+| **4D** Feed anchor | `js/spectator.js`, `css/styles.css` | ~5 lines JS + CSS |
+
+**Recommended commit sequence:**
+1. Phase 1 (all three) — single commit: "Monetisation-ready: button hierarchy, header SV%, feature pills"
+2. Phase 2A-2E — single commit: "UX polish: setup flow, context labels, period button"
+3. Phase 2F-2G — single commit: "Spectator trust signals: axis labels, stale warning"
+4. Phase 3 — single commit: "New features: period summary, joined card, goal haptics"
+5. Phase 4 — single commit: "Fit and finish: FAB, calendar icon, truncation, feed anchor"

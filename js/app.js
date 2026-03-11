@@ -271,7 +271,8 @@ function updateSetupReadiness(){
 
   startBtn.disabled = !ready;
   startBtn.classList.toggle('disabled', !ready);
-  startBtn.textContent = ready ? 'Start Game' : team ? 'Enter Opponent to Start' : 'Add Team to Start';
+  startBtn.style.display = (!team && !savedGame) ? 'none' : '';
+  startBtn.textContent = ready ? 'Start Game' : 'Enter Opponent to Start';
 
   const hint = $('startHint');
   if(hint){
@@ -1849,10 +1850,10 @@ function updateMeta(){
   $('liveGA').textContent = A.goals;
 
   $('liveSF_sub').textContent = `SF: ${F.shots}`;
-  $('liveSA_sub').textContent = `SA: ${A.shots}`;
 
   const saves=Math.max(0,A.shots-A.goals);
   const svText = A.shots ? (saves/A.shots).toFixed(3).slice(1) : '—';
+  $('liveSA_sub').textContent = A.shots ? `SA: ${A.shots} · ${svText}` : `SA: 0`;
 
   $('savesVal').textContent = saves;
   $('svVal').textContent = `SV% ${svText}`;

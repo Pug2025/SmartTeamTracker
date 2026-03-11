@@ -26,6 +26,7 @@
   let lastGameId = null;
   let seenHatTrickPlayers = new Set();
   let lastMilestoneGF = 0;
+  let staleTimer = null;
 
   document.addEventListener('DOMContentLoaded', () => {
     const authScreen = $('authScreen');
@@ -356,6 +357,16 @@
         ? 'Live updates'
         : `Updated ${updated.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
     }
+    resetStaleTimer();
+  }
+
+  function resetStaleTimer() {
+    if (staleTimer) clearTimeout(staleTimer);
+    const meta = $('specMetaLine');
+    if (meta) meta.classList.remove('spec-meta-stale');
+    staleTimer = setTimeout(() => {
+      if (!spectatorEnded && meta) meta.classList.add('spec-meta-stale');
+    }, 30000);
   }
 
   function renderQuality(q) {

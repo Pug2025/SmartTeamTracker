@@ -1574,15 +1574,13 @@ function computeShotQuality() {
 /* ===== SCORING ENGINE ===== */
 function getSigmoidScore(actual, expected, spread) {
   const z = (actual - expected) / (spread || 1);
-  // Asymmetric curve: baseline at 72, ceiling ~98, floor ~5
-  // Upside: +3 spread units → ~96 (A+)
-  // Downside: -3 spread units → ~15 (F)
+  // Asymmetric S-curve: baseline 63 (C+), ceiling ~98, floor ~5
+  // Upside: 63 + 35 × (1 − e^(−z×0.7))  → +1σ≈81 (B+), +2σ≈89 (A), +3σ≈94 (A+)
+  // Downside: 63 − 58 × (1 − e^(z×0.5))  → −1σ≈40 (D+), −2σ≈26 (F+), −3σ≈18 (F)
   if (z >= 0) {
-    // Above expected: 72 → 98 (generous upside)
-    return Math.round(Math.min(100, 72 + 26 * (1 - Math.exp(-z * 0.8))));
+    return Math.round(Math.min(100, 63 + 35 * (1 - Math.exp(-z * 0.7))));
   } else {
-    // Below expected: 72 → 0 (steeper punishment)
-    return Math.round(Math.max(0, 72 * Math.exp(z * 0.55)));
+    return Math.round(Math.max(0, 63 - 58 * (1 - Math.exp(z * 0.5))));
   }
 }
 
@@ -1839,7 +1837,7 @@ function setRing(valEl, arcEl, sc){
   }
 
   valEl.textContent = sc;
-  const c = sc>=85 ? '#32d74b' : sc>=70 ? '#ff9f0a' : '#ff453a';
+  const c = sc>=80 ? '#32d74b' : sc>=63 ? '#ff9f0a' : '#ff453a';
   arcEl.style.stroke = c;
   arcEl.style.strokeDashoffset = String(220*(1-sc/100));
 }

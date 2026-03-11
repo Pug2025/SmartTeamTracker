@@ -1589,17 +1589,18 @@ function computeGoalieScore() {
   const shots = C.shots;
   const ga = C.goals;
 
-  // 1) Minimum Volume Check
-  if (shots < 5) {
-    return { total: 50, scoreSV: 0, softPenalty: 0, ctxAdj: 0, scoreRebound: 0, scoreBig: 0, goodRebounds: 0, smothers: 0 };
+  // 1) Minimum volume: below 2 shots there is no meaningful data
+  if (shots < 2) {
+    return { total: 63, scoreSV: 0, softPenalty: 0, ctxAdj: 0, scoreRebound: 0, scoreBig: 0, goodRebounds: 0, smothers: 0 };
   }
 
   const prof = LEVEL_PROFILES[normalizeLevelKey(state.level)] || LEVEL_PROFILES.Other;
   const baseSvPct = prof.goalieBaseSV;
 
-  // 2) Weighted shots/goals (context weighting + soft goal punishment)
+  // 2) Weighted shots/goals (context weighting + progressive soft goal penalty)
   let weightedShots = 0;
   let weightedGoals = 0;
+  let softGoalCount = 0;
 
   const defenseEvents = state.events.filter(e =>
     e.type === 'goal' || e.type === 'soft_goal' || e.type === 'shot' || e.type === 'big_save' || e.type === 'bad_rebound' || e.type === 'smother'
@@ -1614,9 +1615,10 @@ function computeGoalieScore() {
     // HD shots are harder to save — weight them higher
     if (ev.highDanger) wShot = 1.5;
 
-    // Big save: give additive bonus
+    // Big save: additive bonus (0.6 per save — enough that 3-4 big saves
+    // create a meaningful grade-level distinction)
     if (ev.type === 'big_save') {
-      bigSaveBonus += 0.3;
+      bigSaveBonus += 0.6;
     }
 
     if (ev.type === 'goal' || ev.type === 'soft_goal') {
@@ -1640,9 +1642,17 @@ function computeGoalieScore() {
         ctx === 'Clean Look';
 
       if (isSoft) {
-        wGoal = 2.0;
+        // Progressive soft goal penalty: 1st=1.5x, 2nd=2.0x, 3rd+=2.5x
+        softGoalCount++;
+        wGoal = softGoalCount === 1 ? 1.5 : softGoalCount === 2 ? 2.0 : 2.5;
       } else if (isHard) {
         wGoal = 0.5;
+      }
+
+      // PP goals against: goalie faces a man-advantage not their fault.
+      // Partially discount unless already classified as hard (0.5).
+      if (ev.strength === 'PP' && wGoal > 0.5) {
+        wGoal = isSoft ? 1.5 : 0.7;
       }
     }
 
@@ -1658,10 +1668,17 @@ function computeGoalieScore() {
   const expectedGoalsAllowed = weightedShots * (1 - baseSvPct);
   const GSAx = expectedGoalsAllowed - weightedGoals; // positive is good
 
-  // 5) Final goalie score: sigmoid with wider spread (3.0) for better range usage
-  //    Includes big save bonus (additive credit) and rebound influence
-  const goalieInput = GSAx + bigSaveBonus + (reboundScore * 0.15);
-  const totalScore = getSigmoidScore(goalieInput, 0, 3.0);
+  // 5) Final goalie score: sigmoid with spread 3.0
+  //    Big save bonus (0.6/save) and rebound control (×0.25) add meaningful signal
+  const goalieInput = GSAx + bigSaveBonus + (reboundScore * 0.25);
+  const rawScore = getSigmoidScore(goalieInput, 0, 3.0);
+
+  // 6) Volume-based confidence dampening: low shot counts regress toward baseline.
+  //    Prevents misleading extremes on 5-15 shot games.
+  //    At 20+ shots: full confidence. At 5 shots: 33% confidence.
+  const BASELINE = 63;
+  const confidence = Math.min(1.0, (shots - 2) / 18);
+  const totalScore = Math.round(BASELINE + confidence * (rawScore - BASELINE));
 
   return {
     total: totalScore,

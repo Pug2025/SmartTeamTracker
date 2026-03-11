@@ -271,7 +271,8 @@ function updateSetupReadiness(){
 
   startBtn.disabled = !ready;
   startBtn.classList.toggle('disabled', !ready);
-  startBtn.textContent = ready ? 'Start Game' : team ? 'Enter Opponent to Start' : 'Add Team to Start';
+  startBtn.style.display = (!team && !savedGame) ? 'none' : '';
+  startBtn.textContent = ready ? 'Start Game' : 'Enter Opponent to Start';
 
   const hint = $('startHint');
   if(hint){

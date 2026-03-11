@@ -838,6 +838,20 @@
     border-radius:16px;
     border:1px solid rgba(255,255,255,0.08);
     background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+    transition:max-height 0.3s ease, opacity 0.25s ease, margin 0.3s ease, padding 0.3s ease;
+    overflow:hidden;
+  }
+  .matchup-card.hidden{
+    display:block !important;
+    max-height:0;
+    opacity:0;
+    margin:0;
+    padding-top:0;
+    padding-bottom:0;
+    border-color:transparent;
+  }
+  .matchup-card:not(.hidden){
+    max-height:300px;
   }
   .matchup-head{
     display:flex;
@@ -1408,11 +1422,18 @@
   }
 
   .def-context-label{
-    font-size:9px;
+    font-size:10px;
     text-transform:uppercase;
     letter-spacing:0.8px;
-    opacity:0.6;
+    opacity:0.8;
     margin-top:2px;
+    padding-bottom:3px;
+  }
+  .theme-them .def-context-label{
+    border-bottom:1px solid rgba(255,69,58,0.15);
+  }
+  .theme-us .def-context-label{
+    border-bottom:1px solid rgba(77,163,255,0.15);
   }
 
   /* ===== Next Period Full-Width Bar ===== */
@@ -1421,8 +1442,9 @@
   }
   .next-period-btn{
     width:100%;
-    background:linear-gradient(135deg, #222, #1a1a1a);
-    border-color:#555;
+    background:linear-gradient(135deg, #252218, #1a1a1a);
+    border-color:rgba(255,159,10,0.45);
+    color:#ffd68a;
     font-size:13px;
     font-weight:700;
     border-radius:var(--radius-md);
@@ -2766,6 +2788,13 @@
   letter-spacing:0.5px;
   text-transform:uppercase;
 }
+.spec-kpi-axis{
+  float:right;
+  font-size:9px;
+  color:#5c6f8e;
+  letter-spacing:1px;
+  font-weight:600;
+}
 .spec-kpi-value{
   margin-top:3px;
   font-size:16px;
@@ -2947,6 +2976,10 @@
   font-size:11px;
   color:#8091b2;
   font-variant-numeric:tabular-nums;
+  transition:color 0.3s ease;
+}
+.spec-meta-stale{
+  color:rgba(255,159,10,0.6);
 }
 
 @media (max-width: 720px){

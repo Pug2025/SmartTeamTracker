@@ -192,15 +192,6 @@
         </div>
       </div>
 
-      <div class="setup-section-label">Tracking</div>
-      <div class="setup-toggle-row">
-        <div>
-          <div class="setup-toggle-title">Track +/-</div>
-          <div class="setup-toggle-copy">Prompt for the five skaters on the ice after each goal.</div>
-        </div>
-        <label class="switch"><input type="checkbox" id="togglePM" checked><span class="slider"></span></label>
-      </div>
-
       <div id="setupRequirement" class="setup-inline-note">Select your team and enter the opponent to start.</div>
       <div id="resumeBanner" class="banner setup-resume hidden">Your current game is saved. Resume it or start a new one.</div>
       <div id="setupActiveActions" class="setup-active-actions hidden">
@@ -209,6 +200,15 @@
       </div>
       <button id="btnStartGame" class="btn-start" disabled>Start Game</button>
       <div class="btn-start-hint" id="startHint"></div>
+
+      <div class="setup-section-label">Options</div>
+      <div class="setup-toggle-row">
+        <div>
+          <div class="setup-toggle-title">Track +/-</div>
+          <div class="setup-toggle-copy">Prompt for the five skaters on the ice after each goal.</div>
+        </div>
+        <label class="switch"><input type="checkbox" id="togglePM" checked><span class="slider"></span></label>
+      </div>
       <div class="setup-tertiary">
         <button id="btnHistory" class="btn-tertiary-link" type="button">Past Games</button>
         <button id="btnSeason" class="btn-tertiary-link" type="button">Season Stats</button>
@@ -868,15 +868,15 @@
 
   <div class="spec-kpi-grid">
     <div class="spec-kpi-card">
-      <div class="spec-kpi-label">Shots</div>
+      <div class="spec-kpi-label">Shots <span class="spec-kpi-axis">T – U</span></div>
       <div class="spec-kpi-value" id="specShotLine">0-0</div>
     </div>
     <div class="spec-kpi-card">
-      <div class="spec-kpi-label">Scoring Chances</div>
+      <div class="spec-kpi-label">Scoring Chances <span class="spec-kpi-axis">T – U</span></div>
       <div class="spec-kpi-value" id="specDangerLine">0-0</div>
     </div>
     <div class="spec-kpi-card">
-      <div class="spec-kpi-label">Penalties</div>
+      <div class="spec-kpi-label">Penalties <span class="spec-kpi-axis">T – U</span></div>
       <div class="spec-kpi-value" id="specPenaltyLine">0-0</div>
     </div>
     <div class="spec-kpi-card">

@@ -24,6 +24,8 @@
   let lastState = null;
   let lastUpdateMs = 0;
   let lastGameId = null;
+  let seenHatTrickPlayers = new Set();
+  let lastMilestoneGF = 0;
 
   document.addEventListener('DOMContentLoaded', () => {
     const authScreen = $('authScreen');
@@ -174,6 +176,7 @@
       quality: normalizeQuality(raw.quality),
       momentum: normalizeMomentum(raw.momentum),
       events: normalizeEvents(raw.events),
+      hatTricks: Array.isArray(raw.hatTricks) ? raw.hatTricks : [],
       final: !!raw.final
     };
 
@@ -302,11 +305,39 @@
     if (s.goalsFor !== prevGF) pulseScore('specGF');
     if (s.goalsAgainst !== prevGA) pulseScore('specGA');
 
+    // Hat trick celebration for spectators
+    if (s.hatTricks && s.hatTricks.length) {
+      s.hatTricks.forEach(ht => {
+        const key = ht.player + ':' + ht.goals;
+        if (!seenHatTrickPlayers.has(key)) {
+          seenHatTrickPlayers.add(key);
+          showSpecCelebration(ht.player, ht.goals);
+        }
+      });
+    }
+
+    // Score milestone toasts (every 3 goals for our team)
+    if (s.goalsFor > lastMilestoneGF && s.goalsFor >= 3 && s.goalsFor % 3 === 0) {
+      showSpecMilestone(s.goalsFor + ' goals! Keep it going!');
+    }
+    lastMilestoneGF = s.goalsFor;
+
+    // Shutout badge on spectator saves KPI
+    if ($('specSavesPct')) {
+      const safeGA = Number.isFinite(s.goalsAgainst) ? s.goalsAgainst : 0;
+      const safeSA = Number.isFinite(s.shotsAgainst) ? s.shotsAgainst : 0;
+      const pctText = `SV% ${formatSavePct(s.svPct, s.shotsAgainst)}`;
+      if (safeSA >= 5 && safeGA === 0) {
+        $('specSavesPct').innerHTML = escapeHtml(pctText) + ' <span class="shutout-badge">Shutout</span>';
+      } else {
+        $('specSavesPct').textContent = pctText;
+      }
+    }
+
     if ($('specPeriod')) $('specPeriod').textContent = periodLabel(s.period);
 
     renderSplitValue('specShotLine', s.shotsFor, s.shotsAgainst);
     if ($('specSaves')) $('specSaves').textContent = Number.isFinite(s.saves) ? `${Math.round(s.saves)}` : '0';
-    if ($('specSavesPct')) $('specSavesPct').textContent = `SV% ${formatSavePct(s.svPct, s.shotsAgainst)}`;
     renderSplitValue('specPenaltyLine', s.penaltiesFor, s.penaltiesAgainst);
 
     const hdFor = s.quality && Number.isFinite(s.quality.hdFor) ? s.quality.hdFor : 0;
@@ -580,13 +611,23 @@
   function pulseScore(id) {
     const el = $(id);
     if (!el) return;
-    const flashClass = id === 'specGF' ? 'score-flash-us' : 'score-flash-them';
+    const isUs = id === 'specGF';
+    const flashClass = isUs ? 'score-flash-us' : 'score-flash-them';
     el.classList.remove('score-bump', 'score-flash-us', 'score-flash-them');
     void el.offsetWidth;
     el.classList.add('score-bump', flashClass);
     setTimeout(() => {
       el.classList.remove('score-bump', flashClass);
     }, 520);
+    // Flash the scoreboard block border
+    const block = el.closest('.spec-score-block');
+    if(block){
+      const blockFlash = isUs ? 'flash-us' : 'flash-them';
+      block.classList.remove('flash-us', 'flash-them');
+      void block.offsetWidth;
+      block.classList.add(blockFlash);
+      setTimeout(() => block.classList.remove(blockFlash), 800);
+    }
   }
 
   function toNum(v) {
@@ -618,5 +659,43 @@
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
+  }
+
+  /* ===== Spectator Celebrations ===== */
+  function showSpecCelebration(player, goalCount) {
+    const existing = document.querySelector('.spec-celebration');
+    if (existing) existing.remove();
+
+    const el = document.createElement('div');
+    el.className = 'spec-celebration';
+    el.innerHTML =
+      '<div class="spec-celebration-card">' +
+        '<div class="spec-celeb-hat">\uD83C\uDFA9</div>' +
+        '<div class="spec-celeb-title">Hat Trick!</div>' +
+        '<div class="spec-celeb-detail">#' + escapeHtml(player) +
+        (goalCount > 3 ? ' \u2022 ' + goalCount + ' goals' : '') +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(el);
+
+    setTimeout(() => {
+      el.classList.add('spec-celeb-exit');
+      setTimeout(() => { if (el.parentNode) el.remove(); }, 350);
+    }, 5000);
+  }
+
+  function showSpecMilestone(msg) {
+    const existing = document.querySelector('.spec-milestone');
+    if (existing) existing.remove();
+
+    const el = document.createElement('div');
+    el.className = 'spec-milestone';
+    el.textContent = msg;
+    document.body.appendChild(el);
+
+    setTimeout(() => {
+      el.classList.add('exit');
+      setTimeout(() => { if (el.parentNode) el.remove(); }, 350);
+    }, 3500);
   }
 })();

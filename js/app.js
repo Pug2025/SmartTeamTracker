@@ -273,6 +273,13 @@ function updateSetupReadiness(){
   startBtn.classList.toggle('disabled', !ready);
   startBtn.textContent = ready ? 'Start Game' : team ? 'Enter Opponent to Start' : 'Add Team to Start';
 
+  const hint = $('startHint');
+  if(hint){
+    if(!ready && !team) hint.textContent = 'Select or create a team first, then add an opponent.';
+    else if(!ready && team) hint.textContent = 'Type an opponent name above to get started.';
+    else hint.textContent = '';
+  }
+
   historyBtn.disabled = !team;
   seasonBtn.disabled = !team;
   playerStatsBtn.disabled = !team;
@@ -975,6 +982,35 @@ function goalFlash(type){
   el.addEventListener('animationend', ()=>el.remove());
 }
 
+function checkHatTrick(ev){
+  const scorer = ev.player;
+  if(!scorer || scorer === '?' || scorer === 'Unknown') return;
+  const count = state.events.filter(e => e.type === 'for_goal' && e.player === scorer).length;
+  if(count >= 3) showHatTrickCelebration(scorer, count);
+}
+
+function showHatTrickCelebration(player, goalCount){
+  const existing = document.querySelector('.hat-trick-overlay');
+  if(existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'hat-trick-overlay';
+  overlay.innerHTML =
+    '<div class="hat-trick-card">' +
+      '<div class="hat-trick-hat">\uD83C\uDFA9</div>' +
+      '<div class="hat-trick-title">Hat Trick!</div>' +
+      '<div class="hat-trick-player">#' + escapeHTML(player) + '</div>' +
+      (goalCount > 3 ? '<div class="hat-trick-count">' + goalCount + ' goals this game</div>' : '') +
+    '</div>';
+  document.body.appendChild(overlay);
+
+  overlay.addEventListener('click', () => overlay.remove());
+  setTimeout(() => {
+    if(overlay.parentNode) overlay.remove();
+  }, 4000);
+}
+
+
 function undo(){
   const ev = state.events.pop();
   if(!ev) return;
@@ -1423,17 +1459,21 @@ function openStrengthPicker(ev, label){
 $('strengthModal').addEventListener('click', e=>{
   const b=e.target.closest('.pickerBtn');
   if(!b||!strengthTarget)return;
-  strengthTarget.strength=b.dataset.strength;
+  const ev = strengthTarget;
+  ev.strength=b.dataset.strength;
   save();
   $('strengthModal').style.display='none';
   strengthTarget=null;
   renderAll();
+  if(ev.type==='for_goal') checkHatTrick(ev);
 });
 $('strengthSkip').addEventListener('click', ()=>{
   // requirement: prompt exists; allow skip, but leave undefined
+  const ev = strengthTarget;
   $('strengthModal').style.display='none';
   strengthTarget=null;
   renderAll();
+  if(ev && ev.type==='for_goal') checkHatTrick(ev);
 });
 
 /* PlusMinus / Stats / Scoring */
@@ -4085,7 +4125,7 @@ async function resetSeasonStats(){
 }
 async function loadSeasonPanel(){
   $('seasonPanel').style.display = 'block';
-  $('seasonBody').innerHTML = '<div style="text-align:center; padding:20px; color:var(--muted);">Loading...</div>';
+  $('seasonBody').innerHTML = SKELETON_HTML;
   try{
     const games = await fetchScopedGames(100);
     $('btnSeasonReset').classList.toggle('hidden', !games.length);
@@ -4096,7 +4136,7 @@ async function loadSeasonPanel(){
     renderSeasonDashboard(games);
   }catch(e){
     console.error(e);
-    $('seasonBody').innerHTML = '<div style="text-align:center; padding:20px; color:var(--accent-them);">Failed to load. Check your connection.</div>';
+    $('seasonBody').innerHTML = '<div class="text-center" style="padding:20px; color:var(--accent-them);">Failed to load. Check your connection.</div>';
   }
 }
 async function refreshSeasonPanelIfOpen(){
@@ -4105,7 +4145,7 @@ async function refreshSeasonPanelIfOpen(){
 }
 async function loadPlayerStatsPanel(){
   $('playerStatsPanel').style.display = 'block';
-  $('playerStatsBody').innerHTML = '<div style="text-align:center; padding:20px; color:var(--muted);">Loading...</div>';
+  $('playerStatsBody').innerHTML = SKELETON_HTML;
   try{
     const games = await fetchScopedGames(100);
     $('btnPlayerStatsReset').classList.toggle('hidden', !games.length);
@@ -4115,7 +4155,7 @@ async function loadPlayerStatsPanel(){
     $('btnPlayerStatsReset').classList.add('hidden');
     $('playerDetailModal').style.display = 'none';
     currentPlayerDetailKey = null;
-    $('playerStatsBody').innerHTML = '<div style="text-align:center; padding:20px; color:var(--accent-them);">Failed to load. Check your connection.</div>';
+    $('playerStatsBody').innerHTML = '<div class="text-center" style="padding:20px; color:var(--accent-them);">Failed to load. Check your connection.</div>';
   }
 }
 async function refreshPlayerStatsPanelIfOpen(){
@@ -4125,17 +4165,17 @@ async function refreshPlayerStatsPanelIfOpen(){
 async function loadHistoryPanel(){
   resetHistorySwipeState();
   $('historyPanel').style.display = 'block';
-  $('historyList').innerHTML = '<div style="text-align:center; padding:20px; color:var(--muted);">Loading...</div>';
+  $('historyList').innerHTML = SKELETON_HTML;
   try{
     const games = await fetchScopedGames(50);
     if(!games.length){
-      $('historyList').innerHTML = '<div style="text-align:center; padding:20px;">No past games found.</div>';
+      $('historyList').innerHTML = '<div class="text-center" style="padding:20px;">No past games found.</div>';
       return;
     }
     renderHistoryList(games);
   }catch(e){
     console.error(e);
-    $('historyList').innerHTML = '<div style="text-align:center; padding:20px; color:var(--accent-them);">Failed to load games. Check your connection.</div>';
+    $('historyList').innerHTML = '<div class="text-center" style="padding:20px; color:var(--accent-them);">Failed to load games. Check your connection.</div>';
   }
 }
 $('btnHistory').addEventListener('click', async ()=>{
@@ -4389,8 +4429,9 @@ $('gameDetailDelete').addEventListener('click', async ()=>{
 });
 
 /* ===== Season Dashboard ===== */
-const NO_GAMES_MESSAGE = '<div style="text-align:center; padding:20px;">No games yet — play some games first!</div>';
-const NO_PLAYER_STATS_MESSAGE = '<div style="text-align:center; padding:20px;">No saved player data yet. Player stats will start with games completed after this update.</div>';
+const SKELETON_HTML = '<div class="skeleton-loader"><div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line"></div></div>';
+const NO_GAMES_MESSAGE = '<div class="text-center" style="padding:20px;">No games yet — play some games first!</div>';
+const NO_PLAYER_STATS_MESSAGE = '<div class="text-center" style="padding:20px;">No saved player data yet. Player stats will start with games completed after this update.</div>';
 
 $('btnSeason').addEventListener('click', async ()=>{
   if(!getActiveTeamSafe()){
@@ -5100,6 +5141,17 @@ function buildLiveState() {
     ? Math.round((1000 * state.countsF.shots) / (state.countsF.shots + state.countsA.shots)) / 10
     : null;
 
+  // Compute hat tricks for spectator celebrations
+  const goalsByPlayer = {};
+  state.events.forEach(e => {
+    if(e.type === 'for_goal' && e.player && e.player !== '?' && e.player !== 'Unknown'){
+      goalsByPlayer[e.player] = (goalsByPlayer[e.player] || 0) + 1;
+    }
+  });
+  const hatTricks = Object.entries(goalsByPlayer)
+    .filter(([,c]) => c >= 3)
+    .map(([p,c]) => ({ player: p, goals: c }));
+
   const keyEvents = state.events
     .filter(e => [
       'goal',
@@ -5159,7 +5211,8 @@ function buildLiveState() {
     penaltiesAgainst: state.team.penaltiesAgainst || 0,
     quality,
     momentum,
-    events: keyEvents
+    events: keyEvents,
+    hatTricks: hatTricks.length ? hatTricks : undefined
   };
 }
 

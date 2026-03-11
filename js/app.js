@@ -856,6 +856,7 @@ function addEvent(type, meta={}){
         revert(prev);
         // Upgrade it
         prev.type = type;
+        Object.assign(prev, meta);
         // Re-apply with new type
         bump(type, prev.period);
         // Handle good rebound credit
@@ -3284,7 +3285,7 @@ $('btnBreakaway').onclick=function(){ flashBtn(this); addEvent('breakaway_agains
 $('btnDZTurnover').onclick=function(){ flashBtn(this); addEvent('dz_turnover'); };
 
 $('btnSmother').onclick=function(){ flashBtn(this); addEvent('smother'); };
-$('btnBigSave').onclick=function(){ flashBtn(this); addEvent('big_save'); };
+$('btnBigSave').onclick=function(){ flashBtn(this); addEvent('big_save',{highDanger:true}); };
 
 $('btnBreakawayFor').onclick=function(){ flashBtn(this); lastBreakawayForTap = Date.now(); addEvent('breakaway_for'); };
 $('btnOddManRushFor').onclick=function(){ flashBtn(this); addEvent('odd_man_rush_for'); };

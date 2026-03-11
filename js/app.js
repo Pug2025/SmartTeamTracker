@@ -77,6 +77,43 @@ let prefs = { trackPlusMinus: true };
 try { const p = JSON.parse(localStorage.getItem(PREFS_KEY)); if(p) prefs = {...prefs, ...p}; } catch(_){}
 function savePrefs(){ try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch(_){} }
 
+/* localStorage quota management */
+let _quotaWarned = false;
+function estimateStorageUsage(){
+  let total = 0;
+  try{
+    for(let i = 0; i < localStorage.length; i++){
+      const key = localStorage.key(i);
+      total += (key.length + (localStorage.getItem(key) || '').length) * 2; // UTF-16
+    }
+  }catch(_){}
+  return total;
+}
+function checkStorageQuota(additionalBytes){
+  if(_quotaWarned) return;
+  const used = estimateStorageUsage();
+  const limit = 5 * 1024 * 1024; // 5MB typical localStorage limit
+  const threshold = limit * 0.8;
+  if((used + (additionalBytes || 0) * 2) > threshold){
+    _quotaWarned = true;
+    if(typeof showStatusToast === 'function'){
+      showStatusToast('Storage nearly full — consider syncing to cloud', 'warn', 5000);
+    }
+  }
+}
+function pruneOfflineQueue(){
+  // Remove successfully synced items from the offline queue to free space
+  try{
+    const q = JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY)) || [];
+    if(q.length > 3){
+      // Keep only the 3 most recent queued games
+      localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(q.slice(-3)));
+    }
+  }catch(_){
+    try{ localStorage.removeItem(OFFLINE_QUEUE_KEY); }catch(_e){}
+  }
+}
+
 // Shared with the live-share helpers; it must exist before init() runs because
 // the setup header now hides live-share UI on first paint.
 let _liveShareBannerTimer = null;
@@ -301,7 +338,7 @@ const state = {
   date:null,
   period:1,
   startedAt:new Date().toISOString(),
-  gameId:Math.random().toString(36).slice(2),
+  gameId:crypto.randomUUID(),
   events:[],
   countsA:{shots:0, goals:0, softGoals:0, smothers:0, badRebounds:0, bigSaves:0},
   countsF:{shots:0, goals:0},
@@ -468,6 +505,14 @@ function refreshCloudStatus(){
   }catch(_){}
 }
 
+/* Authenticated fetch helper — attaches Firebase ID token when available */
+async function authHeaders(extra) {
+  const h = Object.assign({ 'Content-Type': 'application/json' }, extra || {});
+  const token = typeof window.getAuthToken === 'function' ? await window.getAuthToken() : null;
+  if (token) h['Authorization'] = `Bearer ${token}`;
+  return h;
+}
+
 /* Keep the connection indicator in sync with /api/ping */
 let lastCloudPingAt = 0;
 async function pingCloud(){
@@ -508,9 +553,16 @@ async function save(){
   if(IS_SPECTATOR_MODE) return;
   try{
     const json = JSON.stringify(state);
+    checkStorageQuota(json.length);
     localStorage.setItem(SAVE_KEY,json);
     await idbKV.set(SAVE_KEY,json);
-  }catch(_){}
+  }catch(e){
+    if(e.name === 'QuotaExceededError' || (e.code && e.code === 22)){
+      showStatusToast('Storage full — old queued games cleared', 'warn', 4000);
+      pruneOfflineQueue();
+      try{ localStorage.setItem(SAVE_KEY,JSON.stringify(state)); }catch(_){}
+    }
+  }
   // Push to live spectator API if sharing
   if(state.shareCode) pushLiveState();
 }
@@ -2450,7 +2502,7 @@ function resetCurrentGame(){
   state.team = {breakawaysAgainst:0, dzTurnovers:0, breakawaysFor:0, oddManRushFor:0, oddManRushAgainst:0, penaltiesFor:0, penaltiesAgainst:0, missedChancesFor:0, missedChancesAgainst:0, forcedTurnovers:0};
   per = {1:initP(), 2:initP(), 3:initP(), 4:initP()};
 
-  state.gameId = Math.random().toString(36).slice(2);
+  state.gameId = crypto.randomUUID();
   state.startedAt = new Date().toISOString();
   state.lastEventId = 0;
 
@@ -2486,7 +2538,7 @@ async function saveGameToCloud(game){
     setCloudStatus('Saving','warn');
     const res = await fetch('/api/save-game',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers: await authHeaders(),
       body:JSON.stringify({game})
     });
     const d=await res.json();
@@ -2529,7 +2581,7 @@ async function flushOfflineQueue(){
     try{
       const res = await fetch('/api/save-game',{
         method:'POST',
-        headers:{'Content-Type':'application/json'},
+        headers: await authHeaders(),
         body:JSON.stringify({game})
       });
       const d = await res.json();
@@ -3941,7 +3993,7 @@ async function ensureSetupGamesCache(force = false){
 async function fetchScopedOpponents(limit = 100){
   const url = buildOpponentsApiUrl(limit);
   if(!url) return [];
-  const res = await fetch(url, { cache:'no-store' });
+  const res = await fetch(url, { cache:'no-store', headers: await authHeaders() });
   const data = await res.json();
   if(!res.ok || !data.success) throw new Error(data.error || 'Opponent fetch failed');
   return Array.isArray(data.opponents) ? data.opponents : [];
@@ -4091,7 +4143,7 @@ async function saveOpponentName(opponentName){
   };
   const res = await fetch('/api/opponents', {
     method:'POST',
-    headers:{ 'Content-Type':'application/json' },
+    headers: await authHeaders(),
     body:JSON.stringify({ opponent: payload })
   });
   const data = await res.json().catch(() => ({}));
@@ -4115,7 +4167,7 @@ async function deleteOpponentRecord(opponentId){
     'team_id=' + encodeURIComponent(teamId)
   ];
   if(userId) params.push('user_id=' + encodeURIComponent(userId));
-  const res = await fetch('/api/opponents?' + params.join('&'), { method:'DELETE' });
+  const res = await fetch('/api/opponents?' + params.join('&'), { method:'DELETE', headers: await authHeaders() });
   const data = await res.json().catch(() => ({}));
   if(!res.ok || !data.success){
     throw new Error(data.error || 'Opponent delete failed');
@@ -4133,13 +4185,13 @@ function buildGamesApiUrl({ limit = 50, id = null, includeLimit = true, opponent
   return '/api/games' + (params.length ? '?' + params.join('&') : '');
 }
 async function fetchScopedGames(limit = 50){
-  const res = await fetch(buildGamesApiUrl({ limit }), { cache:'no-store' });
+  const res = await fetch(buildGamesApiUrl({ limit }), { cache:'no-store', headers: await authHeaders() });
   const data = await res.json();
   if(!data.success) throw new Error(data.error || 'Fetch failed');
   return data.games || [];
 }
 async function deleteGameRecord(gameId){
-  const res = await fetch(buildGamesApiUrl({ id:gameId, includeLimit:false }), { method:'DELETE' });
+  const res = await fetch(buildGamesApiUrl({ id:gameId, includeLimit:false }), { method:'DELETE', headers: await authHeaders() });
   const data = await res.json().catch(() => ({}));
   if(!res.ok || !data.success){
     throw new Error(data.error || 'Delete failed');
@@ -4166,7 +4218,7 @@ async function deleteOpponentAndGames(opponentId, opponentName){
 
   let deletedGames = matchingGames.length;
   try{
-    const gamesRes = await fetch(buildGamesApiUrl({ includeLimit:false, opponent:cleanedName }), { method:'DELETE' });
+    const gamesRes = await fetch(buildGamesApiUrl({ includeLimit:false, opponent:cleanedName }), { method:'DELETE', headers: await authHeaders() });
     const gamesData = await gamesRes.json().catch(() => ({}));
     if(!gamesRes.ok || !gamesData.success){
       throw new Error(gamesData.error || 'Opponent game delete failed');
@@ -4195,7 +4247,7 @@ async function resetSeasonStats(){
   if(!ok) return;
 
   try{
-    const res = await fetch(buildGamesApiUrl({ includeLimit:false }), { method:'DELETE' });
+    const res = await fetch(buildGamesApiUrl({ includeLimit:false }), { method:'DELETE', headers: await authHeaders() });
     const data = await res.json().catch(() => ({}));
     if(!res.ok || !data.success){
       throw new Error(data.error || 'Reset failed');
@@ -5081,8 +5133,10 @@ let _livePushQueued = false;
 
 function generateShareCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
   let code = '';
-  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  for (let i = 0; i < 8; i++) code += chars[bytes[i] % chars.length];
   return code;
 }
 
@@ -5370,14 +5424,12 @@ async function pushLiveState() {
   try {
     do {
       _livePushQueued = false;
-      const uid = typeof window.getAuthUserId === 'function' ? window.getAuthUserId() : null;
       const res = await fetch('/api/live-game', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await authHeaders(),
         body: JSON.stringify({
           share_code: state.shareCode,
           game_id: state.gameId,
-          user_id: uid,
           state: buildLiveState()
         })
       });
@@ -5407,14 +5459,12 @@ async function endLiveShare() {
 
   // Push one last update with final flag
   try {
-    const uid = typeof window.getAuthUserId === 'function' ? window.getAuthUserId() : null;
     await fetch('/api/live-game', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await authHeaders(),
       body: JSON.stringify({
         share_code: code,
         game_id: state.gameId,
-        user_id: uid,
         state: { ...buildLiveState(), final: true }
       })
     });
@@ -5428,7 +5478,7 @@ async function endLiveShare() {
   // Delete the record after 5 minutes so spectators have time to see final score
   setTimeout(async () => {
     try {
-      await fetch(`/api/live-game?code=${encodeURIComponent(code)}`, { method: 'DELETE' });
+      await fetch(`/api/live-game?code=${encodeURIComponent(code)}`, { method: 'DELETE', headers: await authHeaders() });
     } catch (_) {}
   }, 5 * 60 * 1000);
 }
@@ -5444,7 +5494,7 @@ async function stopLiveShare() {
   // Delete from server immediately (manual stop = no need to linger)
   if (code) {
     try {
-      await fetch(`/api/live-game?code=${encodeURIComponent(code)}`, { method: 'DELETE' });
+      await fetch(`/api/live-game?code=${encodeURIComponent(code)}`, { method: 'DELETE', headers: await authHeaders() });
     } catch (_) {}
   }
 }

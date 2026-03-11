@@ -1,3 +1,6 @@
+import { authenticateRequest } from './_auth.js';
+import { checkRateLimit, sendRateLimited } from './_rate-limit.js';
+
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   if (req.method === "OPTIONS") return res.status(200).end();
@@ -9,10 +12,15 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Server configuration error" });
   }
 
+  // Authenticate
+  const auth = await authenticateRequest(req, res);
+  if (auth === null) return;
+  const uid = auth.uid;
+
   if (req.method === "GET") {
     try {
       const teamId = req.query.team_id || null;
-      const userId = req.query.user_id || null;
+      const userId = uid || req.query.user_id || null;
       const limit = Math.min(Number(req.query.limit) || 25, 100);
 
       if (!teamId) {
@@ -46,6 +54,11 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "POST") {
+    // Rate limit: 20 writes/min per user
+    const rateLimitKey = uid ? `opp:${uid}` : `opp:ip:${req.headers['x-forwarded-for'] || 'unknown'}`;
+    const rl = await checkRateLimit({ supabaseUrl, supabaseKey, key: rateLimitKey, limit: 20 });
+    if (!rl.allowed) return sendRateLimited(res, rl.retryAfter);
+
     try {
       const payload = typeof req.body === "object" && req.body ? req.body : JSON.parse(await readBody(req));
       const opponent = payload && payload.opponent;
@@ -56,7 +69,8 @@ export default async function handler(req, res) {
 
       const teamId = String(opponent.team_id || "").trim();
       const name = String(opponent.name || "").trim();
-      const userId = opponent.user_id ? String(opponent.user_id).trim() : null;
+      // Use verified uid instead of client-supplied user_id
+      const userId = uid || (opponent.user_id ? String(opponent.user_id).trim() : null);
       const lastPlayedAt = typeof opponent.last_played_at === "string" && opponent.last_played_at.trim()
         ? opponent.last_played_at.trim()
         : null;
@@ -149,22 +163,24 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "DELETE") {
+    // Deletes require authentication
+    if (!uid) {
+      return res.status(401).json({ error: "Authentication required for delete operations" });
+    }
+
     try {
       const id = req.query.id || null;
       const teamId = req.query.team_id || null;
-      const userId = req.query.user_id || null;
 
       if (!id) {
         return res.status(400).json({ error: "Missing opponent id" });
       }
 
-      let deleteUrl = `${supabaseUrl}/rest/v1/opponents?id=eq.${encodeURIComponent(id)}`;
+      // Scope delete to authenticated user
+      let deleteUrl = `${supabaseUrl}/rest/v1/opponents?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(uid)}`;
       if (teamId) {
         deleteUrl += `&team_id=eq.${encodeURIComponent(teamId)}`;
       }
-      deleteUrl += userId
-        ? `&user_id=eq.${encodeURIComponent(userId)}`
-        : `&user_id=is.null`;
 
       const response = await fetch(deleteUrl, {
         method: "DELETE",

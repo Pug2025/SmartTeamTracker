@@ -2063,12 +2063,8 @@ function updateMeta(){
     const K = computeGoalieScore(), T = computeTeamScore();
     setRing($('goalieScoreNum'),$('gsArc'),K.total);
     setRing($('teamScoreNum'),$('tsArc'),T.total);
-    // Confidence dampening indicator
-    if(K.confidence < 1){
-      $('goalieConfidence').textContent = `Low volume \u2014 ${K.shots} shot${K.shots !== 1 ? 's' : ''}`;
-    } else {
-      $('goalieConfidence').textContent = '';
-    }
+    // Dampening works silently — no live-game indicator
+    $('goalieConfidence').textContent = '';
   }
 
   // per-period cards (clean: header already says P1/P2/P3/OT)
@@ -2248,11 +2244,11 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
     `<div style="font-size:11px; color:var(--muted); text-align:right; margin:-2px 0 4px 0;">${K.scoreBig} big save${K.scoreBig !== 1 ? 's' : ''}</div>` +
     (K.softPenalty > 0 ? `<div style="font-size:12px; color:var(--accent-them); font-weight:700; text-align:right; margin-top:2px;">${K.softPenalty} soft goal${K.softPenalty !== 1 ? 's' : ''} allowed</div>` : '');
 
-  // Summary confidence dampening indicator
+  // Summary confidence note — only shown for very low shot counts
   const confSum = $('goalieConfidenceSum');
   if(confSum){
-    if(K.confidence < 1){
-      confSum.textContent = `Score moderated: only ${K.shots} shots faced. 20+ shots for full confidence.`;
+    if(K.shots < 10){
+      confSum.textContent = `Based on ${K.shots} shot${K.shots !== 1 ? 's' : ''}`;
     } else {
       confSum.textContent = '';
     }
@@ -3011,8 +3007,8 @@ return;
     const band = sc >= 80 ? 'Excellent' : sc >= 63 ? 'Solid' : sc >= 45 ? 'Below Average' : 'Poor';
     let html = `<div class="ring-band">${sc}/100 &mdash; ${band}</div>`;
     html += `<div class="ring-basis">Based on ${K.shots} shot${K.shots !== 1 ? 's' : ''}</div>`;
-    if(K.confidence < 1){
-      html += `<div class="ring-confidence-note">Score is moderated &mdash; more shots will sharpen the rating.</div>`;
+    if(K.shots < 10){
+      html += `<div class="ring-confidence-note">Score stabilizes as shot count increases.</div>`;
     }
     tip.innerHTML = html;
     tip.classList.add('active');

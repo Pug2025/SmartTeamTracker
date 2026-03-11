@@ -953,7 +953,6 @@ function addEvent(type, meta={}){
     triggerPulse('liveGF','good');
     goalFlash('good');
     vibrate(HAPTIC.goal);
-    checkHatTrick(ev);
   } else {
     vibrate(HAPTIC.tap);
   }
@@ -1460,17 +1459,21 @@ function openStrengthPicker(ev, label){
 $('strengthModal').addEventListener('click', e=>{
   const b=e.target.closest('.pickerBtn');
   if(!b||!strengthTarget)return;
-  strengthTarget.strength=b.dataset.strength;
+  const ev = strengthTarget;
+  ev.strength=b.dataset.strength;
   save();
   $('strengthModal').style.display='none';
   strengthTarget=null;
   renderAll();
+  if(ev.type==='for_goal') checkHatTrick(ev);
 });
 $('strengthSkip').addEventListener('click', ()=>{
   // requirement: prompt exists; allow skip, but leave undefined
+  const ev = strengthTarget;
   $('strengthModal').style.display='none';
   strengthTarget=null;
   renderAll();
+  if(ev && ev.type==='for_goal') checkHatTrick(ev);
 });
 
 /* PlusMinus / Stats / Scoring */

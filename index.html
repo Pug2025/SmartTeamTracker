@@ -315,7 +315,7 @@
       </div>
 
       <div class="ringsRow">
-        <div class="ringCard">
+        <div class="ringCard" id="goalieRingCard">
           <div class="small mb-sm">Goalie Score</div>
           <div class="scoreRing">
             <svg viewBox="0 0 80 80" class="ringSvg">
@@ -324,8 +324,10 @@
             </svg>
             <div class="val" id="goalieScoreNum">—</div>
           </div>
+          <div class="ring-confidence" id="goalieConfidence"></div>
+          <div class="ring-tooltip" id="goalieRingTooltip"></div>
         </div>
-        <div class="ringCard">
+        <div class="ringCard" id="teamRingCard">
           <div class="small mb-sm">Team Score</div>
           <div class="scoreRing">
             <svg viewBox="0 0 80 80" class="ringSvg">
@@ -334,6 +336,7 @@
             </svg>
             <div class="val" id="teamScoreNum">—</div>
           </div>
+          <div class="ring-tooltip" id="teamRingTooltip"></div>
         </div>
       </div>
 
@@ -426,6 +429,7 @@
           </svg>
           <div class="val" id="goalieScoreNumSum">—</div>
         </div>
+        <div class="ring-confidence" id="goalieConfidenceSum"></div>
       </div>
       <div class="ringCard">
         <div class="small mb-sm">Team Score</div>
@@ -443,12 +447,20 @@
     <div class="sum-section">
       <div class="sum-section-label">Team Score Breakdown</div>
       <div id="teamCompBars"></div>
+      <div class="score-explain-toggle" id="teamExplainToggle">How is this scored?</div>
+      <div class="score-explain-panel hidden" id="teamExplainPanel">
+        Combines five areas: Result (25%), Possession (20%), Danger Control (20%), Shot Quality (20%), and Discipline (15%). Each is scored 0&ndash;100 and weighted into the total.
+      </div>
     </div>
 
     <!-- Goalie Score Breakdown -->
     <div class="sum-section">
       <div class="sum-section-label">Goalie Score Breakdown</div>
       <div id="goalieCompBars"></div>
+      <div class="score-explain-toggle" id="goalieExplainToggle">How is this scored?</div>
+      <div class="score-explain-panel hidden" id="goalieExplainPanel">
+        Combines save percentage adjusted for shot difficulty, big saves, rebound control, and soft goals. Context matters &mdash; breakaway and screen goals are weighted less against the goalie.
+      </div>
     </div>
 
     <!-- Shots & Scoring -->
@@ -756,12 +768,14 @@
       <h4>Team Score (0&ndash;100)</h4>
       <p>Overall team performance combining five areas:</p>
       <ul>
+        <li><strong>Result (25%)</strong> &mdash; Weighted goal differential (PP goals discounted, SH goals bonused)</li>
         <li><strong>Possession (20%)</strong> &mdash; Shot share (your shots vs total shots)</li>
         <li><strong>Danger Control (20%)</strong> &mdash; Breakaways + odd man rushes + forced turnovers created vs given up</li>
-        <li><strong>Shot Quality (15%)</strong> &mdash; Are your chances better than theirs overall</li>
-        <li><strong>Result (35%)</strong> &mdash; Goal differential, with SH goals against weighted less</li>
-        <li><strong>Discipline (10%)</strong> &mdash; Penalties drawn vs penalties taken</li>
+        <li><strong>Shot Quality (20%)</strong> &mdash; Are your chances higher quality per shot than theirs</li>
+        <li><strong>Discipline (15%)</strong> &mdash; Penalties drawn vs penalties taken</li>
       </ul>
+      <h4>A Note on Subjective Tags</h4>
+      <p>Some inputs &mdash; like Soft Goal, Big Save, and High Danger &mdash; are your judgment calls as coach. The scoring model trusts your observations. There&rsquo;s no benefit to over- or under-tagging, so just call what you see.</p>
     </div>
 
     <hr class="help-divider">

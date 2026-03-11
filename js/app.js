@@ -1591,7 +1591,7 @@ function computeGoalieScore() {
 
   // 1) Minimum volume: below 2 shots there is no meaningful data
   if (shots < 2) {
-    return { total: 63, scoreSV: 0, softPenalty: 0, ctxAdj: 0, scoreRebound: 0, scoreBig: 0, goodRebounds: 0, smothers: 0 };
+    return { total: 63, scoreSV: 0, softPenalty: 0, ctxAdj: 0, scoreRebound: 0, scoreBig: 0, goodRebounds: 0, smothers: 0, confidence: 0, shots: shots };
   }
 
   const prof = LEVEL_PROFILES[normalizeLevelKey(state.level)] || LEVEL_PROFILES.Other;
@@ -1691,7 +1691,9 @@ function computeGoalieScore() {
     scoreRebound: Math.round(reboundScore),
     scoreBig: C.bigSaves,
     goodRebounds: goodRebounds,
-    smothers: C.smothers
+    smothers: C.smothers,
+    confidence: confidence,
+    shots: shots
   };
 }
 
@@ -2000,10 +2002,21 @@ function updateMeta(){
     $('tsArc').style.stroke = '#333';
     $('gsArc').style.strokeDashoffset = '220';
     $('tsArc').style.strokeDashoffset = '220';
+    $('goalieConfidence').textContent = '';
+    // Clear tooltips on reset
+    const gTip = $('goalieRingTooltip'), tTip = $('teamRingTooltip');
+    if(gTip) gTip.classList.remove('active');
+    if(tTip) tTip.classList.remove('active');
   } else {
     const K = computeGoalieScore(), T = computeTeamScore();
     setRing($('goalieScoreNum'),$('gsArc'),K.total);
     setRing($('teamScoreNum'),$('tsArc'),T.total);
+    // Confidence dampening indicator
+    if(K.confidence < 1){
+      $('goalieConfidence').textContent = `Low volume \u2014 ${K.shots} shot${K.shots !== 1 ? 's' : ''}`;
+    } else {
+      $('goalieConfidence').textContent = '';
+    }
   }
 
   // per-period cards (clean: header already says P1/P2/P3/OT)
@@ -2168,20 +2181,30 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
   // Build meaningful bars from goalie data
   const gkColor = function(s){ return s >= 60 ? 'var(--good)' : s >= 40 ? 'var(--warn)' : 'var(--accent-them)'; };
 
-  // GSAx: normalize around 0 to a 0-100 bar. GSAx of 0 = 50, positive is better.
+  // Save Quality (GSAx): normalize around 0 to a 0-100 bar. 0 = 50, positive is better.
   const gsaxNorm = Math.max(0, Math.min(100, 50 + (K.ctxAdj * 15)));
 
   // Rebound control: normalize. Score of 0 = 50, positive = better.
   const rebNorm = Math.max(0, Math.min(100, 50 + (K.scoreRebound * 8)));
 
   $('goalieCompBars').innerHTML =
-    compBar('GSAx', gsaxNorm, gkColor(gsaxNorm)) +
+    compBar('Save Quality', gsaxNorm, gkColor(gsaxNorm)) +
     `<div style="font-size:11px; color:var(--muted); text-align:right; margin:-2px 0 6px 0;">${K.ctxAdj > 0 ? '+' : ''}${K.ctxAdj} goals saved above expected</div>` +
     compBar('Rebounds', rebNorm, gkColor(rebNorm)) +
     `<div style="font-size:11px; color:var(--muted); text-align:right; margin:-2px 0 6px 0;">${goodReb} good, ${state.countsA.badRebounds} bad, ${state.countsA.smothers} smothered</div>` +
     compBar('Big Saves', Math.min(100, K.scoreBig * 25), gkColor(Math.min(100, K.scoreBig * 25))) +
     `<div style="font-size:11px; color:var(--muted); text-align:right; margin:-2px 0 4px 0;">${K.scoreBig} big save${K.scoreBig !== 1 ? 's' : ''}</div>` +
     (K.softPenalty > 0 ? `<div style="font-size:12px; color:var(--accent-them); font-weight:700; text-align:right; margin-top:2px;">${K.softPenalty} soft goal${K.softPenalty !== 1 ? 's' : ''} allowed</div>` : '');
+
+  // Summary confidence dampening indicator
+  const confSum = $('goalieConfidenceSum');
+  if(confSum){
+    if(K.confidence < 1){
+      confSum.textContent = `Score moderated: only ${K.shots} shots faced. 20+ shots for full confidence.`;
+    } else {
+      confSum.textContent = '';
+    }
+  }
 
   // === Shots & Scoring ===
   $('sumShotsGrid').innerHTML =
@@ -2924,6 +2947,46 @@ return;
   };
   $('helpModal').addEventListener('click', function(e){
     if(e.target === $('helpModal')) $('helpModal').style.display = 'none';
+  });
+
+  /* Score ring tap-to-explain (live game) */
+  $('goalieRingCard').addEventListener('click', function(){
+    const tip = $('goalieRingTooltip');
+    if(tip.classList.contains('active')){ tip.classList.remove('active'); return; }
+    if(state.events.length === 0){ return; }
+    const K = computeGoalieScore();
+    const sc = K.total;
+    const band = sc >= 80 ? 'Excellent' : sc >= 63 ? 'Solid' : sc >= 45 ? 'Below Average' : 'Poor';
+    let html = `<div class="ring-band">${sc}/100 &mdash; ${band}</div>`;
+    html += `<div class="ring-basis">Based on ${K.shots} shot${K.shots !== 1 ? 's' : ''}</div>`;
+    if(K.confidence < 1){
+      html += `<div class="ring-confidence-note">Score is moderated &mdash; more shots will sharpen the rating.</div>`;
+    }
+    tip.innerHTML = html;
+    tip.classList.add('active');
+  });
+  $('teamRingCard').addEventListener('click', function(){
+    const tip = $('teamRingTooltip');
+    if(tip.classList.contains('active')){ tip.classList.remove('active'); return; }
+    if(state.events.length === 0){ return; }
+    const T = computeTeamScore();
+    const sc = T.total;
+    const band = sc >= 80 ? 'Excellent' : sc >= 63 ? 'Solid' : sc >= 45 ? 'Below Average' : 'Poor';
+    const totalShots = state.countsF.shots + state.countsA.shots;
+    let html = `<div class="ring-band">${sc}/100 &mdash; ${band}</div>`;
+    html += `<div class="ring-basis">Based on ${totalShots} total shot${totalShots !== 1 ? 's' : ''}</div>`;
+    tip.innerHTML = html;
+    tip.classList.add('active');
+  });
+
+  /* Summary score explain toggles */
+  $('goalieExplainToggle').addEventListener('click', function(){
+    $('goalieExplainPanel').classList.toggle('hidden');
+    this.textContent = $('goalieExplainPanel').classList.contains('hidden') ? 'How is this scored?' : 'Hide';
+  });
+  $('teamExplainToggle').addEventListener('click', function(){
+    $('teamExplainPanel').classList.toggle('hidden');
+    this.textContent = $('teamExplainPanel').classList.contains('hidden') ? 'How is this scored?' : 'Hide';
   });
 
   /* Header menu */

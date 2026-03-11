@@ -3587,6 +3587,64 @@ select{
   padding-right:30px;
 }
 
+/* ===== Score Ring Tooltips & Confidence ===== */
+.ring-tooltip{
+  display:none;
+  font-size:11px;
+  color:var(--muted);
+  text-align:center;
+  margin-top:6px;
+  line-height:1.4;
+}
+.ring-tooltip.active{
+  display:block;
+}
+.ring-tooltip .ring-band{
+  font-weight:700;
+  margin-bottom:2px;
+}
+.ring-tooltip .ring-basis{
+  font-size:10px;
+  opacity:0.7;
+}
+.ring-tooltip .ring-confidence-note{
+  font-size:10px;
+  color:var(--warn);
+  margin-top:2px;
+}
+.ring-confidence{
+  font-size:10px;
+  color:var(--warn);
+  text-align:center;
+  margin-top:4px;
+  line-height:1.3;
+}
+.ring-confidence:empty{
+  display:none;
+}
+
+/* Score explain toggle + panel (summary) */
+.score-explain-toggle{
+  font-size:11px;
+  color:var(--accent-us);
+  text-align:center;
+  margin-top:8px;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.score-explain-panel{
+  font-size:11px;
+  color:var(--muted);
+  line-height:1.5;
+  padding:8px 10px;
+  margin-top:6px;
+  background:var(--gray-200);
+  border-radius:var(--radius-sm);
+}
+.score-explain-panel.hidden{
+  display:none;
+}
+
 /* ===== Reduced Motion Support ===== */
 @media (prefers-reduced-motion: reduce){
   *, *::before, *::after{

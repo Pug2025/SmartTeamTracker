@@ -47,6 +47,7 @@
       radial-gradient(circle at top left, rgba(77,163,255,0.14), transparent 30%),
       radial-gradient(circle at top right, rgba(255,69,58,0.12), transparent 32%),
       linear-gradient(180deg, #06080c 0%, #020202 28%, #050505 100%);
+    background-attachment:fixed;
     color:var(--ink);
     padding-bottom:80px; /* Space for FAB */
     padding-left:env(safe-area-inset-left, 0px);
@@ -58,6 +59,7 @@
       radial-gradient(circle at 86% 2%, rgba(255,69,58,0.08), transparent 30%),
       radial-gradient(circle at 50% 118%, rgba(26, 44, 71, 0.20), transparent 44%),
       linear-gradient(180deg, #09111a 0%, #05080d 42%, #030507 100%);
+    background-attachment:fixed;
   }
 
   /* Basic utility / text classes */

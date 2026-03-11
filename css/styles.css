@@ -2897,16 +2897,38 @@
 }
 .spectator-footer{
   text-align:center;
-  padding:2px 0 0;
+  padding:8px 16px;
+  margin:4px 16px 16px;
+  background:var(--gray-200);
+  border-radius:var(--radius-md);
+  border:1px solid var(--gray-300);
 }
 .spec-status{
   font-size:12px;
   color:#7dd59a;
-  margin-bottom:4px;
+  margin-bottom:2px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+}
+.spec-status::before{
+  content:'';
+  width:6px; height:6px;
+  border-radius:50%;
+  background:#7dd59a;
+  animation:spec-status-pulse 2s ease-in-out infinite;
+}
+@keyframes spec-status-pulse{
+  0%,100%{ opacity:1; }
+  50%{ opacity:0.4; }
 }
 .spec-ended .spec-status{ color:#ff9f0a; }
+.spec-ended .spec-status::before{ background:#ff9f0a; animation:none; }
 .spec-status.connecting{ color:var(--warn); }
+.spec-status.connecting::before{ background:var(--warn); }
 .spec-status.disconnected{ color:var(--accent-them); }
+.spec-status.disconnected::before{ background:var(--accent-them); }
 .spec-meta{
   font-size:11px;
   color:#8091b2;
@@ -3385,6 +3407,133 @@ textarea:focus-visible{
 }
 .spec-score-block.flash-them{
   animation:spec-score-flash-them 0.8s ease-out;
+}
+
+/* ===== Hat Trick Celebration (Coach) ===== */
+.hat-trick-overlay{
+  position:fixed; inset:0; z-index:9999;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(0,0,0,0.75);
+  animation:ht-fade-in 0.3s ease-out;
+}
+@keyframes ht-fade-in{
+  from{ opacity:0; }
+  to{ opacity:1; }
+}
+.hat-trick-card{
+  text-align:center;
+  background:linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  border:2px solid var(--accent-us);
+  border-radius:var(--radius-lg);
+  padding:28px 32px;
+  max-width:300px;
+  animation:ht-pop 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  box-shadow:0 0 40px rgba(77,163,255,0.3), 0 0 80px rgba(77,163,255,0.1);
+}
+@keyframes ht-pop{
+  from{ transform:scale(0.6); opacity:0; }
+  to{ transform:scale(1); opacity:1; }
+}
+.hat-trick-hat{ font-size:48px; margin-bottom:8px; }
+.hat-trick-title{
+  font-size:22px; font-weight:800; color:var(--accent-us);
+  text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;
+}
+.hat-trick-player{
+  font-size:28px; font-weight:700; color:#fff; margin-bottom:4px;
+}
+.hat-trick-count{
+  font-size:14px; color:var(--muted); margin-top:4px;
+}
+
+/* ===== Hat Trick Celebration (Spectator) ===== */
+.spec-celebration{
+  position:fixed; top:0; left:0; right:0;
+  z-index:9999;
+  display:flex; align-items:center; justify-content:center;
+  padding:16px;
+  animation:spec-celeb-slide 0.4s ease-out;
+  pointer-events:none;
+}
+@keyframes spec-celeb-slide{
+  from{ transform:translateY(-100%); opacity:0; }
+  to{ transform:translateY(0); opacity:1; }
+}
+.spec-celeb-exit{
+  animation:spec-celeb-out 0.3s ease-in forwards;
+}
+@keyframes spec-celeb-out{
+  to{ transform:translateY(-100%); opacity:0; }
+}
+.spec-celebration-card{
+  background:linear-gradient(135deg, #1a1a2e, #0f3460);
+  border:2px solid var(--accent-us);
+  border-radius:var(--radius-lg);
+  padding:16px 24px;
+  text-align:center;
+  box-shadow:0 4px 30px rgba(77,163,255,0.3);
+  max-width:360px; width:100%;
+}
+.spec-celeb-hat{ font-size:36px; }
+.spec-celeb-title{
+  font-size:18px; font-weight:800; color:var(--accent-us);
+  text-transform:uppercase; letter-spacing:1px;
+}
+.spec-celeb-detail{
+  font-size:14px; color:var(--gray-700); margin-top:2px;
+}
+
+/* ===== Score Milestone Toast (Spectator) ===== */
+.spec-milestone{
+  position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+  z-index:9998;
+  background:var(--gray-200); color:var(--ink);
+  border-radius:var(--radius-md);
+  padding:10px 20px;
+  font-size:14px; font-weight:600;
+  box-shadow:0 4px 16px rgba(0,0,0,0.4);
+  animation:spec-toast-in 0.3s ease-out;
+  pointer-events:none;
+}
+.spec-milestone.exit{
+  animation:spec-toast-out 0.3s ease-in forwards;
+}
+@keyframes spec-toast-in{
+  from{ transform:translateX(-50%) translateY(20px); opacity:0; }
+  to{ transform:translateX(-50%) translateY(0); opacity:1; }
+}
+@keyframes spec-toast-out{
+  to{ transform:translateX(-50%) translateY(20px); opacity:0; }
+}
+
+/* ===== Shutout Badge ===== */
+.shutout-badge{
+  display:inline-block;
+  background:var(--good);
+  color:#000;
+  font-size:10px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+  padding:2px 6px;
+  border-radius:var(--radius-xs);
+  margin-left:6px;
+  vertical-align:middle;
+  animation:shutout-pop 0.3s ease-out;
+}
+@keyframes shutout-pop{
+  from{ transform:scale(0); }
+  to{ transform:scale(1); }
+}
+
+/* ===== Custom Select Chevron ===== */
+select{
+  appearance:none;
+  -webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23888888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 10px center;
+  padding-right:30px;
 }
 
 /* ===== Reduced Motion Support ===== */

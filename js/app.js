@@ -953,6 +953,7 @@ function addEvent(type, meta={}){
     triggerPulse('liveGF','good');
     goalFlash('good');
     vibrate(HAPTIC.goal);
+    checkHatTrick(ev);
   } else {
     vibrate(HAPTIC.tap);
   }
@@ -981,6 +982,35 @@ function goalFlash(type){
   document.body.appendChild(el);
   el.addEventListener('animationend', ()=>el.remove());
 }
+
+function checkHatTrick(ev){
+  const scorer = ev.player;
+  if(!scorer || scorer === '?' || scorer === 'Unknown') return;
+  const count = state.events.filter(e => e.type === 'for_goal' && e.player === scorer).length;
+  if(count >= 3) showHatTrickCelebration(scorer, count);
+}
+
+function showHatTrickCelebration(player, goalCount){
+  const existing = document.querySelector('.hat-trick-overlay');
+  if(existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'hat-trick-overlay';
+  overlay.innerHTML =
+    '<div class="hat-trick-card">' +
+      '<div class="hat-trick-hat">\uD83C\uDFA9</div>' +
+      '<div class="hat-trick-title">Hat Trick!</div>' +
+      '<div class="hat-trick-player">#' + escapeHTML(player) + '</div>' +
+      (goalCount > 3 ? '<div class="hat-trick-count">' + goalCount + ' goals this game</div>' : '') +
+    '</div>';
+  document.body.appendChild(overlay);
+
+  overlay.addEventListener('click', () => overlay.remove());
+  setTimeout(() => {
+    if(overlay.parentNode) overlay.remove();
+  }, 4000);
+}
+
 
 function undo(){
   const ev = state.events.pop();
@@ -1822,7 +1852,9 @@ function updateMeta(){
   const svText = A.shots ? (saves/A.shots).toFixed(3).slice(1) : '—';
 
   $('savesVal').textContent = saves;
-  $('svVal').textContent = `SV% ${svText}`;
+  // Shutout badge: show when SA >= 5 and GA === 0
+  const shutoutHtml = (A.shots >= 5 && A.goals === 0) ? ' <span class="shutout-badge">Shutout</span>' : '';
+  $('svVal').innerHTML = `SV% ${svText}${shutoutHtml}`;
 
   $('smothersVal').textContent = state.countsA.smothers;
   $('badRebVal').textContent = state.countsA.badRebounds;
@@ -5108,6 +5140,17 @@ function buildLiveState() {
     ? Math.round((1000 * state.countsF.shots) / (state.countsF.shots + state.countsA.shots)) / 10
     : null;
 
+  // Compute hat tricks for spectator celebrations
+  const goalsByPlayer = {};
+  state.events.forEach(e => {
+    if(e.type === 'for_goal' && e.player && e.player !== '?' && e.player !== 'Unknown'){
+      goalsByPlayer[e.player] = (goalsByPlayer[e.player] || 0) + 1;
+    }
+  });
+  const hatTricks = Object.entries(goalsByPlayer)
+    .filter(([,c]) => c >= 3)
+    .map(([p,c]) => ({ player: p, goals: c }));
+
   const keyEvents = state.events
     .filter(e => [
       'goal',
@@ -5167,7 +5210,8 @@ function buildLiveState() {
     penaltiesAgainst: state.team.penaltiesAgainst || 0,
     quality,
     momentum,
-    events: keyEvents
+    events: keyEvents,
+    hatTricks: hatTricks.length ? hatTricks : undefined
   };
 }
 

@@ -1712,36 +1712,51 @@ function computeTeamScore() {
   const shotShare = SF / totalShots;
   const scorePossession = getSigmoidScore(shotShare, 0.5, 0.15);
 
-  // 2) DANGER CONTROL (Net dangerous events) — 20% weight
-  const dangerFor = (state.team.breakawaysFor || 0) + (state.team.oddManRushFor || 0) + (state.team.forcedTurnovers || 0);
-  const dangerAg  = (state.team.breakawaysAgainst || 0) + (state.team.dzTurnovers || 0) + (state.team.oddManRushAgainst || 0);
+  // 2) DANGER CONTROL (Severity-weighted dangerous events) — 20% weight
+  //    Breakaways (1.5x) > odd-man rushes (1.3x) > turnovers (1.0x/0.8x)
+  const dangerFor = (state.team.breakawaysFor || 0) * 1.5
+                  + (state.team.oddManRushFor || 0) * 1.3
+                  + (state.team.forcedTurnovers || 0) * 0.8;
+  const dangerAg  = (state.team.breakawaysAgainst || 0) * 1.5
+                  + (state.team.oddManRushAgainst || 0) * 1.3
+                  + (state.team.dzTurnovers || 0) * 1.0;
   const dangerDiff = dangerFor - dangerAg;
   const scoreDanger = getSigmoidScore(dangerDiff, 0, 3);
 
-  // 3) SHOT QUALITY (xG differential) — 15% weight
-  //    Measures whether we're generating better chances than the opponent
-  const scoreShotQuality = getSigmoidScore(sq.xGDiff, 0, 0.8);
+  // 3) SHOT QUALITY (xG per shot efficiency ratio) — 20% weight
+  //    Measures whether we're generating higher quality chances per shot,
+  //    independent of volume (volume is already captured by possession).
+  const xGPerShotFor = SF > 0 ? sq.xGF / SF : 0;
+  const xGPerShotAg  = SA > 0 ? sq.xGA / SA : 0;
+  const qualityDiff = xGPerShotFor - xGPerShotAg;
+  const scoreShotQuality = getSigmoidScore(qualityDiff, 0, 0.04);
 
-  // 4) EXECUTION / RESULT (Weighted goal differential) — 35% weight
-  let teamWeightedGF = GF;
+  // 4) EXECUTION / RESULT (Weighted goal differential) — 25% weight
+  //    PP goals for discounted (0.85x), SH goals for bonused (1.5x).
+  //    SH goals against discounted (0.6x).
+  let teamWeightedGF = 0;
   let teamWeightedGA = 0;
   for (const ev of state.events) {
+    if (ev.type === 'for_goal') {
+      teamWeightedGF += ev.strength === 'PP' ? 0.85 : ev.strength === 'SH' ? 1.5 : 1.0;
+    }
     if (ev.type === 'goal' || ev.type === 'soft_goal') {
       teamWeightedGA += (ev.strength === 'SH') ? 0.6 : 1.0;
     }
   }
+  if (teamWeightedGF === 0 && GF > 0) teamWeightedGF = GF;
   if (teamWeightedGA === 0 && GA > 0) teamWeightedGA = GA;
   const goalDiff = teamWeightedGF - teamWeightedGA;
-  const scoreResult = getSigmoidScore(goalDiff, 0, 2.5);
+  const scoreResult = getSigmoidScore(goalDiff, 0, 2.0);
 
-  // 5) DISCIPLINE (Penalties) — 10% weight
+  // 5) DISCIPLINE (Penalties) — 15% weight
   const penFor = state.team.penaltiesFor || 0;
   const penAg = state.team.penaltiesAgainst || 0;
   const penDiff = penFor - penAg;
   const scoreDiscipline = getSigmoidScore(penDiff, 0, 2);
 
-  // Weighted total: Possession 20%, Danger 20%, Shot Quality 15%, Result 35%, Discipline 10%
-  const total = (scorePossession * 0.20) + (scoreDanger * 0.20) + (scoreShotQuality * 0.15) + (scoreResult * 0.35) + (scoreDiscipline * 0.10);
+  // Weighted total: Possession 20%, Danger 20%, Quality 20%, Result 25%, Discipline 15%
+  const total = (scorePossession * 0.20) + (scoreDanger * 0.20) + (scoreShotQuality * 0.20) + (scoreResult * 0.25) + (scoreDiscipline * 0.15);
 
   return {
     total: Math.round(total),
@@ -2143,11 +2158,11 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
   // === Team Score Component Bars ===
   const teamColor = function(s){ return s >= 60 ? 'var(--good)' : s >= 40 ? 'var(--warn)' : 'var(--accent-them)'; };
   $('teamCompBars').innerHTML =
-    compBar('Result 35%', T.scoreFin, teamColor(T.scoreFin)) +
+    compBar('Result 25%', T.scoreFin, teamColor(T.scoreFin)) +
     compBar('Possession 20%', T.scoreSS, teamColor(T.scoreSS)) +
     compBar('Danger 20%', T.scoreImp, teamColor(T.scoreImp)) +
-    compBar('Quality 15%', T.scoreSQ||0, teamColor(T.scoreSQ||0)) +
-    compBar('Discipline 10%', T.scoreDiscipline||0, teamColor(T.scoreDiscipline||0));
+    compBar('Quality 20%', T.scoreSQ||0, teamColor(T.scoreSQ||0)) +
+    compBar('Discipline 15%', T.scoreDiscipline||0, teamColor(T.scoreDiscipline||0));
 
   // === Goalie Score Component Bars ===
   // Build meaningful bars from goalie data

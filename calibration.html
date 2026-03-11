@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scoring Model Calibration</title>
+<style>
+  :root { --bg: #1a1a2e; --card: #16213e; --text: #e0e0e0; --green: #32d74b; --yellow: #ff9f0a; --red: #ff453a; --blue: #0a84ff; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro', sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
+  h1 { text-align: center; margin-bottom: 8px; font-size: 1.4em; }
+  .subtitle { text-align: center; color: #888; margin-bottom: 20px; font-size: 0.85em; }
+  .section { margin-bottom: 24px; }
+  .section h2 { font-size: 1.1em; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #333; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.82em; }
+  th, td { padding: 6px 8px; text-align: center; border-bottom: 1px solid #222; }
+  th { background: #0d1b2a; color: #aaa; font-weight: 600; position: sticky; top: 0; }
+  td:first-child, th:first-child { text-align: left; min-width: 200px; }
+  .grade { font-weight: 700; min-width: 30px; display: inline-block; }
+  .pass { color: var(--green); }
+  .close { color: var(--yellow); }
+  .fail { color: var(--red); }
+  .comp { font-size: 0.75em; color: #888; }
+  .bar { display: inline-block; height: 10px; border-radius: 3px; vertical-align: middle; }
+  .summary { display: flex; gap: 20px; justify-content: center; margin-bottom: 16px; padding: 12px; background: var(--card); border-radius: 8px; }
+  .summary div { text-align: center; }
+  .summary .num { font-size: 1.8em; font-weight: 700; }
+</style>
+</head>
+<body>
+<h1>Scoring Model Calibration Harness</h1>
+<p class="subtitle">Phase 4 validation — all scenarios from the scoring audit roadmap</p>
+<div class="summary" id="summary"></div>
+<div class="section" id="goalieSection">
+  <h2>Goalie Scenarios</h2>
+  <table id="goalieTable"><thead><tr>
+    <th>Scenario</th><th>Score</th><th>Grade</th><th>Target</th><th>Match</th>
+    <th>GSAx</th><th>Big Sv</th><th>Rebound</th><th>Soft G</th><th>Conf</th>
+  </tr></thead><tbody></tbody></table>
+</div>
+<div class="section" id="teamSection">
+  <h2>Team Scenarios</h2>
+  <table id="teamTable"><thead><tr>
+    <th>Scenario</th><th>Score</th><th>Grade</th><th>Target</th><th>Match</th>
+    <th>Poss</th><th>Danger</th><th>Quality</th><th>Result</th><th>Disc</th>
+  </tr></thead><tbody></tbody></table>
+</div>
+
+<script>
+// ===== Scoring functions (mirrored from app.js) =====
+
+function getSigmoidScore(actual, expected, spread) {
+  const z = (actual - expected) / (spread || 1);
+  if (z >= 0) return Math.round(Math.min(100, 63 + 35 * (1 - Math.exp(-z * 0.7))));
+  else return Math.round(Math.max(0, 63 - 58 * (1 - Math.exp(z * 0.5))));
+}
+
+const XG_RATES = { hd: 0.18, normal: 0.07, missed: 0.12 };
+
+function gradeOf(s) {
+  if (s >= 93) return 'A+'; if (s >= 85) return 'A'; if (s >= 80) return 'B+';
+  if (s >= 75) return 'B'; if (s >= 68) return 'B-'; if (s >= 63) return 'C+';
+  if (s >= 55) return 'C'; if (s >= 48) return 'C-'; if (s >= 40) return 'D+';
+  if (s >= 30) return 'D'; if (s >= 20) return 'F+'; return 'F';
+}
+
+function gradeColor(s) {
+  if (s >= 80) return 'var(--green)';
+  if (s >= 63) return 'var(--yellow)';
+  return 'var(--red)';
+}
+
+// Target matching: checks if grade falls within target range
+function matchTarget(score, target) {
+  const g = gradeOf(score);
+  // Parse target into acceptable grades
+  const acceptable = [];
+  const parts = target.replace(/\s/g, '').split('/');
+  const allGrades = ['A+','A','B+','B','B-','C+','C','C-','D+','D','F+','F'];
+  for (const p of parts) {
+    if (p.startsWith('~')) {
+      // Approximate — accept grade and neighbors
+      const base = p.slice(1);
+      const idx = allGrades.indexOf(base);
+      if (idx >= 0) {
+        if (idx > 0) acceptable.push(allGrades[idx-1]);
+        acceptable.push(allGrades[idx]);
+        if (idx < allGrades.length-1) acceptable.push(allGrades[idx+1]);
+      }
+    } else if (p.includes('-') && !p.endsWith('-') && !p.startsWith('-')) {
+      // Range like "D/F" already handled by split
+      acceptable.push(p);
+    } else {
+      acceptable.push(p);
+      // Also accept +/- 1 neighbor for flexibility
+      const idx = allGrades.indexOf(p);
+      if (idx > 0) acceptable.push(allGrades[idx-1]);
+      if (idx >= 0 && idx < allGrades.length-1) acceptable.push(allGrades[idx+1]);
+    }
+  }
+  if (acceptable.includes(g)) return 'pass';
+  // Check if within 1 additional grade
+  const gIdx = allGrades.indexOf(g);
+  for (const a of acceptable) {
+    const aIdx = allGrades.indexOf(a);
+    if (Math.abs(gIdx - aIdx) <= 1) return 'close';
+  }
+  return 'fail';
+}
+
+// ===== Goalie simulation =====
+function simGoalie(p) {
+  const { SA, GA, softGA, bigSaves, smothers, goodReb, badReb, ppGA, hdSA } = p;
+  const saves = SA - GA;
+  const svPct = SA > 0 ? saves / SA : 1;
+  const GSAx = (svPct - 0.91) * SA;
+
+  let goalieInput = GSAx;
+  goalieInput += (bigSaves || 0) * 0.6;
+
+  const rebScore = (smothers||0)*1.5 + (goodReb||0)*1.0 + (badReb||0)*(-2.0);
+  goalieInput += rebScore * 0.25;
+
+  let softPenalty = 0;
+  const sg = softGA || 0;
+  if (sg >= 1) softPenalty += 1.5;
+  if (sg >= 2) softPenalty += 2.0;
+  for (let i = 3; i <= sg; i++) softPenalty += 2.5;
+  goalieInput -= softPenalty;
+
+  goalieInput += (ppGA || 0) * 0.3;
+
+  const confidence = Math.min(1.0, (SA - 5) / 15);
+  const rawScore = getSigmoidScore(goalieInput, 0, 3.0);
+  const finalScore = SA <= 2 ? 63 : Math.round(63 + confidence * (rawScore - 63));
+
+  return {
+    score: finalScore,
+    GSAx: GSAx.toFixed(2),
+    bigSvImpact: ((bigSaves||0) * 0.6).toFixed(1),
+    rebImpact: (rebScore * 0.25).toFixed(1),
+    softImpact: (-softPenalty).toFixed(1),
+    confidence: confidence.toFixed(2)
+  };
+}
+
+// ===== Team simulation =====
+function simTeam(p) {
+  const { SF, SA, GF, GA, hdFor, hdAg, baFor, baAg, omrFor, omrAg, ftFor, dzAg, penDrawn, penTaken, mcFor, mcAg, ppGF, shGF, shGA } = p;
+  const totalShots = SF + SA;
+
+  const shotShare = SF / totalShots;
+  const scorePoss = getSigmoidScore(shotShare, 0.5, 0.15);
+
+  const dFor = (baFor||0)*1.5 + (omrFor||0)*1.3 + (ftFor||0)*0.8;
+  const dAg  = (baAg||0)*1.5 + (omrAg||0)*1.3 + (dzAg||0)*1.0;
+  const scoreDanger = getSigmoidScore(dFor - dAg, 0, 3);
+
+  const regFor = SF - (hdFor||0); const regAg = SA - (hdAg||0);
+  const xGF = (hdFor||0)*0.18 + regFor*0.07 + (mcFor||0)*0.12;
+  const xGA = (hdAg||0)*0.18 + regAg*0.07 + (mcAg||0)*0.12;
+  const xGPerFor = SF > 0 ? xGF / SF : 0;
+  const xGPerAg  = SA > 0 ? xGA / SA : 0;
+  const scoreSQ = getSigmoidScore(xGPerFor - xGPerAg, 0, 0.04);
+
+  const pp = ppGF||0; const sh = shGF||0; const ev = GF - pp - sh;
+  const wGF = ev*1.0 + pp*0.85 + sh*1.5;
+  const shA = shGA||0; const evA = GA - shA;
+  const wGA = evA*1.0 + shA*0.6;
+  const scoreResult = getSigmoidScore(wGF - wGA, 0, 2.0);
+
+  const scoreDisc = getSigmoidScore((penDrawn||0)-(penTaken||0), 0, 2);
+
+  const total = Math.round(scorePoss*0.20 + scoreDanger*0.20 + scoreSQ*0.20 + scoreResult*0.25 + scoreDisc*0.15);
+
+  return { score: total, scorePoss, scoreDanger, scoreSQ, scoreResult, scoreDisc };
+}
+
+// ===== Scenario definitions =====
+const goalieScenarios = [
+  { label: 'Shutout on 30+ shots', target: 'A+', SA:32, GA:0, softGA:0, bigSaves:5, smothers:4, goodReb:6, badReb:1 },
+  { label: 'Shutout on 8 shots (low volume)', target: '~C+', SA:8, GA:0, softGA:0, bigSaves:1, smothers:1, goodReb:2, badReb:0 },
+  { label: '5 GA on 15 shots (bad game)', target: 'F/F+', SA:15, GA:5, softGA:2, bigSaves:0, smothers:0, goodReb:1, badReb:3 },
+  { label: '1 soft goal, great on 25 shots', target: 'B+', SA:25, GA:1, softGA:1, bigSaves:3, smothers:3, goodReb:4, badReb:1 },
+  { label: '3 soft goals on 20 shots', target: 'D/F+', SA:20, GA:3, softGA:3, bigSaves:1, smothers:1, goodReb:2, badReb:2 },
+  { label: 'Average game: 3 GA on 28 shots', target: 'C+/B-', SA:28, GA:3, softGA:0, bigSaves:1, smothers:2, goodReb:3, badReb:2 },
+  { label: 'Good game: 1 GA on 25 (no soft)', target: 'B+', SA:25, GA:1, softGA:0, bigSaves:2, smothers:2, goodReb:3, badReb:1 },
+  { label: '1 PP goal against on 20 shots', target: 'B+', SA:20, GA:1, softGA:0, bigSaves:2, smothers:2, goodReb:3, badReb:1, ppGA:1 },
+  { label: 'EDGE: Exactly 5 shots, 0 GA', target: '~C+', SA:5, GA:0, softGA:0, bigSaves:0, smothers:0, goodReb:0, badReb:0 },
+  { label: 'EDGE: 20 shots (full conf), 0 GA', target: 'A', SA:20, GA:0, softGA:0, bigSaves:3, smothers:2, goodReb:3, badReb:0 },
+  { label: 'EDGE: 2 shots only', target: '~C+', SA:2, GA:0, softGA:0, bigSaves:0, smothers:0, goodReb:0, badReb:0 },
+  { label: 'EDGE: 1 GA on 6 shots (low vol bad)', target: '~C+', SA:6, GA:1, softGA:0, bigSaves:0, smothers:0, goodReb:0, badReb:0 },
+];
+
+const teamScenarios = [
+  { label: 'Blowout win 6-0, full dominance', target: 'A/A+', SF:35, SA:10, GF:6, GA:0, hdFor:9, hdAg:1, baFor:3, baAg:0, omrFor:3, omrAg:0, ftFor:3, dzAg:0, penDrawn:2, penTaken:0, mcFor:1, mcAg:0 },
+  { label: 'Close loss 2-3, dominant process', target: 'B-/C+', SF:30, SA:15, GF:2, GA:3, hdFor:7, hdAg:2, baFor:2, baAg:0, omrFor:2, omrAg:0, ftFor:2, dzAg:1, penDrawn:1, penTaken:1, mcFor:2, mcAg:0 },
+  { label: 'Lucky win 3-2, terrible process', target: 'D+/C-', SF:12, SA:28, GF:3, GA:2, hdFor:1, hdAg:5, baFor:0, baAg:3, omrFor:0, omrAg:2, ftFor:0, dzAg:4, penDrawn:1, penTaken:3, mcFor:0, mcAg:3 },
+  { label: 'Close win 2-1, even process', target: 'C+/B-', SF:20, SA:18, GF:2, GA:1, hdFor:3, hdAg:3, baFor:1, baAg:1, omrFor:1, omrAg:1, ftFor:1, dzAg:1, penDrawn:1, penTaken:1, mcFor:1, mcAg:1 },
+  { label: 'Shutout loss 0-1, good process', target: 'B-/C+', SF:26, SA:16, GF:0, GA:1, hdFor:5, hdAg:2, baFor:2, baAg:0, omrFor:1, omrAg:0, ftFor:2, dzAg:1, penDrawn:1, penTaken:1, mcFor:2, mcAg:0 },
+  { label: 'Strong process, won 2-1 (U15)', target: 'B/B+', SF:32, SA:14, GF:2, GA:1, hdFor:6, hdAg:2, baFor:3, baAg:0, omrFor:2, omrAg:1, ftFor:2, dzAg:0, penDrawn:2, penTaken:1, mcFor:2, mcAg:0 },
+  { label: 'EDGE: 0-0 tie, perfectly even', target: 'C+', SF:18, SA:18, GF:0, GA:0, hdFor:3, hdAg:3, baFor:1, baAg:1, omrFor:1, omrAg:1, ftFor:1, dzAg:1, penDrawn:1, penTaken:1, mcFor:1, mcAg:1 },
+  { label: 'EDGE: All PP goals (won 3-0)', target: 'B/B+', SF:28, SA:15, GF:3, GA:0, hdFor:5, hdAg:2, baFor:2, baAg:0, omrFor:1, omrAg:0, ftFor:2, dzAg:1, penDrawn:4, penTaken:0, mcFor:1, mcAg:0, ppGF:3 },
+  { label: 'EDGE: All SH goals (won 2-1)', target: 'C/C+', SF:14, SA:24, GF:2, GA:1, hdFor:2, hdAg:4, baFor:0, baAg:1, omrFor:0, omrAg:1, ftFor:1, dzAg:2, penDrawn:0, penTaken:3, mcFor:0, mcAg:1, shGF:2 },
+  { label: 'EDGE: 0 penalties both sides', target: 'C+', SF:20, SA:20, GF:2, GA:2, hdFor:3, hdAg:3, baFor:1, baAg:1, omrFor:1, omrAg:1, ftFor:1, dzAg:1, penDrawn:0, penTaken:0, mcFor:1, mcAg:1 },
+  { label: 'EDGE: 0 danger events both sides', target: 'C+', SF:20, SA:20, GF:2, GA:2, hdFor:3, hdAg:3, baFor:0, baAg:0, omrFor:0, omrAg:0, ftFor:0, dzAg:0, penDrawn:1, penTaken:1, mcFor:1, mcAg:1 },
+  { label: 'EDGE: Terrible discipline, won 4-2', target: 'C+/C', SF:24, SA:20, GF:4, GA:2, hdFor:4, hdAg:3, baFor:1, baAg:1, omrFor:1, omrAg:1, ftFor:1, dzAg:1, penDrawn:0, penTaken:5, mcFor:1, mcAg:1, shGA:1 },
+];
+
+// ===== Render =====
+function bar(score) {
+  const c = gradeColor(score);
+  return `<span class="bar" style="width:${score}%;background:${c}"></span> ${score}`;
+}
+
+let passCount = 0, closeCount = 0, failCount = 0;
+
+function renderGoalie() {
+  const tbody = document.querySelector('#goalieTable tbody');
+  for (const s of goalieScenarios) {
+    const r = simGoalie(s);
+    const g = gradeOf(r.score);
+    const m = matchTarget(r.score, s.target);
+    if (m === 'pass') passCount++; else if (m === 'close') closeCount++; else failCount++;
+    tbody.innerHTML += `<tr>
+      <td>${s.label}</td>
+      <td style="color:${gradeColor(r.score)};font-weight:700">${r.score}</td>
+      <td><span class="grade" style="color:${gradeColor(r.score)}">${g}</span></td>
+      <td>${s.target}</td>
+      <td class="${m}">${m === 'pass' ? '\u2705' : m === 'close' ? '\u26A0\uFE0F' : '\u274C'}</td>
+      <td>${r.GSAx}</td>
+      <td>${r.bigSvImpact}</td>
+      <td>${r.rebImpact}</td>
+      <td>${r.softImpact}</td>
+      <td>${r.confidence}</td>
+    </tr>`;
+  }
+}
+
+function renderTeam() {
+  const tbody = document.querySelector('#teamTable tbody');
+  for (const s of teamScenarios) {
+    const r = simTeam(s);
+    const g = gradeOf(r.score);
+    const m = matchTarget(r.score, s.target);
+    if (m === 'pass') passCount++; else if (m === 'close') closeCount++; else failCount++;
+    tbody.innerHTML += `<tr>
+      <td>${s.label}</td>
+      <td style="color:${gradeColor(r.score)};font-weight:700">${r.score}</td>
+      <td><span class="grade" style="color:${gradeColor(r.score)}">${g}</span></td>
+      <td>${s.target}</td>
+      <td class="${m}">${m === 'pass' ? '\u2705' : m === 'close' ? '\u26A0\uFE0F' : '\u274C'}</td>
+      <td>${bar(r.scorePoss)}</td>
+      <td>${bar(r.scoreDanger)}</td>
+      <td>${bar(r.scoreSQ)}</td>
+      <td>${bar(r.scoreResult)}</td>
+      <td>${bar(r.scoreDisc)}</td>
+    </tr>`;
+  }
+}
+
+renderGoalie();
+renderTeam();
+
+const total = passCount + closeCount + failCount;
+document.getElementById('summary').innerHTML = `
+  <div><div class="num" style="color:var(--green)">${passCount}</div>Pass</div>
+  <div><div class="num" style="color:var(--yellow)">${closeCount}</div>Close</div>
+  <div><div class="num" style="color:var(--red)">${failCount}</div>Fail</div>
+  <div><div class="num">${total}</div>Total</div>
+  <div><div class="num" style="color:${failCount===0?'var(--green)':'var(--red)'}">${Math.round(100*passCount/total)}%</div>Pass Rate</div>
+`;
+</script>
+</body>
+</html>

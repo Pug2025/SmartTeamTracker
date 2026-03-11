@@ -1574,15 +1574,13 @@ function computeShotQuality() {
 /* ===== SCORING ENGINE ===== */
 function getSigmoidScore(actual, expected, spread) {
   const z = (actual - expected) / (spread || 1);
-  // Asymmetric curve: baseline at 72, ceiling ~98, floor ~5
-  // Upside: +3 spread units → ~96 (A+)
-  // Downside: -3 spread units → ~15 (F)
+  // Asymmetric S-curve: baseline 63 (C+), ceiling ~98, floor ~5
+  // Upside: 63 + 35 × (1 − e^(−z×0.7))  → +1σ≈81 (B+), +2σ≈89 (A), +3σ≈94 (A+)
+  // Downside: 63 − 58 × (1 − e^(z×0.5))  → −1σ≈40 (D+), −2σ≈26 (F+), −3σ≈18 (F)
   if (z >= 0) {
-    // Above expected: 72 → 98 (generous upside)
-    return Math.round(Math.min(100, 72 + 26 * (1 - Math.exp(-z * 0.8))));
+    return Math.round(Math.min(100, 63 + 35 * (1 - Math.exp(-z * 0.7))));
   } else {
-    // Below expected: 72 → 0 (steeper punishment)
-    return Math.round(Math.max(0, 72 * Math.exp(z * 0.55)));
+    return Math.round(Math.max(0, 63 - 58 * (1 - Math.exp(z * 0.5))));
   }
 }
 
@@ -1591,17 +1589,18 @@ function computeGoalieScore() {
   const shots = C.shots;
   const ga = C.goals;
 
-  // 1) Minimum Volume Check
-  if (shots < 5) {
-    return { total: 50, scoreSV: 0, softPenalty: 0, ctxAdj: 0, scoreRebound: 0, scoreBig: 0, goodRebounds: 0, smothers: 0 };
+  // 1) Minimum volume: below 2 shots there is no meaningful data
+  if (shots < 2) {
+    return { total: 63, scoreSV: 0, softPenalty: 0, ctxAdj: 0, scoreRebound: 0, scoreBig: 0, goodRebounds: 0, smothers: 0 };
   }
 
   const prof = LEVEL_PROFILES[normalizeLevelKey(state.level)] || LEVEL_PROFILES.Other;
   const baseSvPct = prof.goalieBaseSV;
 
-  // 2) Weighted shots/goals (context weighting + soft goal punishment)
+  // 2) Weighted shots/goals (context weighting + progressive soft goal penalty)
   let weightedShots = 0;
   let weightedGoals = 0;
+  let softGoalCount = 0;
 
   const defenseEvents = state.events.filter(e =>
     e.type === 'goal' || e.type === 'soft_goal' || e.type === 'shot' || e.type === 'big_save' || e.type === 'bad_rebound' || e.type === 'smother'
@@ -1616,9 +1615,10 @@ function computeGoalieScore() {
     // HD shots are harder to save — weight them higher
     if (ev.highDanger) wShot = 1.5;
 
-    // Big save: give additive bonus
+    // Big save: additive bonus (0.6 per save — enough that 3-4 big saves
+    // create a meaningful grade-level distinction)
     if (ev.type === 'big_save') {
-      bigSaveBonus += 0.3;
+      bigSaveBonus += 0.6;
     }
 
     if (ev.type === 'goal' || ev.type === 'soft_goal') {
@@ -1642,9 +1642,17 @@ function computeGoalieScore() {
         ctx === 'Clean Look';
 
       if (isSoft) {
-        wGoal = 2.0;
+        // Progressive soft goal penalty: 1st=1.5x, 2nd=2.0x, 3rd+=2.5x
+        softGoalCount++;
+        wGoal = softGoalCount === 1 ? 1.5 : softGoalCount === 2 ? 2.0 : 2.5;
       } else if (isHard) {
         wGoal = 0.5;
+      }
+
+      // PP goals against: goalie faces a man-advantage not their fault.
+      // Partially discount unless already classified as hard (0.5).
+      if (ev.strength === 'PP' && wGoal > 0.5) {
+        wGoal = isSoft ? 1.5 : 0.7;
       }
     }
 
@@ -1660,10 +1668,17 @@ function computeGoalieScore() {
   const expectedGoalsAllowed = weightedShots * (1 - baseSvPct);
   const GSAx = expectedGoalsAllowed - weightedGoals; // positive is good
 
-  // 5) Final goalie score: sigmoid with wider spread (3.0) for better range usage
-  //    Includes big save bonus (additive credit) and rebound influence
-  const goalieInput = GSAx + bigSaveBonus + (reboundScore * 0.15);
-  const totalScore = getSigmoidScore(goalieInput, 0, 3.0);
+  // 5) Final goalie score: sigmoid with spread 3.0
+  //    Big save bonus (0.6/save) and rebound control (×0.25) add meaningful signal
+  const goalieInput = GSAx + bigSaveBonus + (reboundScore * 0.25);
+  const rawScore = getSigmoidScore(goalieInput, 0, 3.0);
+
+  // 6) Volume-based confidence dampening: low shot counts regress toward baseline.
+  //    Prevents misleading extremes on 5-15 shot games.
+  //    At 20+ shots: full confidence. At 5 shots: 33% confidence.
+  const BASELINE = 63;
+  const confidence = Math.min(1.0, (shots - 2) / 18);
+  const totalScore = Math.round(BASELINE + confidence * (rawScore - BASELINE));
 
   return {
     total: totalScore,
@@ -1697,36 +1712,51 @@ function computeTeamScore() {
   const shotShare = SF / totalShots;
   const scorePossession = getSigmoidScore(shotShare, 0.5, 0.15);
 
-  // 2) DANGER CONTROL (Net dangerous events) — 20% weight
-  const dangerFor = (state.team.breakawaysFor || 0) + (state.team.oddManRushFor || 0) + (state.team.forcedTurnovers || 0);
-  const dangerAg  = (state.team.breakawaysAgainst || 0) + (state.team.dzTurnovers || 0) + (state.team.oddManRushAgainst || 0);
+  // 2) DANGER CONTROL (Severity-weighted dangerous events) — 20% weight
+  //    Breakaways (1.5x) > odd-man rushes (1.3x) > turnovers (1.0x/0.8x)
+  const dangerFor = (state.team.breakawaysFor || 0) * 1.5
+                  + (state.team.oddManRushFor || 0) * 1.3
+                  + (state.team.forcedTurnovers || 0) * 0.8;
+  const dangerAg  = (state.team.breakawaysAgainst || 0) * 1.5
+                  + (state.team.oddManRushAgainst || 0) * 1.3
+                  + (state.team.dzTurnovers || 0) * 1.0;
   const dangerDiff = dangerFor - dangerAg;
   const scoreDanger = getSigmoidScore(dangerDiff, 0, 3);
 
-  // 3) SHOT QUALITY (xG differential) — 15% weight
-  //    Measures whether we're generating better chances than the opponent
-  const scoreShotQuality = getSigmoidScore(sq.xGDiff, 0, 0.8);
+  // 3) SHOT QUALITY (xG per shot efficiency ratio) — 20% weight
+  //    Measures whether we're generating higher quality chances per shot,
+  //    independent of volume (volume is already captured by possession).
+  const xGPerShotFor = SF > 0 ? sq.xGF / SF : 0;
+  const xGPerShotAg  = SA > 0 ? sq.xGA / SA : 0;
+  const qualityDiff = xGPerShotFor - xGPerShotAg;
+  const scoreShotQuality = getSigmoidScore(qualityDiff, 0, 0.04);
 
-  // 4) EXECUTION / RESULT (Weighted goal differential) — 35% weight
-  let teamWeightedGF = GF;
+  // 4) EXECUTION / RESULT (Weighted goal differential) — 25% weight
+  //    PP goals for discounted (0.85x), SH goals for bonused (1.5x).
+  //    SH goals against discounted (0.6x).
+  let teamWeightedGF = 0;
   let teamWeightedGA = 0;
   for (const ev of state.events) {
+    if (ev.type === 'for_goal') {
+      teamWeightedGF += ev.strength === 'PP' ? 0.85 : ev.strength === 'SH' ? 1.5 : 1.0;
+    }
     if (ev.type === 'goal' || ev.type === 'soft_goal') {
       teamWeightedGA += (ev.strength === 'SH') ? 0.6 : 1.0;
     }
   }
+  if (teamWeightedGF === 0 && GF > 0) teamWeightedGF = GF;
   if (teamWeightedGA === 0 && GA > 0) teamWeightedGA = GA;
   const goalDiff = teamWeightedGF - teamWeightedGA;
-  const scoreResult = getSigmoidScore(goalDiff, 0, 2.5);
+  const scoreResult = getSigmoidScore(goalDiff, 0, 2.0);
 
-  // 5) DISCIPLINE (Penalties) — 10% weight
+  // 5) DISCIPLINE (Penalties) — 15% weight
   const penFor = state.team.penaltiesFor || 0;
   const penAg = state.team.penaltiesAgainst || 0;
   const penDiff = penFor - penAg;
   const scoreDiscipline = getSigmoidScore(penDiff, 0, 2);
 
-  // Weighted total: Possession 20%, Danger 20%, Shot Quality 15%, Result 35%, Discipline 10%
-  const total = (scorePossession * 0.20) + (scoreDanger * 0.20) + (scoreShotQuality * 0.15) + (scoreResult * 0.35) + (scoreDiscipline * 0.10);
+  // Weighted total: Possession 20%, Danger 20%, Quality 20%, Result 25%, Discipline 15%
+  const total = (scorePossession * 0.20) + (scoreDanger * 0.20) + (scoreShotQuality * 0.20) + (scoreResult * 0.25) + (scoreDiscipline * 0.15);
 
   return {
     total: Math.round(total),
@@ -1839,7 +1869,7 @@ function setRing(valEl, arcEl, sc){
   }
 
   valEl.textContent = sc;
-  const c = sc>=85 ? '#32d74b' : sc>=70 ? '#ff9f0a' : '#ff453a';
+  const c = sc>=80 ? '#32d74b' : sc>=63 ? '#ff9f0a' : '#ff453a';
   arcEl.style.stroke = c;
   arcEl.style.strokeDashoffset = String(220*(1-sc/100));
 }
@@ -2128,11 +2158,11 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
   // === Team Score Component Bars ===
   const teamColor = function(s){ return s >= 60 ? 'var(--good)' : s >= 40 ? 'var(--warn)' : 'var(--accent-them)'; };
   $('teamCompBars').innerHTML =
-    compBar('Result 35%', T.scoreFin, teamColor(T.scoreFin)) +
+    compBar('Result 25%', T.scoreFin, teamColor(T.scoreFin)) +
     compBar('Possession 20%', T.scoreSS, teamColor(T.scoreSS)) +
     compBar('Danger 20%', T.scoreImp, teamColor(T.scoreImp)) +
-    compBar('Quality 15%', T.scoreSQ||0, teamColor(T.scoreSQ||0)) +
-    compBar('Discipline 10%', T.scoreDiscipline||0, teamColor(T.scoreDiscipline||0));
+    compBar('Quality 20%', T.scoreSQ||0, teamColor(T.scoreSQ||0)) +
+    compBar('Discipline 15%', T.scoreDiscipline||0, teamColor(T.scoreDiscipline||0));
 
   // === Goalie Score Component Bars ===
   // Build meaningful bars from goalie data

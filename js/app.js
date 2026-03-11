@@ -1852,9 +1852,7 @@ function updateMeta(){
   const svText = A.shots ? (saves/A.shots).toFixed(3).slice(1) : '—';
 
   $('savesVal').textContent = saves;
-  // Shutout badge: show when SA >= 5 and GA === 0
-  const shutoutHtml = (A.shots >= 5 && A.goals === 0) ? ' <span class="shutout-badge">Shutout</span>' : '';
-  $('svVal').innerHTML = `SV% ${svText}${shutoutHtml}`;
+  $('svVal').textContent = `SV% ${svText}`;
 
   $('smothersVal').textContent = state.countsA.smothers;
   $('badRebVal').textContent = state.countsA.badRebounds;

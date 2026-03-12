@@ -1,5 +1,5 @@
 // -----------------------------
-// Team Tracker - Service Worker
+// Smart Team Tracker - Service Worker
 // Version: v6.2.3
 // -----------------------------
 

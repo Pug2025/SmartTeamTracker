@@ -1,3 +1,6 @@
+import { authenticateRequest } from '../_auth.js';
+import { checkRateLimit, sendRateLimited } from '../_rate-limit.js';
+
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   if (req.method === "OPTIONS") return res.status(200).end();
@@ -9,10 +12,16 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Server configuration error" });
   }
 
+  // Authenticate
+  const auth = await authenticateRequest(req, res);
+  if (auth === null) return;
+  const uid = auth.uid;
+
   if (req.method === "GET") {
     try {
       const limit = Math.min(Number(req.query.limit) || 50, 500);
-      const userId = req.query.user_id || null;
+      // Use verified uid instead of client-supplied user_id
+      const userId = uid || req.query.user_id || null;
 
       // Build query URL — filter by user_id if provided
       let queryUrl = `${supabaseUrl}/rest/v1/games?select=id,game_id,date,opponent,level,data&order=created_at.desc&limit=${limit}`;
@@ -49,15 +58,24 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "DELETE") {
+    // Deletes require authentication
+    if (!uid) {
+      return res.status(401).json({ error: "Authentication required for delete operations" });
+    }
+
+    // Rate limit: 5 deletes/min per user
+    const rl = await checkRateLimit({ supabaseUrl, supabaseKey, key: `games-del:${uid}`, limit: 5 });
+    if (!rl.allowed) return sendRateLimited(res, rl.retryAfter);
+
     try {
       const id = req.query.id;
       const teamId = req.query.team_id || null;
-      const userId = req.query.user_id || null;
       const opponent = req.query.opponent || null;
 
       if (id) {
+        // Scope delete to the authenticated user
         const response = await fetch(
-          `${supabaseUrl}/rest/v1/games?id=eq.${encodeURIComponent(id)}`,
+          `${supabaseUrl}/rest/v1/games?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(uid)}`,
           {
             method: "DELETE",
             headers: {
@@ -80,7 +98,7 @@ export default async function handler(req, res) {
       }
 
       if (opponent) {
-        const matches = await fetchGamesForOpponent({ supabaseUrl, supabaseKey, teamId, userId, opponent });
+        const matches = await fetchGamesForOpponent({ supabaseUrl, supabaseKey, teamId, userId: uid, opponent });
         if (!matches.length) {
           return res.status(200).json({ success: true, deleted: 0 });
         }
@@ -89,10 +107,8 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, deleted: matches.length });
       }
 
-      let deleteUrl = `${supabaseUrl}/rest/v1/games?team_id=eq.${encodeURIComponent(teamId)}`;
-      if (userId) {
-        deleteUrl += `&user_id=eq.${encodeURIComponent(userId)}`;
-      }
+      // Bulk delete scoped to authenticated user
+      let deleteUrl = `${supabaseUrl}/rest/v1/games?team_id=eq.${encodeURIComponent(teamId)}&user_id=eq.${encodeURIComponent(uid)}`;
 
       const response = await fetch(
         deleteUrl,

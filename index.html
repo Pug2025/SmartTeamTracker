@@ -23,7 +23,7 @@
 <!-- Auth Screen (shown when not logged in) -->
 <div id="authScreen" class="auth-screen" style="display:none;">
   <div class="auth-card">
-    <div class="auth-logo">Team Tracker</div>
+    <div class="auth-logo">Smart Team Tracker</div>
     <div class="auth-sub">Track your team's performance, live from the rink.</div>
 
     <button id="authGoogleBtn" class="auth-google-btn" type="button">
@@ -58,10 +58,11 @@
     <div class="top-title-group">
       <div class="top-title-stack">
         <div class="top-title-line">
-          <h1>Team Tracker</h1>
+          <h1>Smart Team Tracker</h1>
           <span id="cloudStatus" class="status-dot warn" role="img" aria-label="Connection status: Checking" title="Checking"></span>
         </div>
       </div>
+      <div id="queueIndicator" class="queue-indicator" style="display:none;" role="button" tabindex="0"></div>
     </div>
     <div class="top-actions">
       <button class="toolbar-btn toolbar-btn-live" id="btnShareLive" style="display:none;">Share Live</button>
@@ -73,6 +74,7 @@
     <button class="header-menu-btn" id="btnEditSetup" type="button">Game Setup</button>
     <button class="header-menu-btn" id="btnRoster" type="button">Roster</button>
     <button class="header-menu-btn" id="btnHelp" type="button">Help</button>
+    <button class="header-menu-btn" id="btnAccount" type="button">Account</button>
     <button class="header-menu-btn header-menu-btn-danger" id="btnSignOut" type="button">Sign Out</button>
   </div>
 
@@ -186,6 +188,7 @@
         <div class="input-group setup-date-field">
           <label for="date">Date</label>
           <div class="setup-date-shell">
+            <svg class="date-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             <span id="dateDisplay" class="setup-date-display"></span>
             <input id="date" class="setup-date-input" type="date">
           </div>
@@ -274,7 +277,7 @@
         </div>
         <div class="context-row">
           <div class="g-btn ctx h-md" id="btnOMRAgainst">Odd-Man Rush</div>
-          <div class="g-btn ctx h-md" id="btnMissedChanceAg">Missed Chance (No Shot)</div>
+          <div class="g-btn ctx h-md" id="btnMissedChanceAg">Missed Chance</div>
         </div>
         <div class="g-btn ctx h-md" id="btnPenaltyFor">Their Penalty</div>
       </div>
@@ -295,8 +298,8 @@
           <div class="g-btn ctx h-md" id="btnForcedTurnover">Forced Turnover</div>
         </div>
         <div class="context-row">
-          <div class="g-btn ctx h-md" id="btnOddManRushFor">Odd Man Rush</div>
-          <div class="g-btn ctx h-md" id="btnMissedChanceFor">Missed Chance (No Shot)</div>
+          <div class="g-btn ctx h-md" id="btnOddManRushFor">Odd-Man Rush</div>
+          <div class="g-btn ctx h-md" id="btnMissedChanceFor">Missed Chance</div>
         </div>
         <div class="g-btn ctx h-md" id="btnPenaltyAgainst">Our Penalty</div>
       </div>
@@ -315,7 +318,7 @@
       </div>
 
       <div class="ringsRow">
-        <div class="ringCard">
+        <div class="ringCard" id="goalieRingCard">
           <div class="small mb-sm">Goalie Score</div>
           <div class="scoreRing">
             <svg viewBox="0 0 80 80" class="ringSvg">
@@ -324,8 +327,10 @@
             </svg>
             <div class="val" id="goalieScoreNum">—</div>
           </div>
+          <div class="ring-confidence" id="goalieConfidence"></div>
+          <div class="ring-tooltip" id="goalieRingTooltip"></div>
         </div>
-        <div class="ringCard">
+        <div class="ringCard" id="teamRingCard">
           <div class="small mb-sm">Team Score</div>
           <div class="scoreRing">
             <svg viewBox="0 0 80 80" class="ringSvg">
@@ -334,49 +339,50 @@
             </svg>
             <div class="val" id="teamScoreNum">—</div>
           </div>
+          <div class="ring-tooltip" id="teamRingTooltip"></div>
         </div>
       </div>
 
       <!-- Goalie Stats -->
       <div class="dash-section-label">Goaltending</div>
       <div class="dashGrid">
-        <div class="dashTile"><div class="k">Saves</div><div class="v" id="savesVal">0</div><div class="s" id="svVal">SV% —</div></div>
-        <div class="dashTile"><div class="k">Big Saves</div><div class="v" id="bigSavesVal">0</div></div>
-        <div class="dashTile"><div class="k">Smothers</div><div class="v" id="smothersVal">0</div></div>
-        <div class="dashTile"><div class="k">Good Rebounds</div><div class="v" id="goodRebVal">0</div></div>
-        <div class="dashTile"><div class="k">Bad Rebounds</div><div class="v" id="badRebVal">0</div></div>
-        <div class="dashTile"><div class="k">Soft Goals</div><div class="v" id="softVal">0</div></div>
+        <div class="dashTile" data-explain="Shots stopped. SV% = saves / total shots faced."><div class="k">Saves</div><div class="v" id="savesVal">0</div><div class="s" id="svVal">SV% —</div></div>
+        <div class="dashTile" data-explain="Exceptional stops on breakaways, cross-crease passes, or point-blank chances."><div class="k">Big Saves</div><div class="v" id="bigSavesVal">0</div></div>
+        <div class="dashTile" data-explain="Goalie covered the puck to force a whistle, killing the opponent's momentum."><div class="k">Smothers</div><div class="v" id="smothersVal">0</div></div>
+        <div class="dashTile" data-explain="Rebounds directed to the corner or covered cleanly — no second chance given."><div class="k">Good Rebounds</div><div class="v" id="goodRebVal">0</div></div>
+        <div class="dashTile" data-explain="Rebounds that stayed in the slot, creating a second chance for the opponent."><div class="k">Bad Rebounds</div><div class="v" id="badRebVal">0</div></div>
+        <div class="dashTile" data-explain="Goals the goalie should have stopped — poor positioning, misplays, or weak shots that got through."><div class="k">Soft Goals</div><div class="v" id="softVal">0</div></div>
       </div>
 
       <!-- Shot Quality Analysis -->
       <div class="dash-section-label">Shot Quality</div>
       <div class="dashGrid">
-        <div class="dashTile"><div class="k">Shooting %</div><div class="v" id="shootPctVal">—</div><div class="s">GF / SF</div></div>
-        <div class="dashTile"><div class="k">Shot Share</div><div class="v" id="shotShareVal">—</div><div class="s">SF / (SF+SA)</div></div>
-        <div class="dashTile"><div class="k">Missed Chances</div><div class="v" id="missedChanceVal">0</div><div class="s" id="missedSub">For + Against</div></div>
-        <div class="dashTile hidden"><div class="k">xGF</div><div class="v" id="xgfVal">—</div><div class="s" id="xgfSub">Expected goals for</div></div>
-        <div class="dashTile hidden"><div class="k">xGA</div><div class="v" id="xgaVal">—</div><div class="s" id="xgaSub">Expected goals ag</div></div>
-        <div class="dashTile hidden"><div class="k">xG Diff</div><div class="v" id="xgDiffVal">—</div><div class="s" id="xgDiffSub">Quality edge</div></div>
+        <div class="dashTile" data-explain="Goal-scoring efficiency — goals scored out of total shots taken. Higher is better."><div class="k">Shooting %</div><div class="v" id="shootPctVal">—</div><div class="s">GF / SF</div></div>
+        <div class="dashTile" data-explain="Your shots as a percentage of all shots in the game. Above 50% means you're outshooting them."><div class="k">Shot Share</div><div class="v" id="shotShareVal">—</div><div class="s">SF / (SF+SA)</div></div>
+        <div class="dashTile" data-explain="Quality opportunities where no goal resulted — posts, fanned shots, wide misses. Combines both teams."><div class="k">Missed Chances</div><div class="v" id="missedChanceVal">0</div><div class="s" id="missedSub">For + Against</div></div>
+        <div class="dashTile hidden" data-explain="Estimates how many goals your shot quality should produce based on chance location and type."><div class="k">xGF</div><div class="v" id="xgfVal">—</div><div class="s" id="xgfSub">Expected goals for</div></div>
+        <div class="dashTile hidden" data-explain="Estimates how many goals the opponent's shot quality should produce. Lower is better."><div class="k">xGA</div><div class="v" id="xgaVal">—</div><div class="s" id="xgaSub">Expected goals ag</div></div>
+        <div class="dashTile hidden" data-explain="The gap between your expected goals and theirs. Positive means your chances were higher quality."><div class="k">xG Diff</div><div class="v" id="xgDiffVal">—</div><div class="s" id="xgDiffSub">Quality edge</div></div>
       </div>
 
       <!-- Offensive Context -->
       <div class="dash-section-label dash-label-us">Offensive</div>
       <div class="dashGrid">
-        <div class="dashTile"><div class="k">Breakaways</div><div class="v" id="baForVal">0</div></div>
-        <div class="dashTile"><div class="k">Odd Man Rush</div><div class="v" id="omrForVal">0</div></div>
-        <div class="dashTile"><div class="k">Forced TO</div><div class="v" id="ftVal">0</div></div>
-        <div class="dashTile"><div class="k">HD Chances</div><div class="v" id="hdForVal">0</div><div class="s" id="hdForSub"></div></div>
-        <div class="dashTile"><div class="k">Penalties Drawn</div><div class="v" id="penForVal">0</div></div>
+        <div class="dashTile" data-explain="Your player had a clear path to the net with no defender between them and the goalie."><div class="k">Breakaways</div><div class="v" id="baForVal">0</div></div>
+        <div class="dashTile" data-explain="Odd-man rushes — your team outnumbered the defense on an attack (2-on-1, 3-on-2, etc.)."><div class="k">OMR</div><div class="v" id="omrForVal">0</div></div>
+        <div class="dashTile" data-explain="Turnovers caused by your team's pressure, stick checks, or positioning."><div class="k">Forced TO</div><div class="v" id="ftVal">0</div></div>
+        <div class="dashTile" data-explain="Scoring chances from the slot or close range — these convert to goals at a much higher rate."><div class="k">HD Chances</div><div class="v" id="hdForVal">0</div><div class="s" id="hdForSub"></div></div>
+        <div class="dashTile" data-explain="Penalties the opponent committed against your team, giving you a power play."><div class="k">Penalties Drawn</div><div class="v" id="penForVal">0</div></div>
       </div>
 
       <!-- Defensive Context -->
       <div class="dash-section-label dash-label-them">Defensive</div>
       <div class="dashGrid">
-        <div class="dashTile"><div class="k">Breakaways Ag</div><div class="v" id="baAgVal">0</div></div>
-        <div class="dashTile"><div class="k">D-Zone TO</div><div class="v" id="dzVal">0</div></div>
-        <div class="dashTile"><div class="k">OMR Against</div><div class="v" id="omrAgVal">0</div></div>
-        <div class="dashTile"><div class="k">HD Chances Ag</div><div class="v" id="hdAgVal">0</div><div class="s" id="hdAgSub"></div></div>
-        <div class="dashTile"><div class="k">Penalties Taken</div><div class="v" id="penAgVal">0</div></div>
+        <div class="dashTile" data-explain="Opponent had a clear breakaway on your goalie — indicates a defensive breakdown."><div class="k">Breakaways Ag</div><div class="v" id="baAgVal">0</div></div>
+        <div class="dashTile" data-explain="Turnovers in your own zone — these often lead to high-danger chances against."><div class="k">D-Zone TO</div><div class="v" id="dzVal">0</div></div>
+        <div class="dashTile" data-explain="Odd-man rushes against — the opponent outnumbered your defense on a rush."><div class="k">OMR Ag</div><div class="v" id="omrAgVal">0</div></div>
+        <div class="dashTile" data-explain="High-danger chances the opponent generated from the slot or close range."><div class="k">HD Chances Ag</div><div class="v" id="hdAgVal">0</div><div class="s" id="hdAgSub"></div></div>
+        <div class="dashTile" data-explain="Penalties your team committed, giving the opponent a power play."><div class="k">Penalties Taken</div><div class="v" id="penAgVal">0</div></div>
       </div>
 
       <div class="card card-mt">
@@ -426,6 +432,7 @@
           </svg>
           <div class="val" id="goalieScoreNumSum">—</div>
         </div>
+        <div class="ring-confidence" id="goalieConfidenceSum"></div>
       </div>
       <div class="ringCard">
         <div class="small mb-sm">Team Score</div>
@@ -443,12 +450,20 @@
     <div class="sum-section">
       <div class="sum-section-label">Team Score Breakdown</div>
       <div id="teamCompBars"></div>
+      <div class="score-explain-toggle" id="teamExplainToggle">How is this scored?</div>
+      <div class="score-explain-panel hidden" id="teamExplainPanel">
+        Combines five areas: Result (25%), Possession (20%), Danger Control (20%), Shot Quality (20%), and Discipline (15%). Each is scored 0&ndash;100 and weighted into the total.
+      </div>
     </div>
 
     <!-- Goalie Score Breakdown -->
     <div class="sum-section">
       <div class="sum-section-label">Goalie Score Breakdown</div>
       <div id="goalieCompBars"></div>
+      <div class="score-explain-toggle" id="goalieExplainToggle">How is this scored?</div>
+      <div class="score-explain-panel hidden" id="goalieExplainPanel">
+        Combines save percentage adjusted for shot difficulty, big saves, rebound control, and soft goals. Context matters &mdash; breakaway and screen goals are weighted less against the goalie.
+      </div>
     </div>
 
     <!-- Shots & Scoring -->
@@ -522,11 +537,14 @@
 <!-- MODALS -->
 <!-- Roster modal -->
 <div class="modal" id="rosterModal"><div class="box">
-  <div class="small mb-sm">Roster (one # per line)</div>
-  <textarea id="rosterArea" class="textarea-dark textarea-roster"></textarea>
-  <div class="rowbtn">
-    <button class="btn-std" id="btnRosterSave">Save</button>
-    <button class="btn-std btn-muted-border" id="btnRosterClose">Close</button>
+  <div class="small" style="font-weight:700; margin-bottom:10px;">Roster</div>
+  <div id="rosterList" class="roster-list"></div>
+  <div class="roster-add-row">
+    <input id="rosterAddInput" class="roster-add-input" type="text" inputmode="numeric" placeholder="e.g. 1, 5, 12" autocomplete="off">
+    <button class="btn-std btn-sm" id="btnRosterAdd" type="button">Add</button>
+  </div>
+  <div class="rowbtn" style="margin-top:10px;">
+    <button class="btn-std btn-muted-border" id="btnRosterClose">Done</button>
   </div>
 </div></div>
 
@@ -657,9 +675,48 @@
   <div id="playerDetailBody" class="small"></div>
 </div></div>
 
+<!-- Account Settings Modal -->
+<div class="modal" id="accountModal"><div class="box modal-scroll-sm">
+  <div class="modal-head">
+    <h3 class="modal-title">Account</h3>
+    <button class="btn-std btn-close-sm" id="accountClose">Close</button>
+  </div>
+  <div class="account-body">
+    <div class="account-section">
+      <div class="account-row"><span class="account-label">Email</span><span class="account-value" id="acctEmail">—</span></div>
+      <div class="account-row"><span class="account-label">Provider</span><span class="account-value" id="acctProvider">—</span></div>
+      <div class="account-row"><span class="account-label">Plan</span><span class="account-value" id="acctPlan">Free</span></div>
+    </div>
+    <div class="account-section">
+      <div class="account-row"><span class="account-label">Cloud sync</span><span class="account-value" id="acctSyncStatus">—</span></div>
+      <div class="account-row"><span class="account-label">Queued</span><span class="account-value" id="acctQueueCount">0 games</span></div>
+    </div>
+    <div class="account-actions">
+      <button class="btn-std" id="acctExportAll">Export All Data</button>
+      <button class="btn-std" id="acctSignOut">Sign Out</button>
+      <button class="btn-std btn-danger-outline" id="acctDeleteAccount">Delete Account</button>
+    </div>
+  </div>
+  <div id="acctGuestNotice" class="account-guest-notice" style="display:none;">
+    You're using guest mode. Sign in to sync your data across devices.
+  </div>
+</div></div>
+
+<!-- Guest Migration Modal -->
+<div class="modal" id="migrationModal"><div class="box">
+  <div class="modal-head">
+    <h3 class="modal-title">Import Local Games?</h3>
+  </div>
+  <p class="migration-desc" id="migrationDesc">We found saved games on this device. Import them to your account?</p>
+  <div class="modal-actions">
+    <button class="btn-std" id="migrationSkip">Skip</button>
+    <button class="btn-std btn-primary-sm" id="migrationImport">Import</button>
+  </div>
+</div></div>
+
 <!-- Welcome Modal (first launch only) -->
 <div class="modal" id="welcomeModal"><div class="box">
-  <div class="welcome-title">Welcome to Team Tracker</div>
+  <div class="welcome-title">Welcome to Smart Team Tracker</div>
   <div class="welcome-sub">Fast bench-side tracking with live spectating, saved opponents, and season history built in.</div>
   <ul class="welcome-bullets">
     <li><span class="wb-icon wb-icon-them">&#9679;</span><strong>Red tracks chances against</strong> &mdash; shots, goals, goalie events, and defensive breakdowns.</li>
@@ -673,7 +730,7 @@
 <!-- Help Modal (? button) -->
 <div class="modal" id="helpModal"><div class="box help-box">
   <div class="modal-head-lg">
-    <h2 class="modal-title-lg">How to Use Team Tracker</h2>
+    <h2 class="modal-title-lg">How to Use Smart Team Tracker</h2>
     <button class="btn-std btn-close-sm" id="btnHelpClose">Close</button>
   </div>
   <div class="help-scroll">
@@ -727,7 +784,7 @@
       <ul>
         <li><strong>Breakaway</strong> &mdash; Your player got in alone. If a goal follows within 10 seconds, it is auto-tagged.</li>
         <li><strong>Forced Turnover</strong> &mdash; Your team won the puck back through good pressure. If a goal follows within 10 seconds, it is auto-tagged.</li>
-        <li><strong>Odd Man Rush</strong> &mdash; Your team created a 2-on-1, 3-on-2, etc. If a goal follows within 10 seconds, it is auto-tagged.</li>
+        <li><strong>Odd-Man Rush</strong> &mdash; Your team created a 2-on-1, 3-on-2, etc. If a goal follows within 10 seconds, it is auto-tagged.</li>
         <li><strong>Missed Chance (No Shot)</strong> &mdash; Your team had a quality scoring chance but no shot on net (e.g. hit the post, went wide, fanned on it). It still counts toward your chance quality.</li>
         <li><strong>Our Penalty</strong> &mdash; Your team took a penalty (shorthanded). It is counted and logged in the event list.</li>
       </ul>
@@ -756,12 +813,14 @@
       <h4>Team Score (0&ndash;100)</h4>
       <p>Overall team performance combining five areas:</p>
       <ul>
+        <li><strong>Result (25%)</strong> &mdash; Weighted goal differential (PP goals discounted, SH goals bonused)</li>
         <li><strong>Possession (20%)</strong> &mdash; Shot share (your shots vs total shots)</li>
         <li><strong>Danger Control (20%)</strong> &mdash; Breakaways + odd man rushes + forced turnovers created vs given up</li>
-        <li><strong>Shot Quality (15%)</strong> &mdash; Are your chances better than theirs overall</li>
-        <li><strong>Result (35%)</strong> &mdash; Goal differential, with SH goals against weighted less</li>
-        <li><strong>Discipline (10%)</strong> &mdash; Penalties drawn vs penalties taken</li>
+        <li><strong>Shot Quality (20%)</strong> &mdash; Are your chances higher quality per shot than theirs</li>
+        <li><strong>Discipline (15%)</strong> &mdash; Penalties drawn vs penalties taken</li>
       </ul>
+      <h4>A Note on Subjective Tags</h4>
+      <p>Some inputs &mdash; like Soft Goal, Big Save, and High Danger &mdash; are your judgment calls as coach. The scoring model trusts your observations. There&rsquo;s no benefit to over- or under-tagging, so just call what you see.</p>
     </div>
 
     <hr class="help-divider">

@@ -77,6 +77,43 @@ let prefs = { trackPlusMinus: true };
 try { const p = JSON.parse(localStorage.getItem(PREFS_KEY)); if(p) prefs = {...prefs, ...p}; } catch(_){}
 function savePrefs(){ try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch(_){} }
 
+/* localStorage quota management */
+let _quotaWarned = false;
+function estimateStorageUsage(){
+  let total = 0;
+  try{
+    for(let i = 0; i < localStorage.length; i++){
+      const key = localStorage.key(i);
+      total += (key.length + (localStorage.getItem(key) || '').length) * 2; // UTF-16
+    }
+  }catch(_){}
+  return total;
+}
+function checkStorageQuota(additionalBytes){
+  if(_quotaWarned) return;
+  const used = estimateStorageUsage();
+  const limit = 5 * 1024 * 1024; // 5MB typical localStorage limit
+  const threshold = limit * 0.8;
+  if((used + (additionalBytes || 0) * 2) > threshold){
+    _quotaWarned = true;
+    if(typeof showStatusToast === 'function'){
+      showStatusToast('Storage nearly full — consider syncing to cloud', 'warn', 5000);
+    }
+  }
+}
+function pruneOfflineQueue(){
+  // Remove successfully synced items from the offline queue to free space
+  try{
+    const q = JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY)) || [];
+    if(q.length > 3){
+      // Keep only the 3 most recent queued games
+      localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(q.slice(-3)));
+    }
+  }catch(_){
+    try{ localStorage.removeItem(OFFLINE_QUEUE_KEY); }catch(_e){}
+  }
+}
+
 // Shared with the live-share helpers; it must exist before init() runs because
 // the setup header now hides live-share UI on first paint.
 let _liveShareBannerTimer = null;
@@ -301,7 +338,7 @@ const state = {
   date:null,
   period:1,
   startedAt:new Date().toISOString(),
-  gameId:Math.random().toString(36).slice(2),
+  gameId:crypto.randomUUID(),
   events:[],
   countsA:{shots:0, goals:0, softGoals:0, smothers:0, badRebounds:0, bigSaves:0},
   countsF:{shots:0, goals:0},
@@ -440,6 +477,7 @@ $('btnStartGame').addEventListener('click', ()=>{
     requestAnimationFrame(scrollGameplayIntoView);
   });
   vibrate(HAPTIC.tap);
+  maybeShowOnboarding();
 });
 
 $('btnEditSetup').addEventListener('click', ()=>{ toggleSetup(true); });
@@ -466,6 +504,14 @@ function refreshCloudStatus(){
       // no-op here; pingCloud will set it
     }
   }catch(_){}
+}
+
+/* Authenticated fetch helper — attaches Firebase ID token when available */
+async function authHeaders(extra) {
+  const h = Object.assign({ 'Content-Type': 'application/json' }, extra || {});
+  const token = typeof window.getAuthToken === 'function' ? await window.getAuthToken() : null;
+  if (token) h['Authorization'] = `Bearer ${token}`;
+  return h;
 }
 
 /* Keep the connection indicator in sync with /api/ping */
@@ -508,9 +554,16 @@ async function save(){
   if(IS_SPECTATOR_MODE) return;
   try{
     const json = JSON.stringify(state);
+    checkStorageQuota(json.length);
     localStorage.setItem(SAVE_KEY,json);
     await idbKV.set(SAVE_KEY,json);
-  }catch(_){}
+  }catch(e){
+    if(e.name === 'QuotaExceededError' || (e.code && e.code === 22)){
+      showStatusToast('Storage full — old queued games cleared', 'warn', 4000);
+      pruneOfflineQueue();
+      try{ localStorage.setItem(SAVE_KEY,JSON.stringify(state)); }catch(_){}
+    }
+  }
   // Push to live spectator API if sharing
   if(state.shareCode) pushLiveState();
 }
@@ -611,6 +664,41 @@ function highlightPeriod(){
     ch.classList.toggle('active', p===state.period);
   });
   updateHeaderContext();
+}
+
+function showPeriodFlash(p){
+  const pData = per[p];
+  if(!pData) return;
+  const sa = pData.A_shots || 0;
+  const ga = pData.A_goals || 0;
+  const sf = pData.F_shots || 0;
+  const gf = pData.F_goals || 0;
+  const saves = Math.max(0, sa - ga);
+  const svPct = sa > 0 ? (saves / sa).toFixed(3).slice(1) : '—';
+
+  const el = document.createElement('div');
+  el.className = 'period-flash';
+  el.innerHTML =
+    `<div class="period-flash-title">P${p} Summary</div>` +
+    `<div class="period-flash-stats">` +
+      `<span>Shots ${sf}-${sa}</span>` +
+      `<span>Goals ${gf}-${ga}</span>` +
+      `<span>SV% ${svPct}</span>` +
+    `</div>`;
+  el.addEventListener('click', function(){ dismissPeriodFlash(el); });
+
+  const wrap = document.querySelector('.next-period-wrap');
+  if(wrap && wrap.parentNode){
+    wrap.parentNode.insertBefore(el, wrap);
+  } else {
+    document.body.appendChild(el);
+  }
+  setTimeout(function(){ dismissPeriodFlash(el); }, 4000);
+}
+function dismissPeriodFlash(el){
+  if(!el || !el.parentNode) return;
+  el.classList.add('period-flash-exit');
+  setTimeout(function(){ if(el.parentNode) el.remove(); }, 300);
 }
 
 function fmtTime(iso){
@@ -1591,7 +1679,7 @@ function computeGoalieScore() {
 
   // 1) Minimum volume: below 2 shots there is no meaningful data
   if (shots < 2) {
-    return { total: 63, scoreSV: 0, softPenalty: 0, ctxAdj: 0, scoreRebound: 0, scoreBig: 0, goodRebounds: 0, smothers: 0 };
+    return { total: 63, scoreSV: 0, softPenalty: 0, ctxAdj: 0, scoreRebound: 0, scoreBig: 0, goodRebounds: 0, smothers: 0, confidence: 0, shots: shots };
   }
 
   const prof = LEVEL_PROFILES[normalizeLevelKey(state.level)] || LEVEL_PROFILES.Other;
@@ -1691,7 +1779,9 @@ function computeGoalieScore() {
     scoreRebound: Math.round(reboundScore),
     scoreBig: C.bigSaves,
     goodRebounds: goodRebounds,
-    smothers: C.smothers
+    smothers: C.smothers,
+    confidence: confidence,
+    shots: shots
   };
 }
 
@@ -2000,10 +2090,17 @@ function updateMeta(){
     $('tsArc').style.stroke = '#333';
     $('gsArc').style.strokeDashoffset = '220';
     $('tsArc').style.strokeDashoffset = '220';
+    $('goalieConfidence').textContent = '';
+    // Clear tooltips on reset
+    const gTip = $('goalieRingTooltip'), tTip = $('teamRingTooltip');
+    if(gTip) gTip.classList.remove('active');
+    if(tTip) tTip.classList.remove('active');
   } else {
     const K = computeGoalieScore(), T = computeTeamScore();
     setRing($('goalieScoreNum'),$('gsArc'),K.total);
     setRing($('teamScoreNum'),$('tsArc'),T.total);
+    // Dampening works silently — no live-game indicator
+    $('goalieConfidence').textContent = '';
   }
 
   // per-period cards (clean: header already says P1/P2/P3/OT)
@@ -2156,7 +2253,8 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
   setRing($('teamScoreNumSum'),$('tsArcSum'),T.total);
 
   // === Team Score Component Bars ===
-  const teamColor = function(s){ return s >= 60 ? 'var(--good)' : s >= 40 ? 'var(--warn)' : 'var(--accent-them)'; };
+  // Component bars use pastel variants + different thresholds (sub-scores have wider distributions)
+  const teamColor = function(s){ return s >= 60 ? 'var(--comp-good)' : s >= 40 ? 'var(--comp-warn)' : 'var(--comp-poor)'; };
   $('teamCompBars').innerHTML =
     compBar('Result 25%', T.scoreFin, teamColor(T.scoreFin)) +
     compBar('Possession 20%', T.scoreSS, teamColor(T.scoreSS)) +
@@ -2166,22 +2264,32 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
 
   // === Goalie Score Component Bars ===
   // Build meaningful bars from goalie data
-  const gkColor = function(s){ return s >= 60 ? 'var(--good)' : s >= 40 ? 'var(--warn)' : 'var(--accent-them)'; };
+  const gkColor = function(s){ return s >= 60 ? 'var(--comp-good)' : s >= 40 ? 'var(--comp-warn)' : 'var(--comp-poor)'; };
 
-  // GSAx: normalize around 0 to a 0-100 bar. GSAx of 0 = 50, positive is better.
+  // Save Quality (GSAx): normalize around 0 to a 0-100 bar. 0 = 50, positive is better.
   const gsaxNorm = Math.max(0, Math.min(100, 50 + (K.ctxAdj * 15)));
 
   // Rebound control: normalize. Score of 0 = 50, positive = better.
   const rebNorm = Math.max(0, Math.min(100, 50 + (K.scoreRebound * 8)));
 
   $('goalieCompBars').innerHTML =
-    compBar('GSAx', gsaxNorm, gkColor(gsaxNorm)) +
-    `<div style="font-size:11px; color:var(--muted); text-align:right; margin:-2px 0 6px 0;">${K.ctxAdj > 0 ? '+' : ''}${K.ctxAdj} goals saved above expected</div>` +
+    compBar('Save Quality', gsaxNorm, gkColor(gsaxNorm)) +
+    `<div class="comp-annotation">${K.ctxAdj > 0 ? '+' : ''}${K.ctxAdj} goals saved above expected</div>` +
     compBar('Rebounds', rebNorm, gkColor(rebNorm)) +
-    `<div style="font-size:11px; color:var(--muted); text-align:right; margin:-2px 0 6px 0;">${goodReb} good, ${state.countsA.badRebounds} bad, ${state.countsA.smothers} smothered</div>` +
+    `<div class="comp-annotation">${goodReb} good, ${state.countsA.badRebounds} bad, ${state.countsA.smothers} smothered</div>` +
     compBar('Big Saves', Math.min(100, K.scoreBig * 25), gkColor(Math.min(100, K.scoreBig * 25))) +
-    `<div style="font-size:11px; color:var(--muted); text-align:right; margin:-2px 0 4px 0;">${K.scoreBig} big save${K.scoreBig !== 1 ? 's' : ''}</div>` +
-    (K.softPenalty > 0 ? `<div style="font-size:12px; color:var(--accent-them); font-weight:700; text-align:right; margin-top:2px;">${K.softPenalty} soft goal${K.softPenalty !== 1 ? 's' : ''} allowed</div>` : '');
+    `<div class="comp-annotation">${K.scoreBig} big save${K.scoreBig !== 1 ? 's' : ''}</div>` +
+    (K.softPenalty > 0 ? `<div class="comp-annotation-warn">${K.softPenalty} soft goal${K.softPenalty !== 1 ? 's' : ''} allowed</div>` : '');
+
+  // Summary confidence note — only shown for very low shot counts
+  const confSum = $('goalieConfidenceSum');
+  if(confSum){
+    if(K.shots < 10){
+      confSum.textContent = `Based on ${K.shots} shot${K.shots !== 1 ? 's' : ''}`;
+    } else {
+      confSum.textContent = '';
+    }
+  }
 
   // === Shots & Scoring ===
   $('sumShotsGrid').innerHTML =
@@ -2213,7 +2321,7 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
   // === Offensive ===
   $('sumOffenseGrid').innerHTML =
     tile('Breakaways', state.team.breakawaysFor) +
-    tile('Odd Man Rush', state.team.oddManRushFor) +
+    tile('Odd-Man Rush', state.team.oddManRushFor) +
     tile('Forced TO', state.team.forcedTurnovers||0) +
     tile('Penalties Drawn', state.team.penaltiesFor||0) +
     tile('Missed Ch', state.team.missedChancesFor||0, 'For');
@@ -2222,7 +2330,7 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
   $('sumDefenseGrid').innerHTML =
     tile('Breakaways Ag', state.team.breakawaysAgainst) +
     tile('D-Zone TO', state.team.dzTurnovers) +
-    tile('OMR Against', state.team.oddManRushAgainst||0) +
+    tile('OMR Ag', state.team.oddManRushAgainst||0) +
     tile('Penalties Taken', state.team.penaltiesAgainst||0);
 
   // === Goal Breakdowns ===
@@ -2231,30 +2339,30 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
   const totalGF = gfCtx.BA + gfCtx.OMR + (gfCtx.FT||0) + gfCtx.Other;
   const totalGA = gaStats.BA + gaStats.DZ + gaStats.BR + (gaStats.OMRA||0) + gaStats.Other;
 
-  let gbHTML = '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">';
+  let gbHTML = '<div class="breakdown-grid">';
   // GA (them) on left, GF (us) on right — matches column layout
   if(totalGA > 0){
-    gbHTML += `<div class="card" style="padding:10px;">
-      <div class="small" style="font-weight:700; color:var(--accent-them); margin-bottom:6px;">Goals Against (${totalGA})</div>
+    gbHTML += `<div class="card breakdown-card">
+      <div class="small breakdown-card-title breakdown-card-title-them">Goals Against (${totalGA})</div>
       ${gaStats.BA ? `<div class="small">Breakaway: ${gaStats.BA}</div>` : ''}
       ${gaStats.DZ ? `<div class="small">D-Zone TO: ${gaStats.DZ}</div>` : ''}
       ${gaStats.BR ? `<div class="small">Bad Rebound: ${gaStats.BR}</div>` : ''}
-      ${(gaStats.OMRA||0) ? `<div class="small">Odd Man Rush: ${gaStats.OMRA}</div>` : ''}
+      ${(gaStats.OMRA||0) ? `<div class="small">Odd-Man Rush: ${gaStats.OMRA}</div>` : ''}
       ${gaStats.Other ? `<div class="small">Other: ${gaStats.Other}</div>` : ''}
     </div>`;
   } else {
-    gbHTML += `<div class="card" style="padding:10px;"><div class="small" style="color:var(--muted);">No goals against</div></div>`;
+    gbHTML += `<div class="card breakdown-card"><div class="small" style="color:var(--muted);">No goals against</div></div>`;
   }
   if(totalGF > 0){
-    gbHTML += `<div class="card" style="padding:10px;">
-      <div class="small" style="font-weight:700; color:var(--accent-us); margin-bottom:6px;">Goals For (${totalGF})</div>
+    gbHTML += `<div class="card breakdown-card">
+      <div class="small breakdown-card-title breakdown-card-title-us">Goals For (${totalGF})</div>
       ${gfCtx.BA ? `<div class="small">Breakaway: ${gfCtx.BA}</div>` : ''}
-      ${gfCtx.OMR ? `<div class="small">Odd Man Rush: ${gfCtx.OMR}</div>` : ''}
+      ${gfCtx.OMR ? `<div class="small">Odd-Man Rush: ${gfCtx.OMR}</div>` : ''}
       ${(gfCtx.FT||0) ? `<div class="small">Forced TO: ${gfCtx.FT}</div>` : ''}
       ${gfCtx.Other ? `<div class="small">Other: ${gfCtx.Other}</div>` : ''}
     </div>`;
   } else {
-    gbHTML += `<div class="card" style="padding:10px;"><div class="small" style="color:var(--muted);">No goals for</div></div>`;
+    gbHTML += `<div class="card breakdown-card"><div class="small" style="color:var(--muted);">No goals for</div></div>`;
   }
   gbHTML += '</div>';
   $('sumGoalBreakdowns').innerHTML = gbHTML;
@@ -2264,13 +2372,13 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
   const hasStrength = (sb.for.EV||0)+(sb.for.PP||0)+(sb.for.SH||0)+(sb.against.EV||0)+(sb.against.PP||0)+(sb.against.SH||0) > 0;
   if(hasStrength){
     $('sumStrengthWrap').style.display = '';
-    $('sumStrengthGrid').innerHTML = `<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-      <div class="card" style="padding:10px;">
-        <div class="small" style="font-weight:700; color:var(--accent-them); margin-bottom:4px;">Goals Against</div>
+    $('sumStrengthGrid').innerHTML = `<div class="breakdown-grid">
+      <div class="card breakdown-card">
+        <div class="small breakdown-card-title breakdown-card-title-them">Goals Against</div>
         <div class="small">EV: ${sb.against.EV||0} &bull; PP: ${sb.against.PP||0} &bull; SH: ${sb.against.SH||0}${sb.against.UNK ? ' &bull; Unk: '+sb.against.UNK : ''}</div>
       </div>
-      <div class="card" style="padding:10px;">
-        <div class="small" style="font-weight:700; color:var(--accent-us); margin-bottom:4px;">Goals For</div>
+      <div class="card breakdown-card">
+        <div class="small breakdown-card-title breakdown-card-title-us">Goals For</div>
         <div class="small">EV: ${sb.for.EV||0} &bull; PP: ${sb.for.PP||0} &bull; SH: ${sb.for.SH||0}${sb.for.UNK ? ' &bull; Unk: '+sb.for.UNK : ''}</div>
       </div>
     </div>`;
@@ -2427,7 +2535,7 @@ function resetCurrentGame(){
   state.team = {breakawaysAgainst:0, dzTurnovers:0, breakawaysFor:0, oddManRushFor:0, oddManRushAgainst:0, penaltiesFor:0, penaltiesAgainst:0, missedChancesFor:0, missedChancesAgainst:0, forcedTurnovers:0};
   per = {1:initP(), 2:initP(), 3:initP(), 4:initP()};
 
-  state.gameId = Math.random().toString(36).slice(2);
+  state.gameId = crypto.randomUUID();
   state.startedAt = new Date().toISOString();
   state.lastEventId = 0;
 
@@ -2463,7 +2571,7 @@ async function saveGameToCloud(game){
     setCloudStatus('Saving','warn');
     const res = await fetch('/api/save-game',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers: await authHeaders(),
       body:JSON.stringify({game})
     });
     const d=await res.json();
@@ -2498,32 +2606,61 @@ function queueOfflineSave(game){
   if(idx >= 0) q[idx] = game; else q.push(game);
   saveOfflineQueue(q);
 }
-async function flushOfflineQueue(){
-  const q = getOfflineQueue();
-  if(!q.length) return;
-  const remaining = [];
-  for(const game of q){
+async function trySyncGame(game){
+  const delays = [2000, 8000, 30000];
+  for(let attempt = 0; attempt < 3; attempt++){
     try{
       const res = await fetch('/api/save-game',{
         method:'POST',
-        headers:{'Content-Type':'application/json'},
+        headers: await authHeaders(),
         body:JSON.stringify({game})
       });
       const d = await res.json();
-      if(!d.success) remaining.push(game);
-    }catch(_){
-      remaining.push(game);
-      break; // still offline, stop trying
-    }
+      if(d.success) return true;
+    }catch(_){}
+    if(attempt < 2) await new Promise(r => setTimeout(r, delays[attempt]));
+  }
+  return false;
+}
+let _flushInProgress = false;
+async function flushOfflineQueue(){
+  if(_flushInProgress) return;
+  const q = getOfflineQueue();
+  if(!q.length){ updateQueueIndicator(); return; }
+  _flushInProgress = true;
+  setCloudStatus(q.length + ' pending','warn');
+  updateQueueIndicator();
+  const remaining = [];
+  for(let i = 0; i < q.length; i++){
+    if(await trySyncGame(q[i])) continue;
+    // Failed after retries — keep this and all remaining games
+    for(let j = i; j < q.length; j++) remaining.push(q[j]);
+    break;
   }
   saveOfflineQueue(remaining);
+  _flushInProgress = false;
+  updateQueueIndicator();
   if(remaining.length === 0 && q.length > 0){
     setCloudStatus('Synced','good');
     showStatusToast('Queued games synced!', 'success');
+  } else if(remaining.length > 0){
+    setCloudStatus(remaining.length + ' pending','warn');
+  }
+}
+function updateQueueIndicator(){
+  const q = getOfflineQueue();
+  const el = $('queueIndicator');
+  if(!el) return;
+  if(q.length > 0){
+    el.textContent = q.length + ' game' + (q.length > 1 ? 's' : '') + ' pending sync';
+    el.style.display = '';
+  } else {
+    el.style.display = 'none';
   }
 }
 // Flush queue when we come back online
 window.addEventListener('online', ()=>{ setTimeout(flushOfflineQueue, 2000); });
+$('queueIndicator').addEventListener('click', ()=>{ if(!_flushInProgress) flushOfflineQueue(); });
 
 /* CSV Helpers: game row + per-player block */
 function computePlayerStats(){
@@ -2653,7 +2790,7 @@ function exportGameCSV(){
 
   if(navigator.canShare && navigator.canShare({files:[new File([blob], fileName, {type:'text/csv'})]}) && navigator.share){
     const f = new File([blob], fileName, {type:'text/csv'});
-    navigator.share({files:[f], title:'Team Tracker CSV'}).catch(()=>doDownload());
+    navigator.share({files:[f], title:'Smart Team Tracker CSV'}).catch(()=>doDownload());
   } else {
     doDownload();
   }
@@ -2688,19 +2825,49 @@ function makePlusMinusTable(){
 }
 
 /* Roster Modal */
-function openRoster(){
-  const area = $('rosterArea');
-  area.value = (state.roster||[]).join('\n');
-  $('rosterModal').style.display='flex';
+function renderRosterList(){
+  const list = $('rosterList');
+  const roster = state.roster || [];
+  if(!roster.length){
+    list.innerHTML = '<div class="roster-empty">No players yet. Add jersey numbers below.</div>';
+    return;
+  }
+  list.innerHTML = roster.map(n =>
+    `<div class="roster-entry" data-n="${n}">
+      <span class="roster-number">#${n}</span>
+      <button class="roster-remove" type="button" aria-label="Remove #${n}">&times;</button>
+    </div>`
+  ).join('');
 }
-function saveRosterFromArea(){
-  const raw = $('rosterArea').value.split('\n').map(x=>x.trim()).filter(x=>x.length>0);
-  state.roster = sortRoster(raw);
+function persistRoster(){
   localStorage.setItem(ROSTER_KEY, JSON.stringify(state.roster));
-  // Sync to active team
   if (window.TeamManager) window.TeamManager.syncRosterToActiveTeam(state.roster);
   save();
-  $('rosterModal').style.display='none';
+}
+function parseRosterInput(raw){
+  return String(raw||'').split(/[\s,;\t\n]+/).map(x=>x.trim()).filter(x=>x.length>0 && isNumStr(x));
+}
+function addRosterNumbers(raw){
+  const nums = parseRosterInput(raw);
+  if(!nums.length) return false;
+  const set = new Set((state.roster||[]).map(x=>String(x).trim()));
+  let added = 0;
+  for(const n of nums){ if(!set.has(n)){ set.add(n); added++; } }
+  if(!added) return false;
+  state.roster = sortRoster([...set]);
+  persistRoster();
+  renderRosterList();
+  return true;
+}
+function removeRosterNumber(num){
+  state.roster = (state.roster||[]).filter(x => String(x).trim() !== String(num).trim());
+  persistRoster();
+  renderRosterList();
+}
+function openRoster(){
+  renderRosterList();
+  $('rosterModal').style.display='flex';
+  $('rosterAddInput').value = '';
 }
 function closeRoster(){ $('rosterModal').style.display='none'; }
 
@@ -2877,6 +3044,7 @@ return;
     updateSetupReadiness();
     validateState('init load');
     refreshCloudStatus();
+    updateQueueIndicator();
 
     // Restore live-share button state after loading saved game.
     if (state.shareCode) {
@@ -2912,6 +3080,58 @@ return;
     }
   });
 
+  /* First-game onboarding coach marks */
+  const ONBOARD_KEY = 'stt-onboarding-seen';
+
+  window.maybeShowOnboarding = function(){
+    if(localStorage.getItem(ONBOARD_KEY)) return;
+    localStorage.setItem(ONBOARD_KEY, '1');
+
+    const marks = [
+      { target: 'btnShot', text: 'Start here — tap when a shot happens', side: 'below' },
+      { target: 'goalieRingCard', text: 'Live scores update as you track', side: 'below' },
+      { target: 'btnNextPeriod', text: 'Tap between periods', side: 'above' }
+    ];
+
+    let i = 0;
+    function showMark(){
+      if(i >= marks.length) return;
+      const m = marks[i];
+      const el = $(m.target);
+      if(!el){ i++; showMark(); return; }
+
+      const overlay = document.createElement('div');
+      overlay.className = 'coach-mark-overlay';
+
+      const tip = document.createElement('div');
+      tip.className = 'coach-mark-tip';
+      tip.textContent = m.text;
+
+      const rect = el.getBoundingClientRect();
+      if(m.side === 'above'){
+        tip.style.bottom = (window.innerHeight - rect.top + 8) + 'px';
+      } else {
+        tip.style.top = (rect.bottom + 8) + 'px';
+      }
+      tip.style.left = Math.max(12, Math.min(window.innerWidth - 220, rect.left)) + 'px';
+
+      el.classList.add('coach-mark-highlight');
+      overlay.appendChild(tip);
+      document.body.appendChild(overlay);
+
+      function dismiss(){
+        el.classList.remove('coach-mark-highlight');
+        overlay.remove();
+        i++;
+        setTimeout(showMark, 200);
+      }
+      overlay.addEventListener('click', dismiss);
+      setTimeout(dismiss, 3000);
+    }
+
+    setTimeout(showMark, 600);
+  };
+
   /* Help button */
   $('btnHelp').onclick = function(){
     $('helpModal').style.display = 'flex';
@@ -2924,6 +3144,168 @@ return;
   };
   $('helpModal').addEventListener('click', function(e){
     if(e.target === $('helpModal')) $('helpModal').style.display = 'none';
+  });
+
+  /* ===== 7A: Account Settings ===== */
+  $('btnAccount').onclick = function(){
+    closeHeaderMenu();
+    openAccountModal();
+  };
+  $('accountClose').onclick = function(){ $('accountModal').style.display = 'none'; };
+  $('accountModal').addEventListener('click', function(e){
+    if(e.target === $('accountModal')) $('accountModal').style.display = 'none';
+  });
+  $('acctSignOut').onclick = function(){
+    $('accountModal').style.display = 'none';
+    if(window.authSignOut) window.authSignOut();
+  };
+  $('acctExportAll').onclick = exportAllData;
+  $('acctDeleteAccount').onclick = async function(){
+    const ok1 = await showConfirm('Delete your account and all cloud data? This cannot be undone.');
+    if(!ok1) return;
+    const ok2 = await showConfirm('Are you absolutely sure? All games will be permanently deleted.');
+    if(!ok2) return;
+    try{
+      const token = window.getAuthToken ? await window.getAuthToken() : null;
+      if(!token){ showStatusToast('Not signed in', 'error'); return; }
+      const res = await fetch('/api/delete-account', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
+      });
+      const d = await res.json();
+      if(d.success){
+        localStorage.clear();
+        showStatusToast('Account deleted', 'success');
+        setTimeout(()=> location.reload(), 1500);
+      } else {
+        showStatusToast(d.error || 'Delete failed', 'error', 3500);
+      }
+    }catch(e){
+      showStatusToast('Network error', 'error', 3500);
+    }
+  };
+
+  function openAccountModal(){
+    const user = window.getAuthUser ? window.getAuthUser() : null;
+    if(user){
+      $('acctEmail').textContent = user.email || '—';
+      const prov = user.providerData && user.providerData[0];
+      $('acctProvider').textContent = prov ? prov.providerId.replace('.com','').replace('password','Email') : '—';
+      $('acctGuestNotice').style.display = 'none';
+      $('acctSignOut').style.display = '';
+      $('acctDeleteAccount').style.display = '';
+    } else {
+      $('acctEmail').textContent = 'Guest';
+      $('acctProvider').textContent = '—';
+      $('acctGuestNotice').style.display = '';
+      $('acctSignOut').style.display = 'none';
+      $('acctDeleteAccount').style.display = 'none';
+    }
+    // Sync status
+    const statusEl = $('cloudStatus');
+    $('acctSyncStatus').textContent = statusEl ? statusEl.title : '—';
+    const q = getOfflineQueue();
+    $('acctQueueCount').textContent = q.length + ' game' + (q.length !== 1 ? 's' : '');
+    // Plan
+    $('acctPlan').textContent = window._subscriptionPlan || 'Free';
+
+    $('accountModal').style.display = 'flex';
+  }
+
+  function exportAllData(){
+    // Gather all local data
+    const data = {
+      currentGame: null,
+      offlineQueue: [],
+      prefs: null,
+      roster: null
+    };
+    try{ data.currentGame = JSON.parse(localStorage.getItem(SAVE_KEY)); }catch(_){}
+    try{ data.offlineQueue = JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY)) || []; }catch(_){}
+    try{ data.prefs = JSON.parse(localStorage.getItem(PREFS_KEY)); }catch(_){}
+    try{ data.roster = JSON.parse(localStorage.getItem(ROSTER_KEY)); }catch(_){}
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const fileName = 'smart-team-tracker-export-' + (new Date().toISOString().slice(0,10)) + '.json';
+    const doDownload = ()=>{
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = fileName;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    };
+    if(navigator.canShare && navigator.canShare({files:[new File([blob], fileName, {type:'application/json'})]}) && navigator.share){
+      const f = new File([blob], fileName, {type:'application/json'});
+      navigator.share({files:[f], title:'Smart Team Tracker Export'}).catch(()=>doDownload());
+    } else {
+      doDownload();
+    }
+    showStatusToast('Data exported!', 'success');
+  }
+
+  /* ===== 7C: Subscription / plan status (infrastructure) ===== */
+  window._subscriptionPlan = 'Free';
+  window._subscriptionFeatures = {
+    liveShare: true,
+    cloudSync: true,
+    seasonStats: true,
+    exportCSV: true,
+    exportJSON: true
+  };
+
+  function checkFeatureAccess(feature){
+    return window._subscriptionFeatures[feature] !== false;
+  }
+  window.checkFeatureAccess = checkFeatureAccess;
+
+  // Upgrade prompt helper — shows toast with upgrade nudge at natural moments
+  let _upgradePromptShown = {};
+  function maybeShowUpgradePrompt(moment){
+    if(window._subscriptionPlan !== 'Free') return;
+    if(_upgradePromptShown[moment]) return;
+    _upgradePromptShown[moment] = true;
+    // Don't show upgrade prompts yet — infrastructure only; activate when pricing is configured
+  }
+  window.maybeShowUpgradePrompt = maybeShowUpgradePrompt;
+
+  /* Score ring tap-to-explain (live game) */
+  $('goalieRingCard').addEventListener('click', function(){
+    const tip = $('goalieRingTooltip');
+    if(tip.classList.contains('active')){ tip.classList.remove('active'); return; }
+    if(state.events.length === 0){ return; }
+    const K = computeGoalieScore();
+    const sc = K.total;
+    const band = sc >= 80 ? 'Excellent' : sc >= 63 ? 'Solid' : sc >= 45 ? 'Below Average' : 'Poor';
+    let html = `<div class="ring-band">${sc}/100 &mdash; ${band}</div>`;
+    html += `<div class="ring-basis">Based on ${K.shots} shot${K.shots !== 1 ? 's' : ''}</div>`;
+    if(K.shots < 10){
+      html += `<div class="ring-confidence-note">Score stabilizes as shot count increases.</div>`;
+    }
+    tip.innerHTML = html;
+    tip.classList.add('active');
+  });
+  $('teamRingCard').addEventListener('click', function(){
+    const tip = $('teamRingTooltip');
+    if(tip.classList.contains('active')){ tip.classList.remove('active'); return; }
+    if(state.events.length === 0){ return; }
+    const T = computeTeamScore();
+    const sc = T.total;
+    const band = sc >= 80 ? 'Excellent' : sc >= 63 ? 'Solid' : sc >= 45 ? 'Below Average' : 'Poor';
+    const totalShots = state.countsF.shots + state.countsA.shots;
+    let html = `<div class="ring-band">${sc}/100 &mdash; ${band}</div>`;
+    html += `<div class="ring-basis">Based on ${totalShots} total shot${totalShots !== 1 ? 's' : ''}</div>`;
+    tip.innerHTML = html;
+    tip.classList.add('active');
+  });
+
+  /* Summary score explain toggles */
+  $('goalieExplainToggle').addEventListener('click', function(){
+    $('goalieExplainPanel').classList.toggle('hidden');
+    this.textContent = $('goalieExplainPanel').classList.contains('hidden') ? 'How is this scored?' : 'Hide';
+  });
+  $('teamExplainToggle').addEventListener('click', function(){
+    $('teamExplainPanel').classList.toggle('hidden');
+    this.textContent = $('teamExplainPanel').classList.contains('hidden') ? 'How is this scored?' : 'Hide';
   });
 
   /* Header menu */
@@ -3072,7 +3454,7 @@ function applyActiveTeam() {
   }
   refreshTeamUI();
 }
-window.onAuthReady = () => {
+window.onAuthReady = (user) => {
   invalidateSetupGamesCache();
   setupOpponentsLoadToken += 1;
   refreshTeamUI();
@@ -3081,7 +3463,77 @@ window.onAuthReady = () => {
   if($('historyPanel').style.display === 'block'){
     loadHistoryPanel().catch(err => console.error(err));
   }
+  // 7B: Guest-to-account migration check
+  if(user) checkGuestMigration();
 };
+
+/* ===== 7B: Guest-to-Account Migration ===== */
+const MIGRATION_KEY = 'stt-migration-done';
+function checkGuestMigration(){
+  if(localStorage.getItem(MIGRATION_KEY)) return;
+  // Check if there's local game data that predates this sign-in
+  const localGame = localStorage.getItem(SAVE_KEY);
+  const offlineQ = getOfflineQueue();
+  const hasLocalData = (localGame && JSON.parse(localGame).events && JSON.parse(localGame).events.length > 0) || offlineQ.length > 0;
+  if(!hasLocalData) { localStorage.setItem(MIGRATION_KEY, '1'); return; }
+
+  // Count games to show in prompt
+  let gameCount = offlineQ.length;
+  if(localGame) gameCount += 1;
+  $('migrationDesc').textContent = 'We found ' + gameCount + ' saved game' + (gameCount !== 1 ? 's' : '') + ' on this device. Import them to your account?';
+  $('migrationModal').style.display = 'flex';
+
+  $('migrationSkip').onclick = function(){
+    $('migrationModal').style.display = 'none';
+    localStorage.setItem(MIGRATION_KEY, '1');
+  };
+  $('migrationImport').onclick = async function(){
+    $('migrationModal').style.display = 'none';
+    localStorage.setItem(MIGRATION_KEY, '1');
+    await migrateGuestData();
+  };
+}
+
+async function migrateGuestData(){
+  const token = window.getAuthToken ? await window.getAuthToken() : null;
+  if(!token){ showStatusToast('Sign in required', 'error'); return; }
+  const headers = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
+
+  let migrated = 0;
+  let failed = 0;
+
+  // Migrate current game if it exists
+  const localGame = localStorage.getItem(SAVE_KEY);
+  if(localGame){
+    try{
+      const game = JSON.parse(localGame);
+      if(game.events && game.events.length > 0){
+        const res = await fetch('/api/save-game', { method: 'POST', headers, body: JSON.stringify({ game }) });
+        const d = await res.json();
+        if(d.success) migrated++; else failed++;
+      }
+    }catch(_){ failed++; }
+  }
+
+  // Migrate offline queue
+  const offlineQ = getOfflineQueue();
+  for(const game of offlineQ){
+    try{
+      const res = await fetch('/api/save-game', { method: 'POST', headers, body: JSON.stringify({ game }) });
+      const d = await res.json();
+      if(d.success) migrated++; else failed++;
+    }catch(_){ failed++; }
+  }
+
+  if(migrated > 0){
+    saveOfflineQueue([]);
+    updateQueueIndicator();
+    showStatusToast(migrated + ' game' + (migrated !== 1 ? 's' : '') + ' imported!', 'success');
+  }
+  if(failed > 0){
+    showStatusToast(failed + ' game' + (failed !== 1 ? 's' : '') + ' failed to import', 'error', 3500);
+  }
+}
 
 function openTeamModal(autoShowForm) {
   const TM = getTeamManager();
@@ -3257,8 +3709,22 @@ document.addEventListener('click', (e) => {
 
 /* Button Wiring */
 $('btnRoster').onclick=openRoster;
-$('btnRosterSave').onclick=saveRosterFromArea;
 $('btnRosterClose').onclick=closeRoster;
+$('btnRosterAdd').onclick=function(){
+  const inp = $('rosterAddInput');
+  if(addRosterNumbers(inp.value)) inp.value = '';
+  inp.focus();
+};
+$('rosterAddInput').addEventListener('keydown', function(e){
+  if(e.key === 'Enter'){ e.preventDefault(); $('btnRosterAdd').click(); }
+});
+$('rosterList').addEventListener('click', function(e){
+  const btn = e.target.closest('.roster-remove');
+  if(!btn) return;
+  const entry = btn.closest('.roster-entry');
+  if(!entry) return;
+  removeRosterNumber(entry.dataset.n);
+});
 
 /* High Danger modal logic — auto-dismisses after 2s (defaults to No) */
 let dangerTarget = null;
@@ -3337,11 +3803,13 @@ $('periodChips').addEventListener('click',e=>{
 });
 
 $('btnNextPeriod').onclick=()=>{
+  const prevP = state.period;
   state.period=sanitizePeriod(Math.min(MAX_PERIOD, Number(state.period) + 1));
   save();
   validateState('next period');
   highlightPeriod();
   vibrate(HAPTIC.period);
+  showPeriodFlash(prevP);
 };
 
 $('btnEnd').onclick=endGame;
@@ -3878,7 +4346,7 @@ async function ensureSetupGamesCache(force = false){
 async function fetchScopedOpponents(limit = 100){
   const url = buildOpponentsApiUrl(limit);
   if(!url) return [];
-  const res = await fetch(url, { cache:'no-store' });
+  const res = await fetch(url, { cache:'no-store', headers: await authHeaders() });
   const data = await res.json();
   if(!res.ok || !data.success) throw new Error(data.error || 'Opponent fetch failed');
   return Array.isArray(data.opponents) ? data.opponents : [];
@@ -4028,7 +4496,7 @@ async function saveOpponentName(opponentName){
   };
   const res = await fetch('/api/opponents', {
     method:'POST',
-    headers:{ 'Content-Type':'application/json' },
+    headers: await authHeaders(),
     body:JSON.stringify({ opponent: payload })
   });
   const data = await res.json().catch(() => ({}));
@@ -4052,7 +4520,7 @@ async function deleteOpponentRecord(opponentId){
     'team_id=' + encodeURIComponent(teamId)
   ];
   if(userId) params.push('user_id=' + encodeURIComponent(userId));
-  const res = await fetch('/api/opponents?' + params.join('&'), { method:'DELETE' });
+  const res = await fetch('/api/opponents?' + params.join('&'), { method:'DELETE', headers: await authHeaders() });
   const data = await res.json().catch(() => ({}));
   if(!res.ok || !data.success){
     throw new Error(data.error || 'Opponent delete failed');
@@ -4070,13 +4538,13 @@ function buildGamesApiUrl({ limit = 50, id = null, includeLimit = true, opponent
   return '/api/games' + (params.length ? '?' + params.join('&') : '');
 }
 async function fetchScopedGames(limit = 50){
-  const res = await fetch(buildGamesApiUrl({ limit }), { cache:'no-store' });
+  const res = await fetch(buildGamesApiUrl({ limit }), { cache:'no-store', headers: await authHeaders() });
   const data = await res.json();
   if(!data.success) throw new Error(data.error || 'Fetch failed');
   return data.games || [];
 }
 async function deleteGameRecord(gameId){
-  const res = await fetch(buildGamesApiUrl({ id:gameId, includeLimit:false }), { method:'DELETE' });
+  const res = await fetch(buildGamesApiUrl({ id:gameId, includeLimit:false }), { method:'DELETE', headers: await authHeaders() });
   const data = await res.json().catch(() => ({}));
   if(!res.ok || !data.success){
     throw new Error(data.error || 'Delete failed');
@@ -4103,7 +4571,7 @@ async function deleteOpponentAndGames(opponentId, opponentName){
 
   let deletedGames = matchingGames.length;
   try{
-    const gamesRes = await fetch(buildGamesApiUrl({ includeLimit:false, opponent:cleanedName }), { method:'DELETE' });
+    const gamesRes = await fetch(buildGamesApiUrl({ includeLimit:false, opponent:cleanedName }), { method:'DELETE', headers: await authHeaders() });
     const gamesData = await gamesRes.json().catch(() => ({}));
     if(!gamesRes.ok || !gamesData.success){
       throw new Error(gamesData.error || 'Opponent game delete failed');
@@ -4132,7 +4600,7 @@ async function resetSeasonStats(){
   if(!ok) return;
 
   try{
-    const res = await fetch(buildGamesApiUrl({ includeLimit:false }), { method:'DELETE' });
+    const res = await fetch(buildGamesApiUrl({ includeLimit:false }), { method:'DELETE', headers: await authHeaders() });
     const data = await res.json().catch(() => ({}));
     if(!res.ok || !data.success){
       throw new Error(data.error || 'Reset failed');
@@ -4348,7 +4816,7 @@ function renderHistoryList(games){
       <div class="history-item">
         <div class="history-left">
           <span class="history-opp">vs ${opp}</span>
-          <span class="history-meta">${date} &bull; ${level} &bull; GK:${gs} TM:${ts}</span>
+          <span class="history-meta">${date} &bull; ${level} &bull; Goalie: ${gs} &middot; Team: ${ts}</span>
         </div>
         <div class="history-score"><span class="${scoreClass}">${gf}–${ga}</span></div>
       </div>
@@ -4422,7 +4890,7 @@ function showGameDetail(game){
     ['Smothers', d.Smothers ?? '—'], ['Bad Rebounds', d.BadRebounds ?? '—'],
     ['Big Saves', d.BigSaves ?? '—'], ['Soft Goals', d.SoftGoals ?? '—'],
     ['Breakaways Ag', d.BreakawaysAgainst ?? '—'], ['DZ Turnovers', d.DZTurnovers ?? '—'],
-    ['Breakaways For', d.BreakawaysFor ?? '—'], ['Odd Man Rush For', d.OddManRushFor ?? '—'], ['Forced Turnovers', d.ForcedTurnovers ?? '—'],
+    ['Breakaways For', d.BreakawaysFor ?? '—'], ['Odd-Man Rush For', d.OddManRushFor ?? '—'], ['Forced Turnovers', d.ForcedTurnovers ?? '—'],
     ['GA off BA', d.GA_BA ?? '—'], ['GA off DZ', d.GA_DZ ?? '—'],
     ['GA off Bad Reb', d.GA_BR ?? '—'], ['GA Other', d.GA_Other ?? '—']
   ];
@@ -5018,8 +5486,10 @@ let _livePushQueued = false;
 
 function generateShareCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
   let code = '';
-  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  for (let i = 0; i < 8; i++) code += chars[bytes[i] % chars.length];
   return code;
 }
 
@@ -5307,14 +5777,12 @@ async function pushLiveState() {
   try {
     do {
       _livePushQueued = false;
-      const uid = typeof window.getAuthUserId === 'function' ? window.getAuthUserId() : null;
       const res = await fetch('/api/live-game', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await authHeaders(),
         body: JSON.stringify({
           share_code: state.shareCode,
           game_id: state.gameId,
-          user_id: uid,
           state: buildLiveState()
         })
       });
@@ -5344,14 +5812,12 @@ async function endLiveShare() {
 
   // Push one last update with final flag
   try {
-    const uid = typeof window.getAuthUserId === 'function' ? window.getAuthUserId() : null;
     await fetch('/api/live-game', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await authHeaders(),
       body: JSON.stringify({
         share_code: code,
         game_id: state.gameId,
-        user_id: uid,
         state: { ...buildLiveState(), final: true }
       })
     });
@@ -5365,7 +5831,7 @@ async function endLiveShare() {
   // Delete the record after 5 minutes so spectators have time to see final score
   setTimeout(async () => {
     try {
-      await fetch(`/api/live-game?code=${encodeURIComponent(code)}`, { method: 'DELETE' });
+      await fetch(`/api/live-game?code=${encodeURIComponent(code)}`, { method: 'DELETE', headers: await authHeaders() });
     } catch (_) {}
   }, 5 * 60 * 1000);
 }
@@ -5381,7 +5847,7 @@ async function stopLiveShare() {
   // Delete from server immediately (manual stop = no need to linger)
   if (code) {
     try {
-      await fetch(`/api/live-game?code=${encodeURIComponent(code)}`, { method: 'DELETE' });
+      await fetch(`/api/live-game?code=${encodeURIComponent(code)}`, { method: 'DELETE', headers: await authHeaders() });
     } catch (_) {}
   }
 }
@@ -5413,3 +5879,33 @@ $('btnCopyShareLink').addEventListener('click', () => {
 $('btnStopShare').addEventListener('click', () => {
   showConfirm('Stop live sharing?').then(ok => { if (ok) stopLiveShare(); });
 });
+
+/* ── Tap-to-explain on dashTiles ── */
+(function(){
+  let activeTimer = null;
+  let activeTip = null;
+
+  function dismissTip(){
+    if(!activeTip) return;
+    const tip = activeTip;
+    activeTip = null;
+    clearTimeout(activeTimer);
+    activeTimer = null;
+    tip.classList.add('explain-out');
+    tip.addEventListener('animationend', () => tip.remove(), {once:true});
+  }
+
+  document.addEventListener('click', function(e){
+    const tile = e.target.closest('.dashTile[data-explain]');
+    if(!tile){dismissTip(); return;}
+    // If tapping the same tile that's showing, dismiss
+    if(activeTip && activeTip.parentElement === tile){dismissTip(); return;}
+    dismissTip();
+    const tip = document.createElement('div');
+    tip.className = 'explain-tip';
+    tip.textContent = tile.dataset.explain;
+    tile.appendChild(tip);
+    activeTip = tip;
+    activeTimer = setTimeout(dismissTip, 4000);
+  });
+})();

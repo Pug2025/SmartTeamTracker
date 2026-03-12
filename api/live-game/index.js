@@ -1,9 +1,12 @@
 // api/live-game/index.js
 // Live spectator mode – upsert / read / delete live game state
 //
-// PUT    – Coach pushes live state: { share_code, game_id, user_id, state }
+// PUT    – Coach pushes live state: { share_code, game_id, state }
 // GET    – Spectator fetches current state: ?code=ABC123
 // DELETE – Coach ends live share: ?code=ABC123
+
+import { authenticateRequest } from '../_auth.js';
+import { checkRateLimit, sendRateLimited } from '../_rate-limit.js';
 
 export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
@@ -21,10 +24,15 @@ export default async function handler(req, res) {
     "Content-Type": "application/json"
   };
 
-  // GET – spectator fetches live game state
+  // GET – spectator fetches live game state (public, no auth required)
   if (req.method === "GET") {
     const code = req.query.code;
     if (!code) return res.status(400).json({ error: "Missing share code" });
+
+    // Rate limit: 60 GETs/min per IP
+    const ip = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
+    const rl = await checkRateLimit({ supabaseUrl, supabaseKey, key: `live-get:${ip}`, limit: 60 });
+    if (!rl.allowed) return sendRateLimited(res, rl.retryAfter);
 
     try {
       const response = await fetch(
@@ -42,11 +50,21 @@ export default async function handler(req, res) {
     }
   }
 
+  // Authenticate for PUT and DELETE
+  const auth = await authenticateRequest(req, res);
+  if (auth === null) return;
+  const uid = auth.uid;
+
   // PUT – coach upserts live game state
   if (req.method === "PUT") {
+    // Rate limit: 30 PUTs/min per user
+    const rateLimitKey = uid ? `live-put:${uid}` : `live-put:ip:${req.headers['x-forwarded-for'] || 'unknown'}`;
+    const rl = await checkRateLimit({ supabaseUrl, supabaseKey, key: rateLimitKey, limit: 30 });
+    if (!rl.allowed) return sendRateLimited(res, rl.retryAfter);
+
     try {
       const payload = typeof req.body === "object" && req.body ? req.body : JSON.parse(await readBody(req));
-      const { share_code, game_id, user_id, state } = payload || {};
+      const { share_code, game_id, state } = payload || {};
 
       if (!share_code || !state) {
         return res.status(400).json({ error: "Missing share_code or state" });
@@ -55,7 +73,7 @@ export default async function handler(req, res) {
       const row = {
         share_code,
         game_id: game_id || null,
-        user_id: user_id || null,
+        user_id: uid || null, // Use verified uid
         state,
         updated_at: new Date().toISOString()
       };

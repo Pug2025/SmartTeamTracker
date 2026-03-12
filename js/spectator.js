@@ -27,6 +27,7 @@
   let seenHatTrickPlayers = new Set();
   let lastMilestoneGF = 0;
   let staleTimer = null;
+  let hasShownContextCard = false;
 
   document.addEventListener('DOMContentLoaded', () => {
     const authScreen = $('authScreen');
@@ -358,6 +359,7 @@
         : `Updated ${updated.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
     }
     resetStaleTimer();
+    showContextCard(s);
   }
 
   function resetStaleTimer() {
@@ -367,6 +369,43 @@
     staleTimer = setTimeout(() => {
       if (!spectatorEnded && meta) meta.classList.add('spec-meta-stale');
     }, 30000);
+  }
+
+  function showContextCard(s) {
+    if (hasShownContextCard) return;
+    hasShownContextCard = true;
+
+    const gf = s.goalsFor || 0;
+    const ga = s.goalsAgainst || 0;
+    let scoreLine;
+    if (gf > ga) scoreLine = 'Up ' + gf + '-' + ga;
+    else if (ga > gf) scoreLine = 'Down ' + gf + '-' + ga;
+    else scoreLine = 'Tied ' + gf + '-' + ga;
+
+    const sf = s.shotsFor || 0;
+    const sa = s.shotsAgainst || 0;
+    const svText = formatSavePct(s.svPct, s.shotsAgainst);
+
+    const parts = [periodLabel(s.period), scoreLine, sf + '-' + sa + ' shots'];
+    if (svText !== '—') parts.push('SV% ' + svText);
+
+    const card = document.createElement('div');
+    card.className = 'spec-context-card';
+    card.textContent = parts.join(' \u00b7 ');
+    card.addEventListener('click', function() { dismissContextCard(card); });
+
+    const scoreboard = document.querySelector('.spectator-scoreboard');
+    if (scoreboard && scoreboard.parentNode) {
+      scoreboard.parentNode.insertBefore(card, scoreboard.nextSibling);
+    }
+
+    setTimeout(function() { dismissContextCard(card); }, 8000);
+  }
+
+  function dismissContextCard(card) {
+    if (!card || !card.parentNode) return;
+    card.classList.add('spec-context-exit');
+    setTimeout(function() { if (card.parentNode) card.remove(); }, 300);
   }
 
   function renderQuality(q) {
@@ -475,8 +514,18 @@
       </div>`;
     }).join('');
 
+    // Game start anchor at bottom of feed
+    const oldest = events[0];
+    let startAnchor = '';
+    if (oldest && oldest.tISO) {
+      const startTime = formatTimeLabel(oldest.tISO);
+      if (startTime) {
+        startAnchor = `<div class="spec-feed-anchor">Game started at ${escapeHtml(startTime)}</div>`;
+      }
+    }
+
     if (eventsEl) {
-      eventsEl.innerHTML = html;
+      eventsEl.innerHTML = html + startAnchor;
       if (preserveFeedPosition) {
         const nextScrollHeight = eventsEl.scrollHeight;
         eventsEl.scrollTop = Math.max(0, prevScrollTop + (nextScrollHeight - prevScrollHeight));

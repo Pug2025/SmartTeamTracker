@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "Team Tracker",
-  "short_name": "Team Tracker",
-  "description": "iPhone-optimized rink-side tracker for team and goalie performance.",
+  "name": "Smart Team Tracker",
+  "short_name": "Smart Team Tracker",
+  "description": "Rink-side stat tracking for hockey coaches. Track shots, goals, saves, and more — live from the bench.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

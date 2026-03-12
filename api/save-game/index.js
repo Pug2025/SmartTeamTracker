@@ -1,15 +1,38 @@
 // api/save-game/index.js
-// Version: v6.0.0 – Supabase edition
+// Version: v7.0.0 – Supabase edition with auth verification + rate limiting
 //
 // Purpose:
 // - Accept game data: { game: { ...stats } }
+// - Verify Firebase auth token and extract uid server-side
 // - Store in Supabase with all stats in a flexible JSONB column
-// - No allowlist needed — any new stat you track is saved automatically
+
+import { authenticateRequest } from '../_auth.js';
+import { checkRateLimit, sendRateLimited } from '../_rate-limit.js';
 
 export default async function handler(req, res) {
   // CORS & Method Check
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
+
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    console.error("Missing SUPABASE_URL or SUPABASE_ANON_KEY env vars");
+    return res.status(500).json({ error: "Server configuration error" });
+  }
+
+  // Authenticate
+  const auth = await authenticateRequest(req, res);
+  if (auth === null) return; // 401 already sent
+  const uid = auth.uid; // null for guests
+
+  // Rate limit: 10 saves/min per user (or IP for guests)
+  const rateLimitKey = uid
+    ? `save:${uid}`
+    : `save:ip:${req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown'}`;
+  const rl = await checkRateLimit({ supabaseUrl, supabaseKey, key: rateLimitKey, limit: 10 });
+  if (!rl.allowed) return sendRateLimited(res, rl.retryAfter);
 
   try {
     const payload = typeof req.body === "object" && req.body ? req.body : JSON.parse(await readBody(req));
@@ -20,25 +43,19 @@ export default async function handler(req, res) {
 
     const game = payload.game;
 
+    // Use server-verified uid instead of client-supplied user_id
+    const verifiedUserId = uid || game.user_id || null;
+
     // Build the row: top-level columns for querying, everything else in data
     const row = {
       game_id: game.gameId || null,
       date: game.Date || null,
       opponent: game.Opponent || null,
       level: game.Level || null,
-      user_id: game.user_id || null,
+      user_id: verifiedUserId,
       team_id: game.team_id || null,
       data: game // store ALL stats — no allowlist, no schema changes needed
     };
-
-    // Send to Supabase
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_ANON_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-      console.error("Missing SUPABASE_URL or SUPABASE_ANON_KEY env vars");
-      return res.status(500).json({ error: "Server configuration error" });
-    }
 
     const response = await fetch(`${supabaseUrl}/rest/v1/games`, {
       method: "POST",
@@ -59,7 +76,7 @@ export default async function handler(req, res) {
     }
 
     const record = Array.isArray(data) ? data[0] : data;
-    await syncOpponentLastPlayed({ supabaseUrl, supabaseKey, game }).catch((error) => {
+    await syncOpponentLastPlayed({ supabaseUrl, supabaseKey, game, userId: verifiedUserId }).catch((error) => {
       console.warn("Opponent sync warning:", error);
     });
     return res.status(200).json({ success: true, id: record.id });
@@ -79,10 +96,9 @@ function readBody(req) {
   });
 }
 
-async function syncOpponentLastPlayed({ supabaseUrl, supabaseKey, game }) {
+async function syncOpponentLastPlayed({ supabaseUrl, supabaseKey, game, userId }) {
   const teamId = String(game.team_id || "").trim();
   const opponentName = String(game.Opponent || "").trim().replace(/\s+/g, " ");
-  const userId = game.user_id ? String(game.user_id).trim() : null;
   const lastPlayedAt = String(game.Date || "").trim() || null;
 
   if (!teamId || !opponentName) return;

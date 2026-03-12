@@ -193,6 +193,10 @@ document.addEventListener('DOMContentLoaded', initAuthUI);
 /* ===== Bridge to non-module scripts via window globals ===== */
 window.getAuthUser = () => currentUser;
 window.getAuthUserId = () => currentUser ? currentUser.uid : null;
+window.getAuthToken = async () => {
+  if (!currentUser) return null;
+  try { return await currentUser.getIdToken(); } catch (_) { return null; }
+};
 window.authSignOut = handleSignOut;
 
 /* ===== Exports ===== */

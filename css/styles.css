@@ -560,6 +560,12 @@
     overflow:hidden;
     transition:border-color 0.18s, box-shadow 0.18s, background 0.18s;
   }
+  .date-icon{
+    flex-shrink:0;
+    margin-right:6px;
+    opacity:0.4;
+  }
+  .setup-date-shell:focus-within .date-icon{ opacity:0.7; }
   .setup-date-shell:focus-within{
     border-color:rgba(77,163,255,0.55);
     box-shadow:0 0 0 3px rgba(77,163,255,0.12);
@@ -1464,7 +1470,7 @@
     height:56px;
     border-radius:50%;
     background:linear-gradient(135deg, #2a2a2a, #1a1a1a);
-    border:2px solid var(--gray-500);
+    border:2px solid rgba(77,163,255,0.2);
     color:#fff;
     font-size:11px;
     font-weight:800;
@@ -3285,6 +3291,19 @@
   }
 }
 
+@media (max-width: 400px){
+  .spec-kpi-note{
+    overflow:hidden;
+    white-space:nowrap;
+    text-overflow:ellipsis;
+    max-width:100%;
+  }
+  .spec-kpi-value{
+    overflow:hidden;
+    white-space:nowrap;
+    text-overflow:ellipsis;
+  }
+}
 @media (max-width: 380px){
   :root{
     --score-box-width:86px;

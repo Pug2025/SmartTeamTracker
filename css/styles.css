@@ -1561,6 +1561,27 @@
     font-weight:700;
   }
 
+  /* Tap-to-explain tooltip */
+  .dashTile{position:relative;cursor:pointer;}
+  .dashTile .explain-tip{
+    position:absolute;inset:0;
+    background:rgba(10,10,10,0.94);
+    border:1px solid #3a3a3a;
+    border-radius:var(--radius-md);
+    padding:8px 10px;
+    font-size:12px;
+    line-height:1.35;
+    color:#ccc;
+    display:flex;align-items:center;
+    z-index:5;
+    animation:explainIn .15s ease;
+  }
+  .dashTile .explain-tip.explain-out{
+    animation:explainOut .15s ease forwards;
+  }
+  @keyframes explainIn{from{opacity:0}to{opacity:1}}
+  @keyframes explainOut{from{opacity:1}to{opacity:0}}
+
   /* Period tiles: tighter + clearer hierarchy than KPI tiles */
   .periodGrid .dashTile{
     min-height:60px;

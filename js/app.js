@@ -5879,3 +5879,33 @@ $('btnCopyShareLink').addEventListener('click', () => {
 $('btnStopShare').addEventListener('click', () => {
   showConfirm('Stop live sharing?').then(ok => { if (ok) stopLiveShare(); });
 });
+
+/* ── Tap-to-explain on dashTiles ── */
+(function(){
+  let activeTimer = null;
+  let activeTip = null;
+
+  function dismissTip(){
+    if(!activeTip) return;
+    const tip = activeTip;
+    activeTip = null;
+    clearTimeout(activeTimer);
+    activeTimer = null;
+    tip.classList.add('explain-out');
+    tip.addEventListener('animationend', () => tip.remove(), {once:true});
+  }
+
+  document.addEventListener('click', function(e){
+    const tile = e.target.closest('.dashTile[data-explain]');
+    if(!tile){dismissTip(); return;}
+    // If tapping the same tile that's showing, dismiss
+    if(activeTip && activeTip.parentElement === tile){dismissTip(); return;}
+    dismissTip();
+    const tip = document.createElement('div');
+    tip.className = 'explain-tip';
+    tip.textContent = tile.dataset.explain;
+    tile.appendChild(tip);
+    activeTip = tip;
+    activeTimer = setTimeout(dismissTip, 4000);
+  });
+})();

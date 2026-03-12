@@ -346,43 +346,43 @@
       <!-- Goalie Stats -->
       <div class="dash-section-label">Goaltending</div>
       <div class="dashGrid">
-        <div class="dashTile"><div class="k">Saves</div><div class="v" id="savesVal">0</div><div class="s" id="svVal">SV% —</div></div>
-        <div class="dashTile"><div class="k">Big Saves</div><div class="v" id="bigSavesVal">0</div></div>
-        <div class="dashTile"><div class="k">Smothers</div><div class="v" id="smothersVal">0</div></div>
-        <div class="dashTile"><div class="k">Good Rebounds</div><div class="v" id="goodRebVal">0</div></div>
-        <div class="dashTile"><div class="k">Bad Rebounds</div><div class="v" id="badRebVal">0</div></div>
-        <div class="dashTile"><div class="k">Soft Goals</div><div class="v" id="softVal">0</div></div>
+        <div class="dashTile" data-explain="Shots stopped. SV% = saves / total shots faced."><div class="k">Saves</div><div class="v" id="savesVal">0</div><div class="s" id="svVal">SV% —</div></div>
+        <div class="dashTile" data-explain="Exceptional stops on breakaways, cross-crease passes, or point-blank chances."><div class="k">Big Saves</div><div class="v" id="bigSavesVal">0</div></div>
+        <div class="dashTile" data-explain="Goalie covered the puck to force a whistle, killing the opponent's momentum."><div class="k">Smothers</div><div class="v" id="smothersVal">0</div></div>
+        <div class="dashTile" data-explain="Rebounds directed to the corner or covered cleanly — no second chance given."><div class="k">Good Rebounds</div><div class="v" id="goodRebVal">0</div></div>
+        <div class="dashTile" data-explain="Rebounds that stayed in the slot, creating a second chance for the opponent."><div class="k">Bad Rebounds</div><div class="v" id="badRebVal">0</div></div>
+        <div class="dashTile" data-explain="Goals the goalie should have stopped — poor positioning, misplays, or weak shots that got through."><div class="k">Soft Goals</div><div class="v" id="softVal">0</div></div>
       </div>
 
       <!-- Shot Quality Analysis -->
       <div class="dash-section-label">Shot Quality</div>
       <div class="dashGrid">
-        <div class="dashTile"><div class="k">Shooting %</div><div class="v" id="shootPctVal">—</div><div class="s">GF / SF</div></div>
-        <div class="dashTile"><div class="k">Shot Share</div><div class="v" id="shotShareVal">—</div><div class="s">SF / (SF+SA)</div></div>
-        <div class="dashTile"><div class="k">Missed Chances</div><div class="v" id="missedChanceVal">0</div><div class="s" id="missedSub">For + Against</div></div>
-        <div class="dashTile hidden"><div class="k">xGF</div><div class="v" id="xgfVal">—</div><div class="s" id="xgfSub">Expected goals for</div></div>
-        <div class="dashTile hidden"><div class="k">xGA</div><div class="v" id="xgaVal">—</div><div class="s" id="xgaSub">Expected goals ag</div></div>
-        <div class="dashTile hidden"><div class="k">xG Diff</div><div class="v" id="xgDiffVal">—</div><div class="s" id="xgDiffSub">Quality edge</div></div>
+        <div class="dashTile" data-explain="Goal-scoring efficiency — goals scored out of total shots taken. Higher is better."><div class="k">Shooting %</div><div class="v" id="shootPctVal">—</div><div class="s">GF / SF</div></div>
+        <div class="dashTile" data-explain="Your shots as a percentage of all shots in the game. Above 50% means you're outshooting them."><div class="k">Shot Share</div><div class="v" id="shotShareVal">—</div><div class="s">SF / (SF+SA)</div></div>
+        <div class="dashTile" data-explain="Quality opportunities where no goal resulted — posts, fanned shots, wide misses. Combines both teams."><div class="k">Missed Chances</div><div class="v" id="missedChanceVal">0</div><div class="s" id="missedSub">For + Against</div></div>
+        <div class="dashTile hidden" data-explain="Estimates how many goals your shot quality should produce based on chance location and type."><div class="k">xGF</div><div class="v" id="xgfVal">—</div><div class="s" id="xgfSub">Expected goals for</div></div>
+        <div class="dashTile hidden" data-explain="Estimates how many goals the opponent's shot quality should produce. Lower is better."><div class="k">xGA</div><div class="v" id="xgaVal">—</div><div class="s" id="xgaSub">Expected goals ag</div></div>
+        <div class="dashTile hidden" data-explain="The gap between your expected goals and theirs. Positive means your chances were higher quality."><div class="k">xG Diff</div><div class="v" id="xgDiffVal">—</div><div class="s" id="xgDiffSub">Quality edge</div></div>
       </div>
 
       <!-- Offensive Context -->
       <div class="dash-section-label dash-label-us">Offensive</div>
       <div class="dashGrid">
-        <div class="dashTile"><div class="k">Breakaways</div><div class="v" id="baForVal">0</div></div>
-        <div class="dashTile"><div class="k">OMR</div><div class="v" id="omrForVal">0</div></div>
-        <div class="dashTile"><div class="k">Forced TO</div><div class="v" id="ftVal">0</div></div>
-        <div class="dashTile"><div class="k">HD Chances</div><div class="v" id="hdForVal">0</div><div class="s" id="hdForSub"></div></div>
-        <div class="dashTile"><div class="k">Penalties Drawn</div><div class="v" id="penForVal">0</div></div>
+        <div class="dashTile" data-explain="Your player had a clear path to the net with no defender between them and the goalie."><div class="k">Breakaways</div><div class="v" id="baForVal">0</div></div>
+        <div class="dashTile" data-explain="Odd-man rushes — your team outnumbered the defense on an attack (2-on-1, 3-on-2, etc.)."><div class="k">OMR</div><div class="v" id="omrForVal">0</div></div>
+        <div class="dashTile" data-explain="Turnovers caused by your team's pressure, stick checks, or positioning."><div class="k">Forced TO</div><div class="v" id="ftVal">0</div></div>
+        <div class="dashTile" data-explain="Scoring chances from the slot or close range — these convert to goals at a much higher rate."><div class="k">HD Chances</div><div class="v" id="hdForVal">0</div><div class="s" id="hdForSub"></div></div>
+        <div class="dashTile" data-explain="Penalties the opponent committed against your team, giving you a power play."><div class="k">Penalties Drawn</div><div class="v" id="penForVal">0</div></div>
       </div>
 
       <!-- Defensive Context -->
       <div class="dash-section-label dash-label-them">Defensive</div>
       <div class="dashGrid">
-        <div class="dashTile"><div class="k">Breakaways Ag</div><div class="v" id="baAgVal">0</div></div>
-        <div class="dashTile"><div class="k">D-Zone TO</div><div class="v" id="dzVal">0</div></div>
-        <div class="dashTile"><div class="k">OMR Ag</div><div class="v" id="omrAgVal">0</div></div>
-        <div class="dashTile"><div class="k">HD Chances Ag</div><div class="v" id="hdAgVal">0</div><div class="s" id="hdAgSub"></div></div>
-        <div class="dashTile"><div class="k">Penalties Taken</div><div class="v" id="penAgVal">0</div></div>
+        <div class="dashTile" data-explain="Opponent had a clear breakaway on your goalie — indicates a defensive breakdown."><div class="k">Breakaways Ag</div><div class="v" id="baAgVal">0</div></div>
+        <div class="dashTile" data-explain="Turnovers in your own zone — these often lead to high-danger chances against."><div class="k">D-Zone TO</div><div class="v" id="dzVal">0</div></div>
+        <div class="dashTile" data-explain="Odd-man rushes against — the opponent outnumbered your defense on a rush."><div class="k">OMR Ag</div><div class="v" id="omrAgVal">0</div></div>
+        <div class="dashTile" data-explain="High-danger chances the opponent generated from the slot or close range."><div class="k">HD Chances Ag</div><div class="v" id="hdAgVal">0</div><div class="s" id="hdAgSub"></div></div>
+        <div class="dashTile" data-explain="Penalties your team committed, giving the opponent a power play."><div class="k">Penalties Taken</div><div class="v" id="penAgVal">0</div></div>
       </div>
 
       <div class="card card-mt">

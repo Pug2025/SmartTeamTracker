@@ -74,6 +74,7 @@
     <button class="header-menu-btn" id="btnEditSetup" type="button">Game Setup</button>
     <button class="header-menu-btn" id="btnRoster" type="button">Roster</button>
     <button class="header-menu-btn" id="btnHelp" type="button">Help</button>
+    <button class="header-menu-btn" id="btnAccount" type="button">Account</button>
     <button class="header-menu-btn header-menu-btn-danger" id="btnSignOut" type="button">Sign Out</button>
   </div>
 
@@ -671,6 +672,45 @@
     <button class="btn-std btn-close-sm" id="playerDetailClose">Close</button>
   </div>
   <div id="playerDetailBody" class="small"></div>
+</div></div>
+
+<!-- Account Settings Modal -->
+<div class="modal" id="accountModal"><div class="box modal-scroll-sm">
+  <div class="modal-head">
+    <h3 class="modal-title">Account</h3>
+    <button class="btn-std btn-close-sm" id="accountClose">Close</button>
+  </div>
+  <div class="account-body">
+    <div class="account-section">
+      <div class="account-row"><span class="account-label">Email</span><span class="account-value" id="acctEmail">—</span></div>
+      <div class="account-row"><span class="account-label">Provider</span><span class="account-value" id="acctProvider">—</span></div>
+      <div class="account-row"><span class="account-label">Plan</span><span class="account-value" id="acctPlan">Free</span></div>
+    </div>
+    <div class="account-section">
+      <div class="account-row"><span class="account-label">Cloud sync</span><span class="account-value" id="acctSyncStatus">—</span></div>
+      <div class="account-row"><span class="account-label">Queued</span><span class="account-value" id="acctQueueCount">0 games</span></div>
+    </div>
+    <div class="account-actions">
+      <button class="btn-std" id="acctExportAll">Export All Data</button>
+      <button class="btn-std" id="acctSignOut">Sign Out</button>
+      <button class="btn-std btn-danger-outline" id="acctDeleteAccount">Delete Account</button>
+    </div>
+  </div>
+  <div id="acctGuestNotice" class="account-guest-notice" style="display:none;">
+    You're using guest mode. Sign in to sync your data across devices.
+  </div>
+</div></div>
+
+<!-- Guest Migration Modal -->
+<div class="modal" id="migrationModal"><div class="box">
+  <div class="modal-head">
+    <h3 class="modal-title">Import Local Games?</h3>
+  </div>
+  <p class="migration-desc" id="migrationDesc">We found saved games on this device. Import them to your account?</p>
+  <div class="modal-actions">
+    <button class="btn-std" id="migrationSkip">Skip</button>
+    <button class="btn-std btn-primary-sm" id="migrationImport">Import</button>
+  </div>
 </div></div>
 
 <!-- Welcome Modal (first launch only) -->

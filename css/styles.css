@@ -3447,6 +3447,63 @@
   padding:6px 12px;
   font-size:12px;
 }
+/* Account settings modal */
+.account-body{ display:flex; flex-direction:column; gap:16px; }
+.account-section{
+  background:rgba(255,255,255,0.03);
+  border:1px solid var(--gray-400);
+  border-radius:var(--radius-md);
+  padding:10px 14px;
+}
+.account-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:6px 0;
+  border-bottom:1px solid rgba(255,255,255,0.04);
+}
+.account-row:last-child{ border-bottom:none; }
+.account-label{ font-size:12px; color:var(--muted); font-weight:600; }
+.account-value{ font-size:13px; font-weight:700; color:#c5d0dc; text-align:right; word-break:break-all; }
+.account-actions{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.account-guest-notice{
+  font-size:12px;
+  color:var(--warn);
+  text-align:center;
+  padding:8px;
+  background:rgba(255,159,10,0.08);
+  border:1px solid rgba(255,159,10,0.2);
+  border-radius:var(--radius-md);
+}
+.btn-danger-outline{
+  color:var(--accent-them) !important;
+  border-color:rgba(255,69,58,0.3) !important;
+  background:rgba(255,69,58,0.06) !important;
+}
+.btn-danger-outline:active{ background:rgba(255,69,58,0.15) !important; }
+/* Migration modal */
+.migration-desc{
+  font-size:13px;
+  color:#c5d0dc;
+  margin:8px 0 16px;
+  line-height:1.5;
+}
+.modal-actions{
+  display:flex;
+  gap:10px;
+  justify-content:flex-end;
+}
+.btn-primary-sm{
+  background:var(--accent-us) !important;
+  color:#fff !important;
+  border-color:var(--accent-us) !important;
+  font-weight:700;
+}
+.btn-primary-sm:active{ opacity:0.85; }
 /* Period-end flash summary */
 .period-flash{
   margin:8px 0;

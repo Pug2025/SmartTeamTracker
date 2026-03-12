@@ -3146,6 +3146,128 @@ return;
     if(e.target === $('helpModal')) $('helpModal').style.display = 'none';
   });
 
+  /* ===== 7A: Account Settings ===== */
+  $('btnAccount').onclick = function(){
+    closeHeaderMenu();
+    openAccountModal();
+  };
+  $('accountClose').onclick = function(){ $('accountModal').style.display = 'none'; };
+  $('accountModal').addEventListener('click', function(e){
+    if(e.target === $('accountModal')) $('accountModal').style.display = 'none';
+  });
+  $('acctSignOut').onclick = function(){
+    $('accountModal').style.display = 'none';
+    if(window.authSignOut) window.authSignOut();
+  };
+  $('acctExportAll').onclick = exportAllData;
+  $('acctDeleteAccount').onclick = async function(){
+    const ok1 = await showConfirm('Delete your account and all cloud data? This cannot be undone.');
+    if(!ok1) return;
+    const ok2 = await showConfirm('Are you absolutely sure? All games will be permanently deleted.');
+    if(!ok2) return;
+    try{
+      const token = window.getAuthToken ? await window.getAuthToken() : null;
+      if(!token){ showStatusToast('Not signed in', 'error'); return; }
+      const res = await fetch('/api/delete-account', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
+      });
+      const d = await res.json();
+      if(d.success){
+        localStorage.clear();
+        showStatusToast('Account deleted', 'success');
+        setTimeout(()=> location.reload(), 1500);
+      } else {
+        showStatusToast(d.error || 'Delete failed', 'error', 3500);
+      }
+    }catch(e){
+      showStatusToast('Network error', 'error', 3500);
+    }
+  };
+
+  function openAccountModal(){
+    const user = window.getAuthUser ? window.getAuthUser() : null;
+    if(user){
+      $('acctEmail').textContent = user.email || '—';
+      const prov = user.providerData && user.providerData[0];
+      $('acctProvider').textContent = prov ? prov.providerId.replace('.com','').replace('password','Email') : '—';
+      $('acctGuestNotice').style.display = 'none';
+      $('acctSignOut').style.display = '';
+      $('acctDeleteAccount').style.display = '';
+    } else {
+      $('acctEmail').textContent = 'Guest';
+      $('acctProvider').textContent = '—';
+      $('acctGuestNotice').style.display = '';
+      $('acctSignOut').style.display = 'none';
+      $('acctDeleteAccount').style.display = 'none';
+    }
+    // Sync status
+    const statusEl = $('cloudStatus');
+    $('acctSyncStatus').textContent = statusEl ? statusEl.title : '—';
+    const q = getOfflineQueue();
+    $('acctQueueCount').textContent = q.length + ' game' + (q.length !== 1 ? 's' : '');
+    // Plan
+    $('acctPlan').textContent = window._subscriptionPlan || 'Free';
+
+    $('accountModal').style.display = 'flex';
+  }
+
+  function exportAllData(){
+    // Gather all local data
+    const data = {
+      currentGame: null,
+      offlineQueue: [],
+      prefs: null,
+      roster: null
+    };
+    try{ data.currentGame = JSON.parse(localStorage.getItem(SAVE_KEY)); }catch(_){}
+    try{ data.offlineQueue = JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY)) || []; }catch(_){}
+    try{ data.prefs = JSON.parse(localStorage.getItem(PREFS_KEY)); }catch(_){}
+    try{ data.roster = JSON.parse(localStorage.getItem(ROSTER_KEY)); }catch(_){}
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const fileName = 'smart-team-tracker-export-' + (new Date().toISOString().slice(0,10)) + '.json';
+    const doDownload = ()=>{
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = fileName;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    };
+    if(navigator.canShare && navigator.canShare({files:[new File([blob], fileName, {type:'application/json'})]}) && navigator.share){
+      const f = new File([blob], fileName, {type:'application/json'});
+      navigator.share({files:[f], title:'Smart Team Tracker Export'}).catch(()=>doDownload());
+    } else {
+      doDownload();
+    }
+    showStatusToast('Data exported!', 'success');
+  }
+
+  /* ===== 7C: Subscription / plan status (infrastructure) ===== */
+  window._subscriptionPlan = 'Free';
+  window._subscriptionFeatures = {
+    liveShare: true,
+    cloudSync: true,
+    seasonStats: true,
+    exportCSV: true,
+    exportJSON: true
+  };
+
+  function checkFeatureAccess(feature){
+    return window._subscriptionFeatures[feature] !== false;
+  }
+  window.checkFeatureAccess = checkFeatureAccess;
+
+  // Upgrade prompt helper — shows toast with upgrade nudge at natural moments
+  let _upgradePromptShown = {};
+  function maybeShowUpgradePrompt(moment){
+    if(window._subscriptionPlan !== 'Free') return;
+    if(_upgradePromptShown[moment]) return;
+    _upgradePromptShown[moment] = true;
+    // Don't show upgrade prompts yet — infrastructure only; activate when pricing is configured
+  }
+  window.maybeShowUpgradePrompt = maybeShowUpgradePrompt;
+
   /* Score ring tap-to-explain (live game) */
   $('goalieRingCard').addEventListener('click', function(){
     const tip = $('goalieRingTooltip');
@@ -3332,7 +3454,7 @@ function applyActiveTeam() {
   }
   refreshTeamUI();
 }
-window.onAuthReady = () => {
+window.onAuthReady = (user) => {
   invalidateSetupGamesCache();
   setupOpponentsLoadToken += 1;
   refreshTeamUI();
@@ -3341,7 +3463,77 @@ window.onAuthReady = () => {
   if($('historyPanel').style.display === 'block'){
     loadHistoryPanel().catch(err => console.error(err));
   }
+  // 7B: Guest-to-account migration check
+  if(user) checkGuestMigration();
 };
+
+/* ===== 7B: Guest-to-Account Migration ===== */
+const MIGRATION_KEY = 'stt-migration-done';
+function checkGuestMigration(){
+  if(localStorage.getItem(MIGRATION_KEY)) return;
+  // Check if there's local game data that predates this sign-in
+  const localGame = localStorage.getItem(SAVE_KEY);
+  const offlineQ = getOfflineQueue();
+  const hasLocalData = (localGame && JSON.parse(localGame).events && JSON.parse(localGame).events.length > 0) || offlineQ.length > 0;
+  if(!hasLocalData) { localStorage.setItem(MIGRATION_KEY, '1'); return; }
+
+  // Count games to show in prompt
+  let gameCount = offlineQ.length;
+  if(localGame) gameCount += 1;
+  $('migrationDesc').textContent = 'We found ' + gameCount + ' saved game' + (gameCount !== 1 ? 's' : '') + ' on this device. Import them to your account?';
+  $('migrationModal').style.display = 'flex';
+
+  $('migrationSkip').onclick = function(){
+    $('migrationModal').style.display = 'none';
+    localStorage.setItem(MIGRATION_KEY, '1');
+  };
+  $('migrationImport').onclick = async function(){
+    $('migrationModal').style.display = 'none';
+    localStorage.setItem(MIGRATION_KEY, '1');
+    await migrateGuestData();
+  };
+}
+
+async function migrateGuestData(){
+  const token = window.getAuthToken ? await window.getAuthToken() : null;
+  if(!token){ showStatusToast('Sign in required', 'error'); return; }
+  const headers = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
+
+  let migrated = 0;
+  let failed = 0;
+
+  // Migrate current game if it exists
+  const localGame = localStorage.getItem(SAVE_KEY);
+  if(localGame){
+    try{
+      const game = JSON.parse(localGame);
+      if(game.events && game.events.length > 0){
+        const res = await fetch('/api/save-game', { method: 'POST', headers, body: JSON.stringify({ game }) });
+        const d = await res.json();
+        if(d.success) migrated++; else failed++;
+      }
+    }catch(_){ failed++; }
+  }
+
+  // Migrate offline queue
+  const offlineQ = getOfflineQueue();
+  for(const game of offlineQ){
+    try{
+      const res = await fetch('/api/save-game', { method: 'POST', headers, body: JSON.stringify({ game }) });
+      const d = await res.json();
+      if(d.success) migrated++; else failed++;
+    }catch(_){ failed++; }
+  }
+
+  if(migrated > 0){
+    saveOfflineQueue([]);
+    updateQueueIndicator();
+    showStatusToast(migrated + ' game' + (migrated !== 1 ? 's' : '') + ' imported!', 'success');
+  }
+  if(failed > 0){
+    showStatusToast(failed + ' game' + (failed !== 1 ? 's' : '') + ' failed to import', 'error', 3500);
+  }
+}
 
 function openTeamModal(autoShowForm) {
   const TM = getTeamManager();

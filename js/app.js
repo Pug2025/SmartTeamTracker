@@ -477,6 +477,7 @@ $('btnStartGame').addEventListener('click', ()=>{
     requestAnimationFrame(scrollGameplayIntoView);
   });
   vibrate(HAPTIC.tap);
+  maybeShowOnboarding();
 });
 
 $('btnEditSetup').addEventListener('click', ()=>{ toggleSetup(true); });
@@ -663,6 +664,41 @@ function highlightPeriod(){
     ch.classList.toggle('active', p===state.period);
   });
   updateHeaderContext();
+}
+
+function showPeriodFlash(p){
+  const pData = per[p];
+  if(!pData) return;
+  const sa = pData.A_shots || 0;
+  const ga = pData.A_goals || 0;
+  const sf = pData.F_shots || 0;
+  const gf = pData.F_goals || 0;
+  const saves = Math.max(0, sa - ga);
+  const svPct = sa > 0 ? (saves / sa).toFixed(3).slice(1) : '—';
+
+  const el = document.createElement('div');
+  el.className = 'period-flash';
+  el.innerHTML =
+    `<div class="period-flash-title">P${p} Summary</div>` +
+    `<div class="period-flash-stats">` +
+      `<span>Shots ${sf}-${sa}</span>` +
+      `<span>Goals ${gf}-${ga}</span>` +
+      `<span>SV% ${svPct}</span>` +
+    `</div>`;
+  el.addEventListener('click', function(){ dismissPeriodFlash(el); });
+
+  const wrap = document.querySelector('.next-period-wrap');
+  if(wrap && wrap.parentNode){
+    wrap.parentNode.insertBefore(el, wrap);
+  } else {
+    document.body.appendChild(el);
+  }
+  setTimeout(function(){ dismissPeriodFlash(el); }, 4000);
+}
+function dismissPeriodFlash(el){
+  if(!el || !el.parentNode) return;
+  el.classList.add('period-flash-exit');
+  setTimeout(function(){ if(el.parentNode) el.remove(); }, 300);
 }
 
 function fmtTime(iso){
@@ -2570,11 +2606,9 @@ function queueOfflineSave(game){
   if(idx >= 0) q[idx] = game; else q.push(game);
   saveOfflineQueue(q);
 }
-async function flushOfflineQueue(){
-  const q = getOfflineQueue();
-  if(!q.length) return;
-  const remaining = [];
-  for(const game of q){
+async function trySyncGame(game){
+  const delays = [2000, 8000, 30000];
+  for(let attempt = 0; attempt < 3; attempt++){
     try{
       const res = await fetch('/api/save-game',{
         method:'POST',
@@ -2582,20 +2616,51 @@ async function flushOfflineQueue(){
         body:JSON.stringify({game})
       });
       const d = await res.json();
-      if(!d.success) remaining.push(game);
-    }catch(_){
-      remaining.push(game);
-      break; // still offline, stop trying
-    }
+      if(d.success) return true;
+    }catch(_){}
+    if(attempt < 2) await new Promise(r => setTimeout(r, delays[attempt]));
+  }
+  return false;
+}
+let _flushInProgress = false;
+async function flushOfflineQueue(){
+  if(_flushInProgress) return;
+  const q = getOfflineQueue();
+  if(!q.length){ updateQueueIndicator(); return; }
+  _flushInProgress = true;
+  setCloudStatus(q.length + ' pending','warn');
+  updateQueueIndicator();
+  const remaining = [];
+  for(let i = 0; i < q.length; i++){
+    if(await trySyncGame(q[i])) continue;
+    // Failed after retries — keep this and all remaining games
+    for(let j = i; j < q.length; j++) remaining.push(q[j]);
+    break;
   }
   saveOfflineQueue(remaining);
+  _flushInProgress = false;
+  updateQueueIndicator();
   if(remaining.length === 0 && q.length > 0){
     setCloudStatus('Synced','good');
     showStatusToast('Queued games synced!', 'success');
+  } else if(remaining.length > 0){
+    setCloudStatus(remaining.length + ' pending','warn');
+  }
+}
+function updateQueueIndicator(){
+  const q = getOfflineQueue();
+  const el = $('queueIndicator');
+  if(!el) return;
+  if(q.length > 0){
+    el.textContent = q.length + ' game' + (q.length > 1 ? 's' : '') + ' pending sync';
+    el.style.display = '';
+  } else {
+    el.style.display = 'none';
   }
 }
 // Flush queue when we come back online
 window.addEventListener('online', ()=>{ setTimeout(flushOfflineQueue, 2000); });
+$('queueIndicator').addEventListener('click', ()=>{ if(!_flushInProgress) flushOfflineQueue(); });
 
 /* CSV Helpers: game row + per-player block */
 function computePlayerStats(){
@@ -2979,6 +3044,7 @@ return;
     updateSetupReadiness();
     validateState('init load');
     refreshCloudStatus();
+    updateQueueIndicator();
 
     // Restore live-share button state after loading saved game.
     if (state.shareCode) {
@@ -3013,6 +3079,58 @@ return;
       localStorage.setItem(SEEN_KEY, '1');
     }
   });
+
+  /* First-game onboarding coach marks */
+  const ONBOARD_KEY = 'stt-onboarding-seen';
+
+  window.maybeShowOnboarding = function(){
+    if(localStorage.getItem(ONBOARD_KEY)) return;
+    localStorage.setItem(ONBOARD_KEY, '1');
+
+    const marks = [
+      { target: 'btnShot', text: 'Start here — tap when a shot happens', side: 'below' },
+      { target: 'goalieRingCard', text: 'Live scores update as you track', side: 'below' },
+      { target: 'btnNextPeriod', text: 'Tap between periods', side: 'above' }
+    ];
+
+    let i = 0;
+    function showMark(){
+      if(i >= marks.length) return;
+      const m = marks[i];
+      const el = $(m.target);
+      if(!el){ i++; showMark(); return; }
+
+      const overlay = document.createElement('div');
+      overlay.className = 'coach-mark-overlay';
+
+      const tip = document.createElement('div');
+      tip.className = 'coach-mark-tip';
+      tip.textContent = m.text;
+
+      const rect = el.getBoundingClientRect();
+      if(m.side === 'above'){
+        tip.style.bottom = (window.innerHeight - rect.top + 8) + 'px';
+      } else {
+        tip.style.top = (rect.bottom + 8) + 'px';
+      }
+      tip.style.left = Math.max(12, Math.min(window.innerWidth - 220, rect.left)) + 'px';
+
+      el.classList.add('coach-mark-highlight');
+      overlay.appendChild(tip);
+      document.body.appendChild(overlay);
+
+      function dismiss(){
+        el.classList.remove('coach-mark-highlight');
+        overlay.remove();
+        i++;
+        setTimeout(showMark, 200);
+      }
+      overlay.addEventListener('click', dismiss);
+      setTimeout(dismiss, 3000);
+    }
+
+    setTimeout(showMark, 600);
+  };
 
   /* Help button */
   $('btnHelp').onclick = function(){
@@ -3493,11 +3611,13 @@ $('periodChips').addEventListener('click',e=>{
 });
 
 $('btnNextPeriod').onclick=()=>{
+  const prevP = state.period;
   state.period=sanitizePeriod(Math.min(MAX_PERIOD, Number(state.period) + 1));
   save();
   validateState('next period');
   highlightPeriod();
   vibrate(HAPTIC.period);
+  showPeriodFlash(prevP);
 };
 
 $('btnEnd').onclick=endGame;

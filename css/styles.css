@@ -3447,6 +3447,76 @@
   padding:6px 12px;
   font-size:12px;
 }
+/* Period-end flash summary */
+.period-flash{
+  margin:8px 0;
+  padding:12px 14px;
+  border-radius:var(--radius-md);
+  background:rgba(255,159,10,0.1);
+  border:1px solid rgba(255,159,10,0.3);
+  animation:periodFlashIn 0.3s ease-out;
+}
+.period-flash-exit{
+  animation:periodFlashOut 0.3s ease-in forwards;
+}
+.period-flash-title{
+  font-size:13px;
+  font-weight:800;
+  color:#ffd68a;
+  margin-bottom:4px;
+}
+.period-flash-stats{
+  display:flex;
+  gap:16px;
+  font-size:12px;
+  color:#c5d0dc;
+  font-weight:600;
+}
+@keyframes periodFlashIn{
+  from{ opacity:0; transform:translateY(-6px); }
+  to{ opacity:1; transform:translateY(0); }
+}
+@keyframes periodFlashOut{
+  to{ opacity:0; transform:translateY(-6px); }
+}
+/* Coach mark onboarding */
+.coach-mark-overlay{
+  position:fixed;
+  inset:0;
+  z-index:9998;
+  background:rgba(0,0,0,0.5);
+}
+.coach-mark-tip{
+  position:absolute;
+  background:#1a2a3e;
+  border:1px solid rgba(77,163,255,0.4);
+  color:#d0e0f5;
+  font-size:13px;
+  font-weight:600;
+  padding:10px 14px;
+  border-radius:10px;
+  max-width:200px;
+  box-shadow:0 4px 16px rgba(0,0,0,0.5);
+  animation:coachTipIn 0.25s ease-out;
+}
+@keyframes coachTipIn{
+  from{ opacity:0; transform:scale(0.95); }
+  to{ opacity:1; transform:scale(1); }
+}
+.coach-mark-highlight{
+  position:relative;
+  z-index:9999;
+  box-shadow:0 0 0 4px rgba(77,163,255,0.5), 0 0 16px rgba(77,163,255,0.2);
+  border-radius:var(--radius-md);
+}
+/* Queue indicator */
+.queue-indicator{
+  font-size:10px;
+  color:var(--warn);
+  font-weight:700;
+  cursor:pointer;
+  padding:2px 0;
+}
 .comp-annotation{
   font-size:11px;
   color:var(--muted);

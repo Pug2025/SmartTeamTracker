@@ -2284,7 +2284,7 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
   // === Offensive ===
   $('sumOffenseGrid').innerHTML =
     tile('Breakaways', state.team.breakawaysFor) +
-    tile('Odd Man Rush', state.team.oddManRushFor) +
+    tile('Odd-Man Rush', state.team.oddManRushFor) +
     tile('Forced TO', state.team.forcedTurnovers||0) +
     tile('Penalties Drawn', state.team.penaltiesFor||0) +
     tile('Missed Ch', state.team.missedChancesFor||0, 'For');
@@ -2293,7 +2293,7 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
   $('sumDefenseGrid').innerHTML =
     tile('Breakaways Ag', state.team.breakawaysAgainst) +
     tile('D-Zone TO', state.team.dzTurnovers) +
-    tile('OMR Against', state.team.oddManRushAgainst||0) +
+    tile('OMR Ag', state.team.oddManRushAgainst||0) +
     tile('Penalties Taken', state.team.penaltiesAgainst||0);
 
   // === Goal Breakdowns ===
@@ -2310,7 +2310,7 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
       ${gaStats.BA ? `<div class="small">Breakaway: ${gaStats.BA}</div>` : ''}
       ${gaStats.DZ ? `<div class="small">D-Zone TO: ${gaStats.DZ}</div>` : ''}
       ${gaStats.BR ? `<div class="small">Bad Rebound: ${gaStats.BR}</div>` : ''}
-      ${(gaStats.OMRA||0) ? `<div class="small">Odd Man Rush: ${gaStats.OMRA}</div>` : ''}
+      ${(gaStats.OMRA||0) ? `<div class="small">Odd-Man Rush: ${gaStats.OMRA}</div>` : ''}
       ${gaStats.Other ? `<div class="small">Other: ${gaStats.Other}</div>` : ''}
     </div>`;
   } else {
@@ -2320,7 +2320,7 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
     gbHTML += `<div class="card" style="padding:10px;">
       <div class="small" style="font-weight:700; color:var(--accent-us); margin-bottom:6px;">Goals For (${totalGF})</div>
       ${gfCtx.BA ? `<div class="small">Breakaway: ${gfCtx.BA}</div>` : ''}
-      ${gfCtx.OMR ? `<div class="small">Odd Man Rush: ${gfCtx.OMR}</div>` : ''}
+      ${gfCtx.OMR ? `<div class="small">Odd-Man Rush: ${gfCtx.OMR}</div>` : ''}
       ${(gfCtx.FT||0) ? `<div class="small">Forced TO: ${gfCtx.FT}</div>` : ''}
       ${gfCtx.Other ? `<div class="small">Other: ${gfCtx.Other}</div>` : ''}
     </div>`;
@@ -2724,7 +2724,7 @@ function exportGameCSV(){
 
   if(navigator.canShare && navigator.canShare({files:[new File([blob], fileName, {type:'text/csv'})]}) && navigator.share){
     const f = new File([blob], fileName, {type:'text/csv'});
-    navigator.share({files:[f], title:'Team Tracker CSV'}).catch(()=>doDownload());
+    navigator.share({files:[f], title:'Smart Team Tracker CSV'}).catch(()=>doDownload());
   } else {
     doDownload();
   }
@@ -4459,7 +4459,7 @@ function renderHistoryList(games){
       <div class="history-item">
         <div class="history-left">
           <span class="history-opp">vs ${opp}</span>
-          <span class="history-meta">${date} &bull; ${level} &bull; GK:${gs} TM:${ts}</span>
+          <span class="history-meta">${date} &bull; ${level} &bull; Goalie: ${gs} &middot; Team: ${ts}</span>
         </div>
         <div class="history-score"><span class="${scoreClass}">${gf}–${ga}</span></div>
       </div>
@@ -4533,7 +4533,7 @@ function showGameDetail(game){
     ['Smothers', d.Smothers ?? '—'], ['Bad Rebounds', d.BadRebounds ?? '—'],
     ['Big Saves', d.BigSaves ?? '—'], ['Soft Goals', d.SoftGoals ?? '—'],
     ['Breakaways Ag', d.BreakawaysAgainst ?? '—'], ['DZ Turnovers', d.DZTurnovers ?? '—'],
-    ['Breakaways For', d.BreakawaysFor ?? '—'], ['Odd Man Rush For', d.OddManRushFor ?? '—'], ['Forced Turnovers', d.ForcedTurnovers ?? '—'],
+    ['Breakaways For', d.BreakawaysFor ?? '—'], ['Odd-Man Rush For', d.OddManRushFor ?? '—'], ['Forced Turnovers', d.ForcedTurnovers ?? '—'],
     ['GA off BA', d.GA_BA ?? '—'], ['GA off DZ', d.GA_DZ ?? '—'],
     ['GA off Bad Reb', d.GA_BR ?? '—'], ['GA Other', d.GA_Other ?? '—']
   ];

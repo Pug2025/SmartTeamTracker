@@ -23,7 +23,7 @@
 <!-- Auth Screen (shown when not logged in) -->
 <div id="authScreen" class="auth-screen" style="display:none;">
   <div class="auth-card">
-    <div class="auth-logo">Team Tracker</div>
+    <div class="auth-logo">Smart Team Tracker</div>
     <div class="auth-sub">Track your team's performance, live from the rink.</div>
 
     <button id="authGoogleBtn" class="auth-google-btn" type="button">
@@ -58,7 +58,7 @@
     <div class="top-title-group">
       <div class="top-title-stack">
         <div class="top-title-line">
-          <h1>Team Tracker</h1>
+          <h1>Smart Team Tracker</h1>
           <span id="cloudStatus" class="status-dot warn" role="img" aria-label="Connection status: Checking" title="Checking"></span>
         </div>
       </div>
@@ -295,7 +295,7 @@
           <div class="g-btn ctx h-md" id="btnForcedTurnover">Forced Turnover</div>
         </div>
         <div class="context-row">
-          <div class="g-btn ctx h-md" id="btnOddManRushFor">Odd Man Rush</div>
+          <div class="g-btn ctx h-md" id="btnOddManRushFor">Odd-Man Rush</div>
           <div class="g-btn ctx h-md" id="btnMissedChanceFor">Missed Chance (No Shot)</div>
         </div>
         <div class="g-btn ctx h-md" id="btnPenaltyAgainst">Our Penalty</div>
@@ -366,7 +366,7 @@
       <div class="dash-section-label dash-label-us">Offensive</div>
       <div class="dashGrid">
         <div class="dashTile"><div class="k">Breakaways</div><div class="v" id="baForVal">0</div></div>
-        <div class="dashTile"><div class="k">Odd Man Rush</div><div class="v" id="omrForVal">0</div></div>
+        <div class="dashTile"><div class="k">OMR</div><div class="v" id="omrForVal">0</div></div>
         <div class="dashTile"><div class="k">Forced TO</div><div class="v" id="ftVal">0</div></div>
         <div class="dashTile"><div class="k">HD Chances</div><div class="v" id="hdForVal">0</div><div class="s" id="hdForSub"></div></div>
         <div class="dashTile"><div class="k">Penalties Drawn</div><div class="v" id="penForVal">0</div></div>
@@ -377,7 +377,7 @@
       <div class="dashGrid">
         <div class="dashTile"><div class="k">Breakaways Ag</div><div class="v" id="baAgVal">0</div></div>
         <div class="dashTile"><div class="k">D-Zone TO</div><div class="v" id="dzVal">0</div></div>
-        <div class="dashTile"><div class="k">OMR Against</div><div class="v" id="omrAgVal">0</div></div>
+        <div class="dashTile"><div class="k">OMR Ag</div><div class="v" id="omrAgVal">0</div></div>
         <div class="dashTile"><div class="k">HD Chances Ag</div><div class="v" id="hdAgVal">0</div><div class="s" id="hdAgSub"></div></div>
         <div class="dashTile"><div class="k">Penalties Taken</div><div class="v" id="penAgVal">0</div></div>
       </div>
@@ -671,7 +671,7 @@
 
 <!-- Welcome Modal (first launch only) -->
 <div class="modal" id="welcomeModal"><div class="box">
-  <div class="welcome-title">Welcome to Team Tracker</div>
+  <div class="welcome-title">Welcome to Smart Team Tracker</div>
   <div class="welcome-sub">Fast bench-side tracking with live spectating, saved opponents, and season history built in.</div>
   <ul class="welcome-bullets">
     <li><span class="wb-icon wb-icon-them">&#9679;</span><strong>Red tracks chances against</strong> &mdash; shots, goals, goalie events, and defensive breakdowns.</li>
@@ -685,7 +685,7 @@
 <!-- Help Modal (? button) -->
 <div class="modal" id="helpModal"><div class="box help-box">
   <div class="modal-head-lg">
-    <h2 class="modal-title-lg">How to Use Team Tracker</h2>
+    <h2 class="modal-title-lg">How to Use Smart Team Tracker</h2>
     <button class="btn-std btn-close-sm" id="btnHelpClose">Close</button>
   </div>
   <div class="help-scroll">
@@ -739,7 +739,7 @@
       <ul>
         <li><strong>Breakaway</strong> &mdash; Your player got in alone. If a goal follows within 10 seconds, it is auto-tagged.</li>
         <li><strong>Forced Turnover</strong> &mdash; Your team won the puck back through good pressure. If a goal follows within 10 seconds, it is auto-tagged.</li>
-        <li><strong>Odd Man Rush</strong> &mdash; Your team created a 2-on-1, 3-on-2, etc. If a goal follows within 10 seconds, it is auto-tagged.</li>
+        <li><strong>Odd-Man Rush</strong> &mdash; Your team created a 2-on-1, 3-on-2, etc. If a goal follows within 10 seconds, it is auto-tagged.</li>
         <li><strong>Missed Chance (No Shot)</strong> &mdash; Your team had a quality scoring chance but no shot on net (e.g. hit the post, went wide, fanned on it). It still counts toward your chance quality.</li>
         <li><strong>Our Penalty</strong> &mdash; Your team took a penalty (shorthanded). It is counted and logged in the event list.</li>
       </ul>

@@ -2779,12 +2779,16 @@ function persistRoster(){
   if (window.TeamManager) window.TeamManager.syncRosterToActiveTeam(state.roster);
   save();
 }
-function addRosterNumber(num){
-  const n = String(num||'').trim();
-  if(!n || !isNumStr(n)) return false;
+function parseRosterInput(raw){
+  return String(raw||'').split(/[\s,;\t\n]+/).map(x=>x.trim()).filter(x=>x.length>0 && isNumStr(x));
+}
+function addRosterNumbers(raw){
+  const nums = parseRosterInput(raw);
+  if(!nums.length) return false;
   const set = new Set((state.roster||[]).map(x=>String(x).trim()));
-  if(set.has(n)) return false;
-  set.add(n);
+  let added = 0;
+  for(const n of nums){ if(!set.has(n)){ set.add(n); added++; } }
+  if(!added) return false;
   state.roster = sortRoster([...set]);
   persistRoster();
   renderRosterList();
@@ -2796,7 +2800,6 @@ function removeRosterNumber(num){
   renderRosterList();
 }
 function openRoster(){
-  $('rosterBulkWrap').classList.add('hidden');
   renderRosterList();
   $('rosterModal').style.display='flex';
   $('rosterAddInput').value = '';
@@ -3399,7 +3402,7 @@ $('btnRoster').onclick=openRoster;
 $('btnRosterClose').onclick=closeRoster;
 $('btnRosterAdd').onclick=function(){
   const inp = $('rosterAddInput');
-  if(addRosterNumber(inp.value)) inp.value = '';
+  if(addRosterNumbers(inp.value)) inp.value = '';
   inp.focus();
 };
 $('rosterAddInput').addEventListener('keydown', function(e){
@@ -3412,20 +3415,6 @@ $('rosterList').addEventListener('click', function(e){
   if(!entry) return;
   removeRosterNumber(entry.dataset.n);
 });
-$('btnRosterBulk').onclick=function(){
-  const wrap = $('rosterBulkWrap');
-  wrap.classList.toggle('hidden');
-  if(!wrap.classList.contains('hidden')){
-    $('rosterArea').value = (state.roster||[]).join('\n');
-  }
-};
-$('btnRosterBulkApply').onclick=function(){
-  const raw = $('rosterArea').value.split('\n').map(x=>x.trim()).filter(x=>x.length>0);
-  state.roster = sortRoster(raw);
-  persistRoster();
-  renderRosterList();
-  $('rosterBulkWrap').classList.add('hidden');
-};
 
 /* High Danger modal logic — auto-dismisses after 2s (defaults to No) */
 let dangerTarget = null;

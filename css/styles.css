@@ -3391,12 +3391,6 @@
   padding:8px;
 }
 .textarea-roster{ height:150px; }
-.roster-modal-head{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  margin-bottom:10px;
-}
 .roster-list{
   max-height:220px;
   overflow-y:auto;
@@ -3449,11 +3443,6 @@
   font-family:inherit;
 }
 .roster-add-input::placeholder{ color:var(--muted); }
-.roster-bulk-wrap{
-  margin-top:10px;
-  padding-top:10px;
-  border-top:1px solid rgba(255,255,255,0.08);
-}
 .btn-sm{
   padding:6px 12px;
   font-size:12px;

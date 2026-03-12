@@ -3598,9 +3598,10 @@
   font-weight:600;
   padding:10px 14px;
   border-radius:10px;
-  max-width:200px;
+  max-width:260px;
   box-shadow:0 4px 16px rgba(0,0,0,0.5);
   animation:coachTipIn 0.25s ease-out;
+  line-height:1.4;
 }
 @keyframes coachTipIn{
   from{ opacity:0; transform:scale(0.95); }

@@ -717,14 +717,14 @@
 <!-- Welcome Modal (first launch only) -->
 <div class="modal" id="welcomeModal"><div class="box">
   <div class="welcome-title">Welcome to Smart Team Tracker</div>
-  <div class="welcome-sub">Fast bench-side tracking with live spectating, saved opponents, and season history built in.</div>
+  <div class="welcome-sub">Track every shot, goal, and scoring chance right from the bench &mdash; and get an objective performance score for your team and goalie after every game.</div>
   <ul class="welcome-bullets">
-    <li><span class="wb-icon wb-icon-them">&#9679;</span><strong>Red tracks chances against</strong> &mdash; shots, goals, goalie events, and defensive breakdowns.</li>
-    <li><span class="wb-icon wb-icon-us">&#9679;</span><strong>Blue tracks your offense</strong> &mdash; shots, goals, pressure plays, and scoring chances.</li>
-    <li><span class="wb-icon wb-icon-good">&#10003;</span><strong>Goals count as shots automatically</strong>, and quick prompts handle strength and context for you.</li>
-    <li><span class="wb-icon wb-icon-muted"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></span>Open <strong>Menu &rarr; Help</strong> any time for the full guide, live spectating details, and setup tips.</li>
+    <li><span class="wb-icon wb-icon-them">&#9679;</span><strong>Left column (red) &mdash; what their team does.</strong> Log their shots, goals, breakaways, turnovers, and penalties.</li>
+    <li><span class="wb-icon wb-icon-us">&#9679;</span><strong>Right column (blue) &mdash; what your team does.</strong> Log your shots, goals, big saves, forced turnovers, and penalties.</li>
+    <li><span class="wb-icon wb-icon-good">&#10003;</span><strong>The app handles the rest.</strong> Goals auto-count as shots, context tags link up automatically, and live scores update in real time.</li>
+    <li><span class="wb-icon wb-icon-muted"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></span>Tap <strong>Menu &rarr; Help</strong> any time for the full guide, including live spectating, season stats, and export options.</li>
   </ul>
-  <button class="btn-welcome" id="btnWelcomeDismiss">Got It</button>
+  <button class="btn-welcome" id="btnWelcomeDismiss">Let's Go</button>
 </div></div>
 
 <!-- Help Modal (? button) -->
@@ -737,31 +737,38 @@
 
     <div class="help-section">
       <h3>Getting Started</h3>
-      <p>Select your team, enter the opponent name, confirm the date, and tap <strong>Start Game</strong>. Team level comes from the selected team, so you only set it once in <strong>Manage Teams</strong>. The opponent field lets you reuse saved opponents, add a new one from the same box, and instantly see your head-to-head record and recent scores when a match is found. The period selector at the top lets you switch periods at any time, and you can also tap <strong>Next Period</strong> between periods to advance.</p>
+      <p>Select your team (or create one), type in the opponent&rsquo;s name, confirm the date, and tap <strong>Start Game</strong>.</p>
+      <ul>
+        <li><strong>Team &amp; level</strong> &mdash; Your team&rsquo;s competition level is set once inside <strong>Manage Teams</strong> and carries forward automatically.</li>
+        <li><strong>Saved opponents</strong> &mdash; As you type an opponent name, previously played teams appear as suggestions. When a match is found you&rsquo;ll instantly see your head-to-head record and recent scores.</li>
+        <li><strong>Periods</strong> &mdash; Tap <strong>Next Period</strong> between periods to advance. You can also tap any period number at the top of the screen to jump directly to it.</li>
+        <li><strong>Resume a game</strong> &mdash; If you leave mid-game, the app saves your progress. When you return, you&rsquo;ll be offered the choice to <strong>Resume Game</strong> or start fresh.</li>
+        <li><strong>Edit setup mid-game</strong> &mdash; Open <strong>Menu &rarr; Game Setup</strong> to change the opponent name or date without losing any tracked events.</li>
+      </ul>
     </div>
 
     <hr class="help-divider">
 
     <div class="help-section">
       <h3 class="help-h3-them">Left Column &mdash; Them (Defense / Goalie)</h3>
-      <p>Tap these when the opponent has the puck and creates a chance against your team.</p>
+      <p>Use these buttons when the opposing team has the puck and creates a chance against you.</p>
       <h4>Primary Buttons</h4>
       <ul>
-        <li><strong>Shot Against</strong> &mdash; Any shot on net. Shots off the post do <strong>not</strong> count as shots here. You'll be asked if it was a <em>High Danger</em> chance (slot area, close range). If you don't respond in 2 seconds it defaults to No. The same HD prompt appears for Shot For too.</li>
-        <li><strong>Goal Against</strong> &mdash; They scored. This counts as a shot automatically. You'll be asked for context (Screen, Deflection/Tip, Cross-Crease, Net-Front Scramble, Clean Look, or Other) and game situation (EV/PP/SH). If +/- tracking is enabled, you'll also select the 5 skaters on ice. If a breakaway, DZ turnover, or odd-man rush triggered the goal, log that first and the goal will be auto-tagged.</li>
+        <li><strong>Shot Against</strong> &mdash; Any opponent shot that hits the net. Shots off the post or wide do <em>not</em> count. After logging it, a quick prompt asks whether it was a <em>high-danger</em> chance (close range or from the slot area). If you don&rsquo;t respond within 2 seconds it defaults to a regular-danger shot.</li>
+        <li><strong>Goal Against</strong> &mdash; The opponent scored. This automatically counts as a shot, so do not log a separate Shot Against. You&rsquo;ll be asked how the goal happened (Screen, Deflection/Tip, Cross-Crease Pass, Net-Front Scramble, Clean Look, or Other) and the game situation (Even Strength, Power Play, or Short Handed). If plus/minus tracking is on, you&rsquo;ll also select the five skaters who were on the ice.<br><em>Tip:</em> If a breakaway, defensive-zone turnover, or odd-man rush led to the goal, log that event first &mdash; the goal will be linked to it automatically.</li>
       </ul>
-      <h4>Goalie Buttons</h4>
+      <h4>Goalie Events</h4>
       <ul>
-        <li><strong>Soft Goal</strong> &mdash; A goal your goalie should have stopped. Counts as a shot and goal automatically. You'll be asked what went wrong (Misplay, Poor Positioning, or Other) and game situation (EV/PP/SH). Counts against the goalie score more heavily.</li>
-        <li><strong>Bad Rebound</strong> &mdash; Goalie gave up a dangerous rebound. Counts as a shot against, so do not log a separate shot. If a goal follows within 5 seconds, the goal is auto-tagged as rebound-related.</li>
+        <li><strong>Soft Goal</strong> &mdash; A goal your goalie should have stopped. You&rsquo;ll be asked what went wrong (Misplay, Poor Positioning, or Other) and the game situation. This counts as both a shot and a goal automatically, and it weighs more heavily against the Goalie Score than a normal goal.</li>
+        <li><strong>Bad Rebound</strong> &mdash; The goalie gave up a dangerous rebound that stayed in the scoring area. This counts as a shot against, so do not log a separate Shot Against. If a goal follows within 5 seconds, it is automatically tagged as rebound-related.</li>
       </ul>
       <h4>Defensive Context</h4>
       <ul>
-        <li><strong>Breakaway</strong> &mdash; Opponent got a breakaway. If a goal follows within 10 seconds, it's auto-tagged. Reduces goalie blame.</li>
-        <li><strong>DZ Turnover</strong> &mdash; Your team turned it over in the defensive zone. If a goal follows within 10 seconds, it's auto-tagged.</li>
-        <li><strong>Odd-Man Rush</strong> &mdash; Opponent has a 2-on-1, 3-on-2, etc. If a goal follows within 10 seconds, it is auto-tagged as an odd-man-rush goal.</li>
-        <li><strong>Missed Chance (No Shot)</strong> &mdash; They had a quality scoring chance but no shot on net (e.g. hit the post, went wide, fanned on it). It still counts toward their chance quality.</li>
-        <li><strong>Their Penalty</strong> &mdash; The other team took a penalty (power play for us). It is counted and logged in the event list.</li>
+        <li><strong>Breakaway</strong> &mdash; An opponent got in alone on your goalie. If a goal follows within 10 seconds, it is automatically linked. Breakaway goals count less against the Goalie Score because the goalie is at a disadvantage.</li>
+        <li><strong>DZ Turnover</strong> (defensive-zone turnover) &mdash; Your team lost the puck in your own end. If a goal follows within 10 seconds, it is automatically linked.</li>
+        <li><strong>Odd-Man Rush</strong> &mdash; The opponent has more attackers than defenders on a rush (2-on-1, 3-on-2, etc.). If a goal follows within 10 seconds, it is automatically linked.</li>
+        <li><strong>Missed Chance</strong> &mdash; The opponent had a quality scoring opportunity but no shot reached the net (post, wide, fanned on it, etc.). This still counts toward the opponent&rsquo;s chance quality in the dashboard.</li>
+        <li><strong>Their Penalty</strong> &mdash; The opponent committed a penalty, giving your team a power play.</li>
       </ul>
     </div>
 
@@ -769,73 +776,163 @@
 
     <div class="help-section">
       <h3 class="help-h3-us">Right Column &mdash; Us (Offense)</h3>
-      <p>Tap these when your team has the puck and creates chances.</p>
+      <p>Use these buttons when your team has the puck and creates chances.</p>
       <h4>Primary Buttons</h4>
       <ul>
-        <li><strong>Shot For</strong> &mdash; Your team shot on net. Shots off the post do <strong>not</strong> count as shots here. You'll select the shooter from your roster (or tap Unknown), then be asked if it was <em>High Danger</em>.</li>
-        <li><strong>Goal For</strong> &mdash; Your team scored. You'll select the scorer, then optionally an assist, and game situation (EV/PP/SH). If +/- tracking is enabled, you'll also select the 5 skaters on ice.</li>
+        <li><strong>Shot For</strong> &mdash; Your team put a shot on net. Posts and wide shots do not count. You&rsquo;ll select the shooter from your roster (or tap Unknown), then be asked whether it was a high-danger chance.</li>
+        <li><strong>Goal For</strong> &mdash; Your team scored. You&rsquo;ll select the goal scorer, optionally an assist, and the game situation. If plus/minus tracking is on, you&rsquo;ll also select the five skaters on the ice. The goal automatically counts as a shot.</li>
       </ul>
-      <h4>Goalie Positive</h4>
+      <h4>Goalie Positives</h4>
       <ul>
-        <li><strong>Smother</strong> &mdash; Goalie covered the puck and froze play. Helps the goalie score.</li>
-        <li><strong>Big Save</strong> &mdash; A save your goalie probably shouldn't have made. Gives a bonus to the goalie score. Counts as a high-danger shot against automatically (no prompts).</li>
+        <li><strong>Smother</strong> &mdash; Your goalie covered the puck and froze play, killing the opponent&rsquo;s momentum. This gives a bonus to the Goalie Score.</li>
+        <li><strong>Big Save</strong> &mdash; An exceptional save your goalie probably should not have made (breakaway stop, cross-crease dive, etc.). This gives a significant bonus to the Goalie Score. It automatically counts as a high-danger shot against, so do not log a separate Shot Against.</li>
       </ul>
       <h4>Offensive Context</h4>
       <ul>
-        <li><strong>Breakaway</strong> &mdash; Your player got in alone. If a goal follows within 10 seconds, it is auto-tagged.</li>
-        <li><strong>Forced Turnover</strong> &mdash; Your team won the puck back through good pressure. If a goal follows within 10 seconds, it is auto-tagged.</li>
-        <li><strong>Odd-Man Rush</strong> &mdash; Your team created a 2-on-1, 3-on-2, etc. If a goal follows within 10 seconds, it is auto-tagged.</li>
-        <li><strong>Missed Chance (No Shot)</strong> &mdash; Your team had a quality scoring chance but no shot on net (e.g. hit the post, went wide, fanned on it). It still counts toward your chance quality.</li>
-        <li><strong>Our Penalty</strong> &mdash; Your team took a penalty (shorthanded). It is counted and logged in the event list.</li>
+        <li><strong>Breakaway</strong> &mdash; Your player got in alone on the opposing goalie. If a goal follows within 10 seconds, it is automatically linked.</li>
+        <li><strong>Forced Turnover</strong> &mdash; Your team won the puck back through pressure, a good stick check, or smart positioning. If a goal follows within 10 seconds, it is automatically linked.</li>
+        <li><strong>Odd-Man Rush</strong> &mdash; Your team created a numbers advantage on the rush (2-on-1, 3-on-2, etc.). If a goal follows within 10 seconds, it is automatically linked.</li>
+        <li><strong>Missed Chance</strong> &mdash; Your team had a quality scoring opportunity but no shot reached the net (post, wide, fanned on it, etc.). This still counts toward your team&rsquo;s chance quality in the dashboard.</li>
+        <li><strong>Our Penalty</strong> &mdash; Your team committed a penalty, putting you short handed.</li>
       </ul>
     </div>
 
     <hr class="help-divider">
 
     <div class="help-section">
-      <h3>Automatic Tracking</h3>
+      <h3>How Automatic Tracking Works</h3>
+      <p>The app connects related events together so you don&rsquo;t have to. Here&rsquo;s what happens behind the scenes:</p>
       <ul>
-        <li><strong>Goals Count as Shots</strong> &mdash; Do not log a separate shot after any goal for or against.</li>
-        <li><strong>Good Rebounds</strong> &mdash; Awarded automatically. If 4 seconds pass after a shot/big save without another shot, bad rebound, or goal, the goalie gets credit for controlling the rebound.</li>
-        <li><strong>Goal Context</strong> &mdash; Breakaway, odd-man-rush, forced-turnover, DZ-turnover, and rebound goals are auto-tagged when the lead-in event was logged just before the goal.</li>
-        <li><strong>High Danger</strong> &mdash; Applies to all shots (for and against). After logging any shot, you get a 2-second prompt asking if it was HD. If you don't respond, it defaults to regular. High-danger chances are weighted more heavily than regular ones in the live quality readouts.</li>
+        <li><strong>Goals count as shots</strong> &mdash; Every goal (for or against) automatically counts as a shot. Never log a separate shot after a goal.</li>
+        <li><strong>Good rebounds</strong> &mdash; If 4 seconds pass after a shot or big save without another shot, rebound, or goal, your goalie gets credit for controlling the rebound.</li>
+        <li><strong>Context linking</strong> &mdash; When you log a breakaway, odd-man rush, forced turnover, or defensive-zone turnover and a goal follows shortly after, the goal is automatically tagged with that context. This gives you richer post-game breakdowns without extra taps.</li>
+        <li><strong>High-danger prompt</strong> &mdash; After every shot (for or against), a brief prompt asks whether it was a high-danger chance (close range, slot area). If you don&rsquo;t respond within 2 seconds, it defaults to regular danger. High-danger shots carry more weight in the quality metrics.</li>
       </ul>
     </div>
 
     <hr class="help-divider">
 
     <div class="help-section">
-      <h3>Understanding the Dashboard</h3>
+      <h3>Understanding the Live Dashboard</h3>
+      <p>The dashboard updates in real time as you track. Tap any stat tile to see a brief explanation of what it measures.</p>
       <h4>Chance Quality Bar</h4>
-      <p>The bar under the scoreboard shows who's getting better scoring chances. Green tilting right = us. Red tilting left = them. Factors in shot danger, actual goals, and missed chances. Appears after 5+ total shots.</p>
+      <p>The bar beneath the scoreboard shows which team is generating better scoring chances overall. Green tilting right means your team has the edge; red tilting left means the opponent does. It factors in shot danger, goals, and missed chances. It appears once there are at least 5 total shots in the game.</p>
       <h4>Goalie Score (0&ndash;100)</h4>
-      <p>How well your goalie is playing relative to expected workload. Factors in: save percentage weighted by difficulty, big saves, rebound control (smothers + good rebounds vs bad rebounds), and soft goals. Context matters &mdash; goals off breakaways and screens hurt less than clean looks.</p>
-      <h4>Team Score (0&ndash;100)</h4>
-      <p>Overall team performance combining five areas:</p>
+      <p>A single number summarizing your goalie&rsquo;s performance relative to expected workload. It factors in:</p>
       <ul>
-        <li><strong>Result (25%)</strong> &mdash; Weighted goal differential (PP goals discounted, SH goals bonused)</li>
-        <li><strong>Possession (20%)</strong> &mdash; Shot share (your shots vs total shots)</li>
-        <li><strong>Danger Control (20%)</strong> &mdash; Breakaways + odd man rushes + forced turnovers created vs given up</li>
-        <li><strong>Shot Quality (20%)</strong> &mdash; Are your chances higher quality per shot than theirs</li>
-        <li><strong>Discipline (15%)</strong> &mdash; Penalties drawn vs penalties taken</li>
+        <li>Save percentage weighted by shot difficulty (breakaway saves count more than routine stops)</li>
+        <li>Rebound control (smothers and clean rebounds vs. dangerous rebounds)</li>
+        <li>Big saves (bonus) and soft goals (penalty)</li>
+        <li>Context matters &mdash; goals off breakaways, screens, and deflections hurt the score less than clean-look goals</li>
       </ul>
-      <h4>A Note on Subjective Tags</h4>
-      <p>Some inputs &mdash; like Soft Goal, Big Save, and High Danger &mdash; are your judgment calls as coach. The scoring model trusts your observations. There&rsquo;s no benefit to over- or under-tagging, so just call what you see.</p>
+      <h4>Team Score (0&ndash;100)</h4>
+      <p>An overall team performance rating that combines five areas:</p>
+      <ul>
+        <li><strong>Result (25%)</strong> &mdash; Goal differential, adjusted so that power-play goals count less and short-handed goals count more</li>
+        <li><strong>Possession (20%)</strong> &mdash; Your team&rsquo;s share of total shots (above 50% means you&rsquo;re outshooting the opponent)</li>
+        <li><strong>Danger Control (20%)</strong> &mdash; Offensive opportunities created (breakaways, odd-man rushes, forced turnovers) vs. those given up</li>
+        <li><strong>Shot Quality (20%)</strong> &mdash; Whether your scoring chances are higher quality per shot than the opponent&rsquo;s</li>
+        <li><strong>Discipline (15%)</strong> &mdash; Penalties drawn vs. penalties taken</li>
+      </ul>
+      <h4>Dashboard Sections</h4>
+      <p>Below the scores you&rsquo;ll find stat tiles grouped into four sections: <strong>Goaltending</strong> (saves, big saves, smothers, rebound quality, soft goals), <strong>Shot Quality</strong> (shooting percentage, shot share, missed chances), <strong>Offensive</strong> (breakaways, odd-man rushes, forced turnovers, high-danger chances, penalties drawn), and <strong>Defensive</strong> (breakaways against, defensive-zone turnovers, odd-man rushes against, high-danger chances against, penalties taken). A <strong>By Period</strong> breakdown appears at the bottom.</p>
+      <h4>A Note on Subjective Calls</h4>
+      <p>Some inputs &mdash; Soft Goal, Big Save, and High Danger &mdash; are judgment calls. The scoring model trusts your observations as the coach. There is no benefit to over- or under-tagging, so just call what you see.</p>
     </div>
 
     <hr class="help-divider">
 
     <div class="help-section">
-      <h3>Other Features</h3>
+      <h3>Strength Situations</h3>
+      <p>After each goal you&rsquo;ll be asked about the game situation:</p>
       <ul>
-        <li><strong>Event Removal + Undo</strong> &mdash; Tap any event in the live event list to remove it. A quick tap on the floating UNDO button reverses the last event, and a long press opens the last 5 events so you can remove a specific one.</li>
-        <li><strong>Roster</strong> &mdash; Open <strong>Menu &rarr; Roster</strong> to add player numbers (one per line). These appear as quick-pick buttons when logging shots/goals for, and a player number is auto-added to the roster if you type it in as a shooter, scorer, or assister.</li>
-        <li><strong>+/- Tracking</strong> &mdash; When enabled in setup, you'll be asked to select 5 players on ice after each goal (for and against) to track plus/minus.</li>
-        <li><strong>Live Spectating</strong> &mdash; Tap Share Live during a game to create a view-only link for parents, staff, or another device. The spectator screen updates automatically with score, shot totals, chance quality, and momentum.</li>
-        <li><strong>End Game</strong> &mdash; Tap End Game &amp; Score to see a full game summary with goalie/team scores, stats breakdown, and exportable data.</li>
-        <li><strong>Saved Opponents</strong> &mdash; The setup opponent box remembers teams you've played, shows last played dates, and can remove an opponent entirely. Deleting one also removes their saved head-to-head history and season stats.</li>
-        <li><strong>Past Games</strong> &mdash; View and compare past game history from the setup screen. Swipe left on a saved game to delete it. Games are saved to the cloud when connected.</li>
-        <li><strong>Season Stats</strong> &mdash; Review your active team's record, trends, and recent results from the setup screen. Reset Season clears the saved games for that team.</li>
+        <li><strong>Even Strength (EV)</strong> &mdash; Both teams have the same number of skaters (typically 5-on-5).</li>
+        <li><strong>Power Play (PP)</strong> &mdash; Your team has more skaters because the opponent is serving a penalty.</li>
+        <li><strong>Short Handed (SH)</strong> &mdash; Your team has fewer skaters because you are serving a penalty.</li>
+      </ul>
+      <p>Strength data appears in the game summary breakdown and affects the Team Score. Power-play goals are weighted less (they&rsquo;re expected when you have the advantage), while short-handed goals are weighted more (they&rsquo;re harder to score).</p>
+    </div>
+
+    <hr class="help-divider">
+
+    <div class="help-section">
+      <h3>Correcting Mistakes</h3>
+      <ul>
+        <li><strong>Undo button</strong> &mdash; The circular undo button floats in the corner during a game. A quick tap reverses the most recent event. A long press (hold for a moment) opens a list of the last 5 events so you can remove a specific one.</li>
+        <li><strong>Event log</strong> &mdash; Tap any event in the scrolling event list to remove it. You&rsquo;ll see a brief confirmation with a Restore option in case you remove the wrong one.</li>
+      </ul>
+    </div>
+
+    <hr class="help-divider">
+
+    <div class="help-section">
+      <h3>Roster &amp; Player Tracking</h3>
+      <ul>
+        <li><strong>Adding players</strong> &mdash; Open <strong>Menu &rarr; Roster</strong> and enter jersey numbers separated by commas (e.g. &ldquo;1, 5, 12&rdquo;) or one per line. These appear as quick-pick buttons when you log shots and goals for your team.</li>
+        <li><strong>Auto-add</strong> &mdash; If you type a new number directly as a shooter, scorer, or assist during the game, it is automatically added to the roster for future use.</li>
+        <li><strong>Plus/minus tracking</strong> &mdash; When the <strong>Track +/-</strong> toggle is turned on in setup, you&rsquo;ll be asked to select the five skaters on the ice after each goal (for and against). Plus/minus tracks which players are on the ice for goals, helping you evaluate line effectiveness.</li>
+        <li><strong>Player stats</strong> &mdash; Tap <strong>Player Stats</strong> on the setup screen to see each player&rsquo;s cumulative goals, assists, and plus/minus across all games in the current season. Tap any player to see their game-by-game breakdown.</li>
+      </ul>
+    </div>
+
+    <hr class="help-divider">
+
+    <div class="help-section">
+      <h3>Game Summary &amp; Exporting</h3>
+      <p>Tap <strong>End Game &amp; Score</strong> to finish tracking and see a full post-game report. The summary includes:</p>
+      <ul>
+        <li>Final score with win/loss/tie result</li>
+        <li>Goalie Score and Team Score with component breakdowns (tap &ldquo;How is this scored?&rdquo; for details)</li>
+        <li>Shots and scoring stats, shot quality metrics, goaltending stats</li>
+        <li>Offensive and defensive context breakdowns</li>
+        <li>Goal-by-goal context analysis (what led to each goal for and against)</li>
+        <li>Strength situation breakdown (Even Strength, Power Play, Short Handed)</li>
+        <li>Period-by-period stats table</li>
+        <li>Player stats with plus/minus (when tracking is enabled)</li>
+      </ul>
+      <h4>Exporting</h4>
+      <ul>
+        <li><strong>Copy to Clipboard</strong> &mdash; Creates a formatted text summary you can paste into a message, email, or team chat.</li>
+        <li><strong>Export Full Data</strong> &mdash; Downloads a CSV file with every event, timestamp, and tag from the game &mdash; useful for deeper analysis in a spreadsheet.</li>
+        <li><strong>Export All Data</strong> &mdash; Available in <strong>Menu &rarr; Account</strong>. Downloads all your saved games at once.</li>
+      </ul>
+    </div>
+
+    <hr class="help-divider">
+
+    <div class="help-section">
+      <h3>Live Spectating</h3>
+      <p>During a game, tap the <strong>Share Live</strong> button in the header to create a view-only link. Anyone with the link &mdash; parents, assistant coaches, or your own second device &mdash; can follow the game in real time. The spectator view shows:</p>
+      <ul>
+        <li>Live score and period</li>
+        <li>Shot totals for both teams</li>
+        <li>Chance quality indicator and momentum</li>
+        <li>A scrolling event feed</li>
+      </ul>
+      <p>Use <strong>Copy Link</strong> to share the URL and <strong>Stop</strong> to end the live session. Spectators cannot edit or affect your tracking &mdash; it is strictly read-only.</p>
+    </div>
+
+    <hr class="help-divider">
+
+    <div class="help-section">
+      <h3>Season History &amp; Opponents</h3>
+      <ul>
+        <li><strong>Past Games</strong> &mdash; Tap <strong>Past Games</strong> on the setup screen to browse your game history. Tap any game for a full detail view. Swipe left on a game to delete it.</li>
+        <li><strong>Season Stats</strong> &mdash; Tap <strong>Season Stats</strong> to see your active team&rsquo;s overall record, trends, and recent results. Use <strong>Reset Season</strong> to clear all saved games for the current team (e.g. at the start of a new season).</li>
+        <li><strong>Saved opponents</strong> &mdash; Opponent names are remembered automatically. The next time you play the same team, you&rsquo;ll see your head-to-head record and recent scores. To remove an opponent, clear their name from the suggestions &mdash; this also removes their associated history.</li>
+        <li><strong>Manage Teams</strong> &mdash; Tap <strong>Manage Teams</strong> in setup to add, edit, or delete teams. Each team stores its own name, competition level, and roster. You can switch between multiple teams without losing any data.</li>
+      </ul>
+    </div>
+
+    <hr class="help-divider">
+
+    <div class="help-section">
+      <h3>Account &amp; Cloud Sync</h3>
+      <ul>
+        <li><strong>Cloud sync</strong> &mdash; When signed in, your games are automatically saved to the cloud. If you lose your device or sign in on a new one, your data comes with you.</li>
+        <li><strong>Offline support</strong> &mdash; The app works fully offline. Any games tracked without a connection are queued and synced automatically the next time you&rsquo;re online. The status dot in the header shows your connection state.</li>
+        <li><strong>Guest mode</strong> &mdash; You can use the app without an account, but data is stored only on your current device and cannot be synced or recovered.</li>
+        <li><strong>Account settings</strong> &mdash; Open <strong>Menu &rarr; Account</strong> to see your email, sync status, queued games, and plan. From here you can also export all data or delete your account.</li>
       </ul>
     </div>
 

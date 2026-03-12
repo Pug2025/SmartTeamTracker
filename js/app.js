@@ -3088,9 +3088,11 @@ return;
     localStorage.setItem(ONBOARD_KEY, '1');
 
     const marks = [
-      { target: 'btnShot', text: 'Start here — tap when a shot happens', side: 'below' },
-      { target: 'goalieRingCard', text: 'Live scores update as you track', side: 'below' },
-      { target: 'btnNextPeriod', text: 'Tap between periods', side: 'above' }
+      { target: 'btnShot', text: 'Red side tracks what their team does — tap here when they take a shot', side: 'below' },
+      { target: 'btnForShot', text: 'Blue side tracks what your team does — tap here when you take a shot', side: 'below' },
+      { target: 'goalieRingCard', text: 'Goalie and Team scores update live as you track', side: 'below' },
+      { target: 'btnNextPeriod', text: 'Tap this between periods to advance', side: 'above' },
+      { target: 'btnUndo', text: 'Made a mistake? Tap to undo, or hold to pick from recent events', side: 'above' }
     ];
 
     let i = 0;
@@ -3099,6 +3101,10 @@ return;
       const m = marks[i];
       const el = $(m.target);
       if(!el){ i++; showMark(); return; }
+
+      // Temporarily reveal hidden elements for the tour
+      var wasHidden = el.style.display === 'none';
+      if(wasHidden) el.style.display = 'flex';
 
       // Scroll into view first, then show after scroll settles
       el.scrollIntoView({behavior:'smooth', block:'center'});
@@ -3112,7 +3118,7 @@ return;
 
         const tapHint = document.createElement('div');
         tapHint.className = 'coach-mark-tap-hint';
-        tapHint.textContent = 'tap to continue';
+        tapHint.textContent = i < marks.length - 1 ? 'tap to continue' : 'tap to start tracking';
         tip.appendChild(tapHint);
 
         const rect = el.getBoundingClientRect();
@@ -3121,7 +3127,7 @@ return;
         } else {
           tip.style.top = (rect.bottom + 8) + 'px';
         }
-        tip.style.left = Math.max(12, Math.min(window.innerWidth - 220, rect.left)) + 'px';
+        tip.style.left = Math.max(12, Math.min(window.innerWidth - 272, rect.left)) + 'px';
 
         el.classList.add('coach-mark-highlight');
         overlay.appendChild(tip);
@@ -3129,6 +3135,7 @@ return;
 
         function dismiss(){
           el.classList.remove('coach-mark-highlight');
+          if(wasHidden) el.style.display = 'none';
           overlay.remove();
           i++;
           setTimeout(showMark, 200);

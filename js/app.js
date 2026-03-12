@@ -3088,8 +3088,8 @@ return;
     localStorage.setItem(ONBOARD_KEY, '1');
 
     const marks = [
-      { target: 'btnShot', text: 'Red side tracks what happens against you — tap here when they take a shot', side: 'below' },
-      { target: 'btnForShot', text: 'Blue side tracks your team — tap here when you take a shot', side: 'below' },
+      { target: 'btnShot', text: 'Red side tracks what their team does — tap here when they take a shot', side: 'below' },
+      { target: 'btnForShot', text: 'Blue side tracks what your team does — tap here when you take a shot', side: 'below' },
       { target: 'goalieRingCard', text: 'Goalie and Team scores update live as you track', side: 'below' },
       { target: 'btnNextPeriod', text: 'Tap this between periods to advance', side: 'above' },
       { target: 'btnUndo', text: 'Made a mistake? Tap to undo, or hold to pick from recent events', side: 'above' }

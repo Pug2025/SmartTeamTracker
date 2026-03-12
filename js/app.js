@@ -5884,11 +5884,14 @@ $('btnStopShare').addEventListener('click', () => {
 (function(){
   let activeTimer = null;
   let activeTip = null;
+  let activeTile = null;
 
   function dismissTip(){
     if(!activeTip) return;
     const tip = activeTip;
+    if(activeTile) activeTile.classList.remove('explain-active');
     activeTip = null;
+    activeTile = null;
     clearTimeout(activeTimer);
     activeTimer = null;
     tip.classList.add('explain-out');
@@ -5898,14 +5901,17 @@ $('btnStopShare').addEventListener('click', () => {
   document.addEventListener('click', function(e){
     const tile = e.target.closest('.dashTile[data-explain]');
     if(!tile){dismissTip(); return;}
-    // If tapping the same tile that's showing, dismiss
-    if(activeTip && activeTip.parentElement === tile){dismissTip(); return;}
+    if(activeTile === tile){dismissTip(); return;}
     dismissTip();
     const tip = document.createElement('div');
     tip.className = 'explain-tip';
-    tip.textContent = tile.dataset.explain;
-    tile.appendChild(tip);
+    const label = tile.querySelector('.k');
+    tip.innerHTML = '<span class="explain-label">' + (label ? label.textContent + ':' : '') + '</span> ' + tile.dataset.explain;
+    tile.classList.add('explain-active');
+    tile.insertAdjacentElement('afterend', tip);
     activeTip = tip;
+    activeTile = tile;
     activeTimer = setTimeout(dismissTip, 4000);
+    requestAnimationFrame(() => tip.scrollIntoView({behavior:'smooth', block:'nearest'}));
   });
 })();

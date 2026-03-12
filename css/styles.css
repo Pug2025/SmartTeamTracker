@@ -12,6 +12,9 @@
     --accent-them:#ff453a;   /* Bright Red */
     --good:#32d74b;
     --warn:#ff9f0a;
+    --comp-good:#5ee07a;     /* Pastel green for component bars */
+    --comp-warn:#ffb84d;     /* Pastel amber for component bars */
+    --comp-poor:#ff7b73;     /* Pastel red for component bars */
 
     /* Gray scale */
     --gray-50:#0a0a0a;
@@ -3355,6 +3358,100 @@
   padding:8px;
 }
 .textarea-roster{ height:150px; }
+.roster-modal-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:10px;
+}
+.roster-list{
+  max-height:220px;
+  overflow-y:auto;
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-bottom:10px;
+}
+.roster-entry{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  padding:6px 8px 6px 10px;
+  border-radius:999px;
+  background:rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.1);
+  font-size:14px;
+  font-weight:700;
+}
+.roster-number{ color:#e6edf5; }
+.roster-remove{
+  background:none;
+  border:none;
+  color:var(--muted);
+  font-size:18px;
+  cursor:pointer;
+  padding:0 2px;
+  line-height:1;
+  transition:color 0.15s;
+}
+.roster-remove:hover,.roster-remove:active{ color:var(--accent-them); }
+.roster-empty{
+  color:var(--muted);
+  font-size:12px;
+  padding:8px 0;
+}
+.roster-add-row{
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+.roster-add-input{
+  flex:1;
+  background:#000;
+  border:1px solid #333;
+  border-radius:var(--radius-sm);
+  color:#fff;
+  padding:8px 10px;
+  font-size:14px;
+  font-family:inherit;
+}
+.roster-add-input::placeholder{ color:var(--muted); }
+.roster-bulk-wrap{
+  margin-top:10px;
+  padding-top:10px;
+  border-top:1px solid rgba(255,255,255,0.08);
+}
+.btn-sm{
+  padding:6px 12px;
+  font-size:12px;
+}
+.comp-annotation{
+  font-size:11px;
+  color:var(--muted);
+  text-align:right;
+  margin:-2px 0 6px 0;
+}
+.comp-annotation-warn{
+  font-size:12px;
+  color:var(--accent-them);
+  font-weight:700;
+  text-align:right;
+  margin-top:2px;
+}
+.breakdown-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.breakdown-card{
+  padding:10px;
+}
+.breakdown-card-title{
+  font-weight:700;
+  margin-bottom:6px;
+}
+.breakdown-card-title-them{ color:var(--accent-them); }
+.breakdown-card-title-us{ color:var(--accent-us); }
 .textarea-copy{ height:200px; margin-top:8px; }
 .textarea-team-roster{ height:100px; border-radius:var(--radius-sm); }
 .btn-end-game{ border-color:var(--good); color:var(--good); }

@@ -534,11 +534,22 @@
 <!-- MODALS -->
 <!-- Roster modal -->
 <div class="modal" id="rosterModal"><div class="box">
-  <div class="small mb-sm">Roster (one # per line)</div>
-  <textarea id="rosterArea" class="textarea-dark textarea-roster"></textarea>
-  <div class="rowbtn">
-    <button class="btn-std" id="btnRosterSave">Save</button>
-    <button class="btn-std btn-muted-border" id="btnRosterClose">Close</button>
+  <div class="roster-modal-head">
+    <div class="small" style="font-weight:700;">Roster</div>
+    <button class="btn-std btn-muted-border btn-sm" id="btnRosterBulk" type="button">Bulk Import</button>
+  </div>
+  <div id="rosterList" class="roster-list"></div>
+  <div class="roster-add-row">
+    <input id="rosterAddInput" class="roster-add-input" type="number" inputmode="numeric" pattern="[0-9]*" placeholder="Jersey #" min="0" max="99">
+    <button class="btn-std btn-sm" id="btnRosterAdd" type="button">Add</button>
+  </div>
+  <div id="rosterBulkWrap" class="roster-bulk-wrap hidden">
+    <div class="small mb-sm" style="color:var(--muted);">Paste jersey numbers, one per line:</div>
+    <textarea id="rosterArea" class="textarea-dark textarea-roster"></textarea>
+    <button class="btn-std btn-sm" id="btnRosterBulkApply" type="button" style="margin-top:6px;">Apply</button>
+  </div>
+  <div class="rowbtn" style="margin-top:10px;">
+    <button class="btn-std btn-muted-border" id="btnRosterClose">Done</button>
   </div>
 </div></div>
 

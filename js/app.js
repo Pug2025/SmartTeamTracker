@@ -2217,7 +2217,8 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
   setRing($('teamScoreNumSum'),$('tsArcSum'),T.total);
 
   // === Team Score Component Bars ===
-  const teamColor = function(s){ return s >= 60 ? 'var(--good)' : s >= 40 ? 'var(--warn)' : 'var(--accent-them)'; };
+  // Component bars use pastel variants + different thresholds (sub-scores have wider distributions)
+  const teamColor = function(s){ return s >= 60 ? 'var(--comp-good)' : s >= 40 ? 'var(--comp-warn)' : 'var(--comp-poor)'; };
   $('teamCompBars').innerHTML =
     compBar('Result 25%', T.scoreFin, teamColor(T.scoreFin)) +
     compBar('Possession 20%', T.scoreSS, teamColor(T.scoreSS)) +
@@ -2227,7 +2228,7 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
 
   // === Goalie Score Component Bars ===
   // Build meaningful bars from goalie data
-  const gkColor = function(s){ return s >= 60 ? 'var(--good)' : s >= 40 ? 'var(--warn)' : 'var(--accent-them)'; };
+  const gkColor = function(s){ return s >= 60 ? 'var(--comp-good)' : s >= 40 ? 'var(--comp-warn)' : 'var(--comp-poor)'; };
 
   // Save Quality (GSAx): normalize around 0 to a 0-100 bar. 0 = 50, positive is better.
   const gsaxNorm = Math.max(0, Math.min(100, 50 + (K.ctxAdj * 15)));
@@ -2237,12 +2238,12 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
 
   $('goalieCompBars').innerHTML =
     compBar('Save Quality', gsaxNorm, gkColor(gsaxNorm)) +
-    `<div style="font-size:11px; color:var(--muted); text-align:right; margin:-2px 0 6px 0;">${K.ctxAdj > 0 ? '+' : ''}${K.ctxAdj} goals saved above expected</div>` +
+    `<div class="comp-annotation">${K.ctxAdj > 0 ? '+' : ''}${K.ctxAdj} goals saved above expected</div>` +
     compBar('Rebounds', rebNorm, gkColor(rebNorm)) +
-    `<div style="font-size:11px; color:var(--muted); text-align:right; margin:-2px 0 6px 0;">${goodReb} good, ${state.countsA.badRebounds} bad, ${state.countsA.smothers} smothered</div>` +
+    `<div class="comp-annotation">${goodReb} good, ${state.countsA.badRebounds} bad, ${state.countsA.smothers} smothered</div>` +
     compBar('Big Saves', Math.min(100, K.scoreBig * 25), gkColor(Math.min(100, K.scoreBig * 25))) +
-    `<div style="font-size:11px; color:var(--muted); text-align:right; margin:-2px 0 4px 0;">${K.scoreBig} big save${K.scoreBig !== 1 ? 's' : ''}</div>` +
-    (K.softPenalty > 0 ? `<div style="font-size:12px; color:var(--accent-them); font-weight:700; text-align:right; margin-top:2px;">${K.softPenalty} soft goal${K.softPenalty !== 1 ? 's' : ''} allowed</div>` : '');
+    `<div class="comp-annotation">${K.scoreBig} big save${K.scoreBig !== 1 ? 's' : ''}</div>` +
+    (K.softPenalty > 0 ? `<div class="comp-annotation-warn">${K.softPenalty} soft goal${K.softPenalty !== 1 ? 's' : ''} allowed</div>` : '');
 
   // Summary confidence note — only shown for very low shot counts
   const confSum = $('goalieConfidenceSum');
@@ -2302,11 +2303,11 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
   const totalGF = gfCtx.BA + gfCtx.OMR + (gfCtx.FT||0) + gfCtx.Other;
   const totalGA = gaStats.BA + gaStats.DZ + gaStats.BR + (gaStats.OMRA||0) + gaStats.Other;
 
-  let gbHTML = '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">';
+  let gbHTML = '<div class="breakdown-grid">';
   // GA (them) on left, GF (us) on right — matches column layout
   if(totalGA > 0){
-    gbHTML += `<div class="card" style="padding:10px;">
-      <div class="small" style="font-weight:700; color:var(--accent-them); margin-bottom:6px;">Goals Against (${totalGA})</div>
+    gbHTML += `<div class="card breakdown-card">
+      <div class="small breakdown-card-title breakdown-card-title-them">Goals Against (${totalGA})</div>
       ${gaStats.BA ? `<div class="small">Breakaway: ${gaStats.BA}</div>` : ''}
       ${gaStats.DZ ? `<div class="small">D-Zone TO: ${gaStats.DZ}</div>` : ''}
       ${gaStats.BR ? `<div class="small">Bad Rebound: ${gaStats.BR}</div>` : ''}
@@ -2314,18 +2315,18 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
       ${gaStats.Other ? `<div class="small">Other: ${gaStats.Other}</div>` : ''}
     </div>`;
   } else {
-    gbHTML += `<div class="card" style="padding:10px;"><div class="small" style="color:var(--muted);">No goals against</div></div>`;
+    gbHTML += `<div class="card breakdown-card"><div class="small" style="color:var(--muted);">No goals against</div></div>`;
   }
   if(totalGF > 0){
-    gbHTML += `<div class="card" style="padding:10px;">
-      <div class="small" style="font-weight:700; color:var(--accent-us); margin-bottom:6px;">Goals For (${totalGF})</div>
+    gbHTML += `<div class="card breakdown-card">
+      <div class="small breakdown-card-title breakdown-card-title-us">Goals For (${totalGF})</div>
       ${gfCtx.BA ? `<div class="small">Breakaway: ${gfCtx.BA}</div>` : ''}
       ${gfCtx.OMR ? `<div class="small">Odd-Man Rush: ${gfCtx.OMR}</div>` : ''}
       ${(gfCtx.FT||0) ? `<div class="small">Forced TO: ${gfCtx.FT}</div>` : ''}
       ${gfCtx.Other ? `<div class="small">Other: ${gfCtx.Other}</div>` : ''}
     </div>`;
   } else {
-    gbHTML += `<div class="card" style="padding:10px;"><div class="small" style="color:var(--muted);">No goals for</div></div>`;
+    gbHTML += `<div class="card breakdown-card"><div class="small" style="color:var(--muted);">No goals for</div></div>`;
   }
   gbHTML += '</div>';
   $('sumGoalBreakdowns').innerHTML = gbHTML;
@@ -2335,13 +2336,13 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
   const hasStrength = (sb.for.EV||0)+(sb.for.PP||0)+(sb.for.SH||0)+(sb.against.EV||0)+(sb.against.PP||0)+(sb.against.SH||0) > 0;
   if(hasStrength){
     $('sumStrengthWrap').style.display = '';
-    $('sumStrengthGrid').innerHTML = `<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-      <div class="card" style="padding:10px;">
-        <div class="small" style="font-weight:700; color:var(--accent-them); margin-bottom:4px;">Goals Against</div>
+    $('sumStrengthGrid').innerHTML = `<div class="breakdown-grid">
+      <div class="card breakdown-card">
+        <div class="small breakdown-card-title breakdown-card-title-them">Goals Against</div>
         <div class="small">EV: ${sb.against.EV||0} &bull; PP: ${sb.against.PP||0} &bull; SH: ${sb.against.SH||0}${sb.against.UNK ? ' &bull; Unk: '+sb.against.UNK : ''}</div>
       </div>
-      <div class="card" style="padding:10px;">
-        <div class="small" style="font-weight:700; color:var(--accent-us); margin-bottom:4px;">Goals For</div>
+      <div class="card breakdown-card">
+        <div class="small breakdown-card-title breakdown-card-title-us">Goals For</div>
         <div class="small">EV: ${sb.for.EV||0} &bull; PP: ${sb.for.PP||0} &bull; SH: ${sb.for.SH||0}${sb.for.UNK ? ' &bull; Unk: '+sb.for.UNK : ''}</div>
       </div>
     </div>`;
@@ -2759,19 +2760,46 @@ function makePlusMinusTable(){
 }
 
 /* Roster Modal */
-function openRoster(){
-  const area = $('rosterArea');
-  area.value = (state.roster||[]).join('\n');
-  $('rosterModal').style.display='flex';
+function renderRosterList(){
+  const list = $('rosterList');
+  const roster = state.roster || [];
+  if(!roster.length){
+    list.innerHTML = '<div class="roster-empty">No players yet. Add jersey numbers below.</div>';
+    return;
+  }
+  list.innerHTML = roster.map(n =>
+    `<div class="roster-entry" data-n="${n}">
+      <span class="roster-number">#${n}</span>
+      <button class="roster-remove" type="button" aria-label="Remove #${n}">&times;</button>
+    </div>`
+  ).join('');
 }
-function saveRosterFromArea(){
-  const raw = $('rosterArea').value.split('\n').map(x=>x.trim()).filter(x=>x.length>0);
-  state.roster = sortRoster(raw);
+function persistRoster(){
   localStorage.setItem(ROSTER_KEY, JSON.stringify(state.roster));
-  // Sync to active team
   if (window.TeamManager) window.TeamManager.syncRosterToActiveTeam(state.roster);
   save();
-  $('rosterModal').style.display='none';
+}
+function addRosterNumber(num){
+  const n = String(num||'').trim();
+  if(!n || !isNumStr(n)) return false;
+  const set = new Set((state.roster||[]).map(x=>String(x).trim()));
+  if(set.has(n)) return false;
+  set.add(n);
+  state.roster = sortRoster([...set]);
+  persistRoster();
+  renderRosterList();
+  return true;
+}
+function removeRosterNumber(num){
+  state.roster = (state.roster||[]).filter(x => String(x).trim() !== String(num).trim());
+  persistRoster();
+  renderRosterList();
+}
+function openRoster(){
+  $('rosterBulkWrap').classList.add('hidden');
+  renderRosterList();
+  $('rosterModal').style.display='flex';
+  $('rosterAddInput').value = '';
 }
 function closeRoster(){ $('rosterModal').style.display='none'; }
 
@@ -3368,8 +3396,36 @@ document.addEventListener('click', (e) => {
 
 /* Button Wiring */
 $('btnRoster').onclick=openRoster;
-$('btnRosterSave').onclick=saveRosterFromArea;
 $('btnRosterClose').onclick=closeRoster;
+$('btnRosterAdd').onclick=function(){
+  const inp = $('rosterAddInput');
+  if(addRosterNumber(inp.value)) inp.value = '';
+  inp.focus();
+};
+$('rosterAddInput').addEventListener('keydown', function(e){
+  if(e.key === 'Enter'){ e.preventDefault(); $('btnRosterAdd').click(); }
+});
+$('rosterList').addEventListener('click', function(e){
+  const btn = e.target.closest('.roster-remove');
+  if(!btn) return;
+  const entry = btn.closest('.roster-entry');
+  if(!entry) return;
+  removeRosterNumber(entry.dataset.n);
+});
+$('btnRosterBulk').onclick=function(){
+  const wrap = $('rosterBulkWrap');
+  wrap.classList.toggle('hidden');
+  if(!wrap.classList.contains('hidden')){
+    $('rosterArea').value = (state.roster||[]).join('\n');
+  }
+};
+$('btnRosterBulkApply').onclick=function(){
+  const raw = $('rosterArea').value.split('\n').map(x=>x.trim()).filter(x=>x.length>0);
+  state.roster = sortRoster(raw);
+  persistRoster();
+  renderRosterList();
+  $('rosterBulkWrap').classList.add('hidden');
+};
 
 /* High Danger modal logic — auto-dismisses after 2s (defaults to No) */
 let dangerTarget = null;

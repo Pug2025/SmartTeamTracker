@@ -2984,6 +2984,39 @@
 .spec-meta-stale{
   color:rgba(255,159,10,0.6);
 }
+.spec-context-card{
+  position:relative;
+  z-index:2;
+  margin:0 16px 12px;
+  padding:10px 14px;
+  border-radius:10px;
+  background:rgba(50,215,75,0.08);
+  border:1px solid rgba(50,215,75,0.2);
+  color:#b8d8c4;
+  font-size:13px;
+  font-weight:600;
+  text-align:center;
+  cursor:pointer;
+  animation:specContextIn 0.3s ease-out;
+}
+.spec-context-exit{
+  animation:specContextOut 0.3s ease-in forwards;
+}
+@keyframes specContextIn{
+  from{ opacity:0; transform:translateY(-8px); }
+  to{ opacity:1; transform:translateY(0); }
+}
+@keyframes specContextOut{
+  to{ opacity:0; transform:translateY(-8px); }
+}
+.spec-feed-anchor{
+  text-align:center;
+  color:#657a9c;
+  font-size:11px;
+  padding:12px 0 4px;
+  border-top:1px solid #1a2540;
+  margin-top:4px;
+}
 
 @media (max-width: 720px){
   .top-row{

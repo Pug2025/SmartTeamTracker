@@ -175,3 +175,349 @@
   color: #555;
   margin-top: 8px;
 }
+
+/* Back to landing link on auth screen */
+.auth-back-link {
+  display: block;
+  margin-top: 16px;
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 8px;
+  width: 100%;
+}
+.auth-back-link:hover {
+  color: #4da3ff;
+}
+
+/* ===== Landing Page ===== */
+.landing-page {
+  position: fixed;
+  inset: 0;
+  z-index: 99998;
+  background: #000;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.landing-hero {
+  text-align: center;
+  padding: 60px 24px 40px;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.landing-logo {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #4da3ff;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.landing-headline {
+  font-size: 32px;
+  font-weight: 900;
+  letter-spacing: -1.5px;
+  line-height: 1.15;
+  color: #fff;
+  margin: 0 0 16px;
+}
+
+.landing-sub {
+  font-size: 15px;
+  line-height: 1.5;
+  color: #999;
+  margin: 0 0 28px;
+}
+
+.landing-cta {
+  display: inline-block;
+  padding: 16px 40px;
+  background: #4da3ff;
+  color: #000;
+  border: none;
+  border-radius: 14px;
+  font-size: 17px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.08s, opacity 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.landing-cta:active {
+  transform: scale(0.97);
+  opacity: 0.9;
+}
+
+.landing-note {
+  font-size: 12px;
+  color: #666;
+  margin-top: 10px;
+}
+
+/* Sections */
+.landing-section {
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 0 16px 40px;
+}
+
+.landing-section-label {
+  font-size: 16px;
+  font-weight: 800;
+  color: #eee;
+  text-align: center;
+  margin-bottom: 16px;
+  line-height: 1.35;
+}
+
+/* Mockup container — looks like the app */
+.landing-mockup {
+  background: #111111;
+  border: 1px solid #333;
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+}
+
+.landing-mockup-spectator {
+  background: linear-gradient(180deg, #0b111c, #060a12);
+  border-color: rgba(137,156,188,0.16);
+}
+
+/* Component bar mockups */
+.landing-comp-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.landing-comp-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.landing-comp-label {
+  font-size: 11px;
+  color: #9aa6b2;
+  width: 90px;
+  flex-shrink: 0;
+  text-align: right;
+  font-weight: 600;
+}
+.landing-comp-track {
+  flex: 1;
+  height: 6px;
+  background: #1a1a1a;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.landing-comp-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s;
+}
+.landing-comp-val {
+  font-size: 12px;
+  font-weight: 800;
+  color: #ccc;
+  width: 28px;
+  text-align: right;
+}
+
+/* Live badge for spectator mockup */
+.landing-live-badge {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 999px;
+  background: rgba(255, 59, 48, 0.2);
+  color: #ff3b30;
+  border: 1px solid rgba(255, 59, 48, 0.4);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 1.9px;
+  animation: livePulse 3s ease-in-out infinite;
+}
+@keyframes livePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Feed mockup */
+.landing-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.landing-feed-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #c8d2e0;
+}
+.landing-feed-row.ev-goal-for {
+  background: rgba(50, 215, 75, 0.08);
+  color: #6fda8e;
+  font-weight: 800;
+}
+.landing-feed-row.ev-goal-against {
+  background: rgba(255, 69, 58, 0.08);
+  color: #ff7b75;
+  font-weight: 800;
+}
+.landing-feed-row.ev-good {
+  color: #8fb8d0;
+}
+.landing-feed-row.ev-danger {
+  color: #d4a08c;
+}
+.landing-feed-icon {
+  width: 16px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.landing-feed-icon.glyph {
+  font-size: 10px;
+}
+.landing-feed-icon.dot::before {
+  content: '';
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #556677;
+}
+.landing-feed-meta {
+  margin-left: auto;
+  font-size: 10px;
+  color: #556677;
+  font-weight: 600;
+}
+
+/* Tracking caption */
+.landing-tracking-caption {
+  text-align: center;
+  font-size: 12px;
+  color: #888;
+  margin-top: 12px;
+  line-height: 1.4;
+}
+
+/* Season stats mockup */
+.landing-season-record {
+  text-align: center;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #2a2a2a;
+}
+.landing-season-main {
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  color: #fff;
+}
+.landing-season-sub {
+  font-size: 12px;
+  color: #888;
+  margin-top: 2px;
+}
+.landing-season-form {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #888;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.landing-form-w {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #9df0b0;
+  background: rgba(50,215,75,0.12);
+}
+.landing-form-l {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #ffb0aa;
+  background: rgba(255,69,58,0.12);
+}
+
+/* Sparkline */
+.landing-sparkline {
+  width: 100%;
+  height: 30px;
+  display: block;
+}
+
+/* Feature list */
+.landing-features {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.landing-feature {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.landing-feature-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+  width: 36px;
+  text-align: center;
+  line-height: 1.3;
+}
+.landing-feature-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #eee;
+  margin-bottom: 3px;
+}
+.landing-feature-desc {
+  font-size: 13px;
+  color: #888;
+  line-height: 1.45;
+}
+
+/* Bottom CTA */
+.landing-bottom-cta {
+  text-align: center;
+  padding: 40px 24px;
+  max-width: 480px;
+  margin: 0 auto;
+}
+.landing-bottom-headline {
+  font-size: 22px;
+  font-weight: 900;
+  color: #fff;
+  margin-bottom: 20px;
+  letter-spacing: -0.5px;
+}
+
+/* Footer */
+.landing-footer {
+  text-align: center;
+  padding: 20px 24px 40px;
+  font-size: 12px;
+  color: #444;
+}

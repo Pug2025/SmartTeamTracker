@@ -3100,33 +3100,41 @@ return;
       const el = $(m.target);
       if(!el){ i++; showMark(); return; }
 
-      const overlay = document.createElement('div');
-      overlay.className = 'coach-mark-overlay';
+      // Scroll into view first, then show after scroll settles
+      el.scrollIntoView({behavior:'smooth', block:'center'});
+      setTimeout(function(){
+        const overlay = document.createElement('div');
+        overlay.className = 'coach-mark-overlay';
 
-      const tip = document.createElement('div');
-      tip.className = 'coach-mark-tip';
-      tip.textContent = m.text;
+        const tip = document.createElement('div');
+        tip.className = 'coach-mark-tip';
+        tip.textContent = m.text;
 
-      const rect = el.getBoundingClientRect();
-      if(m.side === 'above'){
-        tip.style.bottom = (window.innerHeight - rect.top + 8) + 'px';
-      } else {
-        tip.style.top = (rect.bottom + 8) + 'px';
-      }
-      tip.style.left = Math.max(12, Math.min(window.innerWidth - 220, rect.left)) + 'px';
+        const tapHint = document.createElement('div');
+        tapHint.className = 'coach-mark-tap-hint';
+        tapHint.textContent = 'tap to continue';
+        tip.appendChild(tapHint);
 
-      el.classList.add('coach-mark-highlight');
-      overlay.appendChild(tip);
-      document.body.appendChild(overlay);
+        const rect = el.getBoundingClientRect();
+        if(m.side === 'above'){
+          tip.style.bottom = (window.innerHeight - rect.top + 8) + 'px';
+        } else {
+          tip.style.top = (rect.bottom + 8) + 'px';
+        }
+        tip.style.left = Math.max(12, Math.min(window.innerWidth - 220, rect.left)) + 'px';
 
-      function dismiss(){
-        el.classList.remove('coach-mark-highlight');
-        overlay.remove();
-        i++;
-        setTimeout(showMark, 200);
-      }
-      overlay.addEventListener('click', dismiss);
-      setTimeout(dismiss, 3000);
+        el.classList.add('coach-mark-highlight');
+        overlay.appendChild(tip);
+        document.body.appendChild(overlay);
+
+        function dismiss(){
+          el.classList.remove('coach-mark-highlight');
+          overlay.remove();
+          i++;
+          setTimeout(showMark, 200);
+        }
+        overlay.addEventListener('click', dismiss);
+      }, 500);
     }
 
     setTimeout(showMark, 600);

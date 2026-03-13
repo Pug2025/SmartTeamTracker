@@ -285,6 +285,13 @@
   box-shadow: 0 20px 60px rgba(0,0,0,0.4);
 }
 
+.landing-mockup,
+.landing-mockup *,
+.landing-mockup *::before,
+.landing-mockup *::after {
+  box-sizing: border-box;
+}
+
 .landing-mockup-spectator {
   background: linear-gradient(180deg, #0b111c, #060a12);
   border-color: rgba(137,156,188,0.16);

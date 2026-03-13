@@ -16,9 +16,283 @@
 <meta name="twitter:description" content="Live hockey stat tracking for coaches.">
 <title>Smart Team Tracker — Live Hockey Stats</title>
 <link rel="stylesheet" href="css/styles.css?v=6.3.16">
-<link rel="stylesheet" href="css/auth.css?v=6.2.7">
+<link rel="stylesheet" href="css/auth.css?v=6.3.17">
 </head>
 <body>
+
+<!-- Landing Page (shown to unauthenticated visitors) -->
+<div id="landingPage" class="landing-page" style="display:none;">
+
+  <!-- Hero -->
+  <div class="landing-hero">
+    <div class="landing-logo">Smart Team Tracker</div>
+    <h1 class="landing-headline">Know how your team<br>really played.</h1>
+    <p class="landing-sub">Live stat tracking that gives your team and goalie an objective performance score after every game. Built for coaches, used from the bench.</p>
+    <button class="landing-cta" id="landingGetStarted">Get Started Free</button>
+    <div class="landing-note">Free to use. No credit card required.</div>
+  </div>
+
+  <!-- Section: Game Summary -->
+  <div class="landing-section">
+    <div class="landing-section-label">After every game, see exactly how your team performed</div>
+
+    <div class="landing-mockup">
+      <!-- Summary header -->
+      <div class="sum-header" style="border-bottom-color:#2a2a2a;">
+        <div class="sum-meta">vs Napanee Stars &middot; U11 &middot; Mar 8, 2026</div>
+        <div class="sum-score">
+          <div class="sum-score-num them">2</div>
+          <div class="sum-score-dash">&ndash;</div>
+          <div class="sum-score-num us">3</div>
+        </div>
+        <div class="sum-score-labels"><span>Them</span><span>Us</span></div>
+        <div><span class="sum-result-tag w">WIN</span></div>
+      </div>
+
+      <!-- Score Rings -->
+      <div class="ringsRow rings-mt" style="margin-top:14px;">
+        <div class="ringCard">
+          <div class="small mb-sm">Goalie Score</div>
+          <div class="scoreRing">
+            <svg viewBox="0 0 80 80" class="ringSvg">
+              <circle class="ringBg" cx="40" cy="40" r="35"></circle>
+              <circle class="ringFg" cx="40" cy="40" r="35" style="stroke:var(--good); stroke-dashoffset:48.4;"></circle>
+            </svg>
+            <div class="val" style="color:var(--good);">78</div>
+          </div>
+          <div class="ring-confidence" style="font-size:10px; color:var(--muted); margin-top:4px;">Solid &middot; 24 shots faced</div>
+        </div>
+        <div class="ringCard">
+          <div class="small mb-sm">Team Score</div>
+          <div class="scoreRing">
+            <svg viewBox="0 0 80 80" class="ringSvg">
+              <circle class="ringBg" cx="40" cy="40" r="35"></circle>
+              <circle class="ringFg" cx="40" cy="40" r="35" style="stroke:var(--good); stroke-dashoffset:63.8;"></circle>
+            </svg>
+            <div class="val" style="color:var(--good);">71</div>
+          </div>
+          <div class="ring-confidence" style="font-size:10px; color:var(--muted); margin-top:4px;">Solid &middot; 46 total shots</div>
+        </div>
+      </div>
+
+      <!-- Component Breakdown Preview -->
+      <div style="margin-top:14px;">
+        <div style="font-size:11px; color:#9aa6b2; font-weight:700; margin-bottom:8px;">Team Score Breakdown</div>
+        <div class="landing-comp-bars">
+          <div class="landing-comp-row">
+            <span class="landing-comp-label">Possession</span>
+            <div class="landing-comp-track"><div class="landing-comp-fill" style="width:66%; background:var(--comp-good);"></div></div>
+            <span class="landing-comp-val">66</span>
+          </div>
+          <div class="landing-comp-row">
+            <span class="landing-comp-label">Danger Control</span>
+            <div class="landing-comp-track"><div class="landing-comp-fill" style="width:72%; background:var(--comp-good);"></div></div>
+            <span class="landing-comp-val">72</span>
+          </div>
+          <div class="landing-comp-row">
+            <span class="landing-comp-label">Shot Quality</span>
+            <div class="landing-comp-track"><div class="landing-comp-fill" style="width:58%; background:var(--comp-warn);"></div></div>
+            <span class="landing-comp-val">58</span>
+          </div>
+          <div class="landing-comp-row">
+            <span class="landing-comp-label">Result</span>
+            <div class="landing-comp-track"><div class="landing-comp-fill" style="width:80%; background:var(--comp-good);"></div></div>
+            <span class="landing-comp-val">80</span>
+          </div>
+          <div class="landing-comp-row">
+            <span class="landing-comp-label">Discipline</span>
+            <div class="landing-comp-track"><div class="landing-comp-fill" style="width:75%; background:var(--comp-good);"></div></div>
+            <span class="landing-comp-val">75</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats Tiles Preview -->
+      <div style="margin-top:14px;">
+        <div style="font-size:11px; color:#9aa6b2; font-weight:700; margin-bottom:8px;">Shots &amp; Scoring</div>
+        <div class="dashGrid">
+          <div class="dashTile"><div class="k">Shots For</div><div class="v" style="color:var(--accent-us);">22</div></div>
+          <div class="dashTile"><div class="k">Shots Ag</div><div class="v" style="color:var(--accent-them);">24</div></div>
+          <div class="dashTile"><div class="k">SV%</div><div class="v">.917</div><div class="s">22 / 24</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section: Live Spectator View -->
+  <div class="landing-section">
+    <div class="landing-section-label">Parents can follow along live from anywhere</div>
+
+    <div class="landing-mockup landing-mockup-spectator">
+      <div style="text-align:center; margin-bottom:10px;">
+        <span class="landing-live-badge">LIVE</span>
+      </div>
+      <div class="spectator-scoreboard" style="max-width:100%;">
+        <div class="spec-score-block them">
+          <span class="spec-score-label">NAPANEE</span>
+          <span class="spec-score-val" style="font-size:42px;">2</span>
+          <span class="spec-score-sub">24 shots</span>
+        </div>
+        <div class="spec-period">P3</div>
+        <div class="spec-score-block us">
+          <span class="spec-score-label">US</span>
+          <span class="spec-score-val" style="font-size:42px;">3</span>
+          <span class="spec-score-sub">22 shots</span>
+        </div>
+      </div>
+
+      <!-- Chance Quality Bar -->
+      <div style="margin-top:12px; padding:10px 12px; border:1px solid #203149; border-radius:14px; background:rgba(9,14,24,0.84);">
+        <div style="font-size:11px; font-weight:700; color:#8fa1b2; margin-bottom:6px;">Chance Quality</div>
+        <div style="position:relative; height:6px; background:#1a2435; border-radius:3px; overflow:hidden;">
+          <div style="position:absolute; left:50%; width:8%; height:100%; background:rgba(50,215,75,0.9); border-radius:3px;"></div>
+        </div>
+        <div style="font-size:11px; color:#6fda8e; margin-top:4px;">Small edge for us</div>
+      </div>
+
+      <!-- Event Feed Preview -->
+      <div style="margin-top:10px; padding:10px 12px; border:1px solid #203149; border-radius:14px; background:rgba(9,14,24,0.84);">
+        <div style="font-size:11px; font-weight:700; color:#8fa1b2; margin-bottom:8px;">Game Feed</div>
+        <div class="landing-feed">
+          <div class="landing-feed-row ev-goal-for"><span class="landing-feed-icon glyph">&#9650;</span><span>GOAL!</span><span class="landing-feed-meta">P3 &middot; 7:42 PM</span></div>
+          <div class="landing-feed-row ev-good"><span class="landing-feed-icon dot"></span><span>Big save</span><span class="landing-feed-meta">P3 &middot; 7:38 PM</span></div>
+          <div class="landing-feed-row ev-danger"><span class="landing-feed-icon dot"></span><span>Their breakaway</span><span class="landing-feed-meta">P3 &middot; 7:36 PM</span></div>
+          <div class="landing-feed-row ev-good"><span class="landing-feed-icon dot"></span><span>Forced turnover</span><span class="landing-feed-meta">P2 &middot; 7:21 PM</span></div>
+          <div class="landing-feed-row ev-goal-against"><span class="landing-feed-icon glyph">&#9660;</span><span>GOAL!</span><span class="landing-feed-meta">P2 &middot; 7:14 PM</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section: Tracking Interface -->
+  <div class="landing-section">
+    <div class="landing-section-label">Designed for the bench. Tap when things happen.</div>
+
+    <div class="landing-mockup">
+      <div class="split-grid" style="pointer-events:none;">
+        <div class="col-zone theme-them">
+          <div class="col-label">Them</div>
+          <div class="g-btn primary h-lg">Shot Against</div>
+          <div class="g-btn primary h-lg">Goal Against</div>
+          <div class="g-btn h-md">Soft Goal</div>
+          <div class="g-btn h-md">Bad Rebound</div>
+          <div class="def-context-label">Defensive Context</div>
+          <div class="context-row">
+            <div class="g-btn ctx h-md">Breakaway</div>
+            <div class="g-btn ctx h-md">DZ Turnover</div>
+          </div>
+        </div>
+        <div class="col-zone theme-us">
+          <div class="col-label">Us</div>
+          <div class="g-btn primary h-lg">Shot For</div>
+          <div class="g-btn primary h-lg">Goal For</div>
+          <div class="g-btn positive h-md">Smother</div>
+          <div class="g-btn positive h-md">Big Save</div>
+          <div class="def-context-label">Offensive Context</div>
+          <div class="context-row">
+            <div class="g-btn ctx h-md">Breakaway</div>
+            <div class="g-btn ctx h-md">Forced Turnover</div>
+          </div>
+        </div>
+      </div>
+      <div class="landing-tracking-caption">Two columns. Red for what they do, blue for what we do. Goals auto-count as shots, context links up automatically.</div>
+    </div>
+  </div>
+
+  <!-- Section: Season Stats -->
+  <div class="landing-section">
+    <div class="landing-section-label">Track your whole season. See trends over time.</div>
+
+    <div class="landing-mockup">
+      <div class="landing-season-record">
+        <div class="landing-season-main">8W &ndash; 4L &ndash; 1T</div>
+        <div class="landing-season-sub">13 games played</div>
+        <div class="landing-season-form">
+          Recent: <span class="landing-form-w">W</span><span class="landing-form-w">W</span><span class="landing-form-l">L</span><span class="landing-form-w">W</span><span class="landing-form-w">W</span>
+        </div>
+      </div>
+      <div class="dashGrid" style="margin-top:10px;">
+        <div class="dashTile"><div class="k">Avg Goalie</div><div class="v">72</div></div>
+        <div class="dashTile"><div class="k">Avg Team</div><div class="v">68</div></div>
+        <div class="dashTile"><div class="k">Goals For/G</div><div class="v">3.2</div><div class="s">Total: 42</div></div>
+        <div class="dashTile"><div class="k">Goals Ag/G</div><div class="v">2.1</div><div class="s">Total: 27</div></div>
+        <div class="dashTile"><div class="k">SV%</div><div class="v">.912</div><div class="s">258/283</div></div>
+        <div class="dashTile"><div class="k">Shot Share</div><div class="v">54%</div><div class="s">SF/(SF+SA)</div></div>
+      </div>
+      <!-- Sparkline mockup -->
+      <div style="margin-top:12px;">
+        <div style="font-size:11px; color:#8fa1b2; font-weight:700; margin-bottom:4px;">Goalie Score Trend</div>
+        <svg class="landing-sparkline" viewBox="0 0 200 40" preserveAspectRatio="none">
+          <polyline points="0,28 16,24 32,30 48,22 64,18 80,26 96,14 112,16 128,12 144,20 160,8 176,10 192,6" fill="none" stroke="#4da3ff" stroke-width="2"/>
+        </svg>
+        <div style="font-size:11px; color:#8fa1b2; font-weight:700; margin-top:8px; margin-bottom:4px;">Team Score Trend</div>
+        <svg class="landing-sparkline" viewBox="0 0 200 40" preserveAspectRatio="none">
+          <polyline points="0,30 16,26 32,28 48,20 64,22 80,16 96,18 112,14 128,10 144,12 160,8 176,14 192,6" fill="none" stroke="#4caf50" stroke-width="2"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Features List -->
+  <div class="landing-section">
+    <div class="landing-section-label">Everything a coach needs</div>
+    <div class="landing-features">
+      <div class="landing-feature">
+        <div class="landing-feature-icon">&#127954;</div>
+        <div>
+          <div class="landing-feature-title">Live Game Tracking</div>
+          <div class="landing-feature-desc">Track shots, goals, saves, penalties, breakaways, turnovers, and more. Big buttons designed for cold hands at the rink.</div>
+        </div>
+      </div>
+      <div class="landing-feature">
+        <div class="landing-feature-icon">&#128202;</div>
+        <div>
+          <div class="landing-feature-title">Objective Performance Scores</div>
+          <div class="landing-feature-desc">Goalie Score and Team Score rated 0&ndash;100 with full breakdowns. Know how you played, not just whether you won.</div>
+        </div>
+      </div>
+      <div class="landing-feature">
+        <div class="landing-feature-icon">&#128225;</div>
+        <div>
+          <div class="landing-feature-title">Live Spectator Sharing</div>
+          <div class="landing-feature-desc">Share a live link with parents. They follow along in real time with scores, shots, momentum, and an event feed.</div>
+        </div>
+      </div>
+      <div class="landing-feature">
+        <div class="landing-feature-icon">&#128241;</div>
+        <div>
+          <div class="landing-feature-title">Works Offline</div>
+          <div class="landing-feature-desc">Full offline support. Track the entire game with no WiFi. Syncs automatically when you&rsquo;re back online.</div>
+        </div>
+      </div>
+      <div class="landing-feature">
+        <div class="landing-feature-icon">&#128101;</div>
+        <div>
+          <div class="landing-feature-title">Multi-Team &amp; Player Stats</div>
+          <div class="landing-feature-desc">Manage multiple teams. Track player goals, assists, and plus/minus across the full season.</div>
+        </div>
+      </div>
+      <div class="landing-feature">
+        <div class="landing-feature-icon">&#9729;&#65039;</div>
+        <div>
+          <div class="landing-feature-title">Cloud Sync &amp; Export</div>
+          <div class="landing-feature-desc">Games saved to the cloud. Access from any device. Export to CSV, JSON, or copy summaries to your team chat.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom CTA -->
+  <div class="landing-bottom-cta">
+    <div class="landing-bottom-headline">Ready to see what your stats really mean?</div>
+    <button class="landing-cta" id="landingGetStarted2">Get Started Free</button>
+    <div class="landing-note">No credit card required. Track your first game in under a minute.</div>
+  </div>
+
+  <div class="landing-footer">
+    Smart Team Tracker &middot; Built for hockey coaches
+  </div>
+</div>
 
 <!-- Auth Screen (shown when not logged in) -->
 <div id="authScreen" class="auth-screen" style="display:none;">
@@ -46,6 +320,8 @@
     <div class="auth-guest-divider"></div>
     <button id="authGuestBtn" class="auth-guest-btn" type="button">Continue as Guest</button>
     <div class="auth-guest-note">Guest data is stored on this device only and cannot be synced.</div>
+
+    <button id="authBackToLanding" class="auth-back-link" type="button">&larr; Back to overview</button>
   </div>
 </div>
 

@@ -39,17 +39,35 @@ onAuthStateChanged(auth, (user) => {
 });
 
 /* ===== UI ===== */
-function showAuthScreen() {
-  const el = document.getElementById('authScreen');
-  if (el) el.style.display = 'flex';
+function showLandingPage() {
+  const landing = document.getElementById('landingPage');
+  const auth = document.getElementById('authScreen');
   const app = document.getElementById('appShell');
+  if (landing) landing.style.display = '';
+  if (auth) auth.style.display = 'none';
   if (app) app.style.display = 'none';
 }
 
-function hideAuthScreen() {
-  const el = document.getElementById('authScreen');
-  if (el) el.style.display = 'none';
+function showAuthForm() {
+  const landing = document.getElementById('landingPage');
+  const auth = document.getElementById('authScreen');
   const app = document.getElementById('appShell');
+  if (landing) landing.style.display = 'none';
+  if (auth) auth.style.display = 'flex';
+  if (app) app.style.display = 'none';
+}
+
+function showAuthScreen() {
+  // For unauthenticated users: show landing page (not auth form directly)
+  showLandingPage();
+}
+
+function hideAuthScreen() {
+  const landing = document.getElementById('landingPage');
+  const el = document.getElementById('authScreen');
+  const app = document.getElementById('appShell');
+  if (landing) landing.style.display = 'none';
+  if (el) el.style.display = 'none';
   if (app) app.style.display = '';
 }
 
@@ -186,6 +204,16 @@ function initAuthUI() {
       if (typeof window.onAuthReady === 'function') window.onAuthReady(null);
     });
   }
+
+  // Landing page → Auth screen transitions
+  const landingCta1 = document.getElementById('landingGetStarted');
+  const landingCta2 = document.getElementById('landingGetStarted2');
+  if (landingCta1) landingCta1.addEventListener('click', showAuthForm);
+  if (landingCta2) landingCta2.addEventListener('click', showAuthForm);
+
+  // Auth screen → Back to landing
+  const backLink = document.getElementById('authBackToLanding');
+  if (backLink) backLink.addEventListener('click', showLandingPage);
 }
 
 document.addEventListener('DOMContentLoaded', initAuthUI);

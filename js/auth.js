@@ -55,6 +55,8 @@ function showAuthForm() {
   if (landing) landing.style.display = 'none';
   if (auth) auth.style.display = 'flex';
   if (app) app.style.display = 'none';
+  // Landing page already shows how the app works — skip the welcome modal
+  try { localStorage.setItem('team-tracker-welcome-seen-v2', '1'); } catch(_){}
 }
 
 function showAuthScreen() {

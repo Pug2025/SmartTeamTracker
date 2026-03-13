@@ -329,24 +329,6 @@
   text-align: right;
 }
 
-/* Live badge for spectator mockup */
-.landing-live-badge {
-  display: inline-block;
-  padding: 4px 14px;
-  border-radius: 999px;
-  background: rgba(255, 59, 48, 0.2);
-  color: #ff3b30;
-  border: 1px solid rgba(255, 59, 48, 0.4);
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 1.9px;
-  animation: livePulse 3s ease-in-out infinite;
-}
-@keyframes livePulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-
 /* Feed mockup */
 .landing-feed {
   display: flex;

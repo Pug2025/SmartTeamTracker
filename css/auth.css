@@ -451,6 +451,16 @@
   display: block;
 }
 
+/* Player stat chips — stretch to fill row in landing mockup */
+.landing-mockup .player-season-stat {
+  flex: 1;
+}
+.landing-spark-label {
+  font-size: 10px;
+  color: #667;
+  margin-bottom: 2px;
+}
+
 /* Feature list */
 .landing-features {
   display: flex;

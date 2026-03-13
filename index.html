@@ -75,7 +75,30 @@
         </div>
       </div>
 
-      <!-- Component Breakdown Preview -->
+      <!-- Goalie Score Breakdown -->
+      <div style="margin-top:14px;">
+        <div style="font-size:11px; color:#9aa6b2; font-weight:700; margin-bottom:8px;">Goalie Score Breakdown</div>
+        <div class="landing-comp-bars">
+          <div class="landing-comp-row">
+            <span class="landing-comp-label">Save Quality</span>
+            <div class="landing-comp-track"><div class="landing-comp-fill" style="width:82%; background:var(--comp-good);"></div></div>
+            <span class="landing-comp-val">82</span>
+          </div>
+          <div class="landing-comp-row">
+            <span class="landing-comp-label">Rebounds</span>
+            <div class="landing-comp-track"><div class="landing-comp-fill" style="width:70%; background:var(--comp-good);"></div></div>
+            <span class="landing-comp-val">70</span>
+          </div>
+          <div class="landing-comp-row">
+            <span class="landing-comp-label">Big Saves</span>
+            <div class="landing-comp-track"><div class="landing-comp-fill" style="width:85%; background:var(--comp-good);"></div></div>
+            <span class="landing-comp-val">85</span>
+          </div>
+        </div>
+        <div style="font-size:10px; color:#666; margin-top:6px;">+2 goals saved above expected &middot; 3 good / 1 bad rebound &middot; 4 big saves</div>
+      </div>
+
+      <!-- Team Score Breakdown -->
       <div style="margin-top:14px;">
         <div style="font-size:11px; color:#9aa6b2; font-weight:700; margin-bottom:8px;">Team Score Breakdown</div>
         <div class="landing-comp-bars">
@@ -107,13 +130,50 @@
         </div>
       </div>
 
-      <!-- Stats Tiles Preview -->
+      <!-- Goaltending Stats -->
+      <div style="margin-top:14px;">
+        <div style="font-size:11px; color:#9aa6b2; font-weight:700; margin-bottom:8px;">Goaltending</div>
+        <div class="dashGrid">
+          <div class="dashTile"><div class="k">Saves</div><div class="v">22</div><div class="s">SV% .917</div></div>
+          <div class="dashTile"><div class="k">Big Saves</div><div class="v">4</div></div>
+          <div class="dashTile"><div class="k">Smothers</div><div class="v">2</div></div>
+          <div class="dashTile"><div class="k">Good Rebounds</div><div class="v">3</div></div>
+          <div class="dashTile"><div class="k">Bad Rebounds</div><div class="v">1</div></div>
+          <div class="dashTile"><div class="k">Soft Goals</div><div class="v">0</div></div>
+        </div>
+      </div>
+
+      <!-- Shots & Scoring -->
       <div style="margin-top:14px;">
         <div style="font-size:11px; color:#9aa6b2; font-weight:700; margin-bottom:8px;">Shots &amp; Scoring</div>
         <div class="dashGrid">
           <div class="dashTile"><div class="k">Shots For</div><div class="v" style="color:var(--accent-us);">22</div></div>
           <div class="dashTile"><div class="k">Shots Ag</div><div class="v" style="color:var(--accent-them);">24</div></div>
-          <div class="dashTile"><div class="k">SV%</div><div class="v">.917</div><div class="s">22 / 24</div></div>
+          <div class="dashTile"><div class="k">Shooting %</div><div class="v">13.6%</div><div class="s">GF / SF</div></div>
+          <div class="dashTile"><div class="k">Shot Share</div><div class="v">47.8%</div><div class="s">SF / (SF+SA)</div></div>
+          <div class="dashTile"><div class="k">Missed Chances</div><div class="v">4</div><div class="s">2 for + 2 ag</div></div>
+        </div>
+      </div>
+
+      <!-- Offensive / Defensive Context -->
+      <div style="margin-top:14px;">
+        <div style="font-size:11px; color:#9aa6b2; font-weight:700; margin-bottom:8px; color:var(--accent-us);">Offensive</div>
+        <div class="dashGrid">
+          <div class="dashTile"><div class="k">Breakaways</div><div class="v">1</div></div>
+          <div class="dashTile"><div class="k">OMR</div><div class="v">3</div></div>
+          <div class="dashTile"><div class="k">Forced TO</div><div class="v">2</div></div>
+          <div class="dashTile"><div class="k">HD Chances</div><div class="v">5</div></div>
+          <div class="dashTile"><div class="k">Penalties Drawn</div><div class="v">2</div></div>
+        </div>
+      </div>
+      <div style="margin-top:10px;">
+        <div style="font-size:11px; color:#9aa6b2; font-weight:700; margin-bottom:8px; color:var(--accent-them);">Defensive</div>
+        <div class="dashGrid">
+          <div class="dashTile"><div class="k">Breakaways Ag</div><div class="v">2</div></div>
+          <div class="dashTile"><div class="k">D-Zone TO</div><div class="v">1</div></div>
+          <div class="dashTile"><div class="k">OMR Ag</div><div class="v">2</div></div>
+          <div class="dashTile"><div class="k">HD Chances Ag</div><div class="v">4</div></div>
+          <div class="dashTile"><div class="k">Penalties Taken</div><div class="v">1</div></div>
         </div>
       </div>
     </div>
@@ -181,6 +241,11 @@
             <div class="g-btn ctx h-md">Breakaway</div>
             <div class="g-btn ctx h-md">DZ Turnover</div>
           </div>
+          <div class="context-row">
+            <div class="g-btn ctx h-md">Odd-Man Rush</div>
+            <div class="g-btn ctx h-md">Missed Chance</div>
+          </div>
+          <div class="g-btn ctx h-md">Their Penalty</div>
         </div>
         <div class="col-zone theme-us">
           <div class="col-label">Us</div>
@@ -193,6 +258,11 @@
             <div class="g-btn ctx h-md">Breakaway</div>
             <div class="g-btn ctx h-md">Forced Turnover</div>
           </div>
+          <div class="context-row">
+            <div class="g-btn ctx h-md">Odd-Man Rush</div>
+            <div class="g-btn ctx h-md">Missed Chance</div>
+          </div>
+          <div class="g-btn ctx h-md">Our Penalty</div>
         </div>
       </div>
       <div class="landing-tracking-caption">Two columns. Red for what they do, blue for what we do. Goals auto-count as shots, context links up automatically.</div>
@@ -229,6 +299,98 @@
         <svg class="landing-sparkline" viewBox="0 0 200 40" preserveAspectRatio="none">
           <polyline points="0,30 16,26 32,28 48,20 64,22 80,16 96,18 112,14 128,10 144,12 160,8 176,14 192,6" fill="none" stroke="#4caf50" stroke-width="2"/>
         </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section: Player Stats -->
+  <div class="landing-section">
+    <div class="landing-section-label">Track every player across the season</div>
+
+    <div class="landing-mockup">
+      <div class="player-season-list">
+
+        <!-- Player 1 -->
+        <div class="player-season-row" style="cursor:default;">
+          <div class="player-season-row-head">
+            <div class="player-season-rank">1</div>
+            <div class="player-season-identity">
+              <div class="player-season-name">#9 Carter M.</div>
+              <div class="player-season-sub">13 games &middot; Top scorer</div>
+            </div>
+            <div class="player-season-trend up">+3 last 5</div>
+          </div>
+          <div class="player-season-row-stats">
+            <div class="player-season-stat"><div class="k">PTS</div><div class="v">18</div></div>
+            <div class="player-season-stat"><div class="k">G</div><div class="v">11</div></div>
+            <div class="player-season-stat"><div class="k">A</div><div class="v">7</div></div>
+            <div class="player-season-stat"><div class="k">S</div><div class="v">42</div></div>
+            <div class="player-season-stat"><div class="k">+/-</div><div class="v" style="color:#9df0b0;">+8</div></div>
+          </div>
+          <div class="player-season-row-spark" style="margin-top:8px;">
+            <svg class="player-sparkline" viewBox="0 0 200 28" preserveAspectRatio="none">
+              <polyline points="0,22 16,18 32,14 48,20 64,10 80,16 96,8 112,12 128,6 144,10 160,4 176,8 192,2" fill="none" stroke="#4da3ff" stroke-width="1.5"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Player 2 -->
+        <div class="player-season-row" style="cursor:default;">
+          <div class="player-season-row-head">
+            <div class="player-season-rank">2</div>
+            <div class="player-season-identity">
+              <div class="player-season-name">#14 Aiden R.</div>
+              <div class="player-season-sub">12 games &middot; Playmaker</div>
+            </div>
+            <div class="player-season-trend up">+2 last 5</div>
+          </div>
+          <div class="player-season-row-stats">
+            <div class="player-season-stat"><div class="k">PTS</div><div class="v">14</div></div>
+            <div class="player-season-stat"><div class="k">G</div><div class="v">5</div></div>
+            <div class="player-season-stat"><div class="k">A</div><div class="v">9</div></div>
+            <div class="player-season-stat"><div class="k">S</div><div class="v">28</div></div>
+            <div class="player-season-stat"><div class="k">+/-</div><div class="v" style="color:#9df0b0;">+5</div></div>
+          </div>
+        </div>
+
+        <!-- Player 3 -->
+        <div class="player-season-row" style="cursor:default;">
+          <div class="player-season-row-head">
+            <div class="player-season-rank">3</div>
+            <div class="player-season-identity">
+              <div class="player-season-name">#7 Liam K.</div>
+              <div class="player-season-sub">13 games</div>
+            </div>
+            <div class="player-season-trend down">-1 last 5</div>
+          </div>
+          <div class="player-season-row-stats">
+            <div class="player-season-stat"><div class="k">PTS</div><div class="v">10</div></div>
+            <div class="player-season-stat"><div class="k">G</div><div class="v">6</div></div>
+            <div class="player-season-stat"><div class="k">A</div><div class="v">4</div></div>
+            <div class="player-season-stat"><div class="k">S</div><div class="v">35</div></div>
+            <div class="player-season-stat"><div class="k">+/-</div><div class="v" style="color:#ffb0aa;">-2</div></div>
+          </div>
+        </div>
+
+        <!-- Player 4 -->
+        <div class="player-season-row" style="cursor:default;">
+          <div class="player-season-row-head">
+            <div class="player-season-rank">4</div>
+            <div class="player-season-identity">
+              <div class="player-season-name">#22 Owen S.</div>
+              <div class="player-season-sub">11 games</div>
+            </div>
+            <div class="player-season-trend">— last 5</div>
+          </div>
+          <div class="player-season-row-stats">
+            <div class="player-season-stat"><div class="k">PTS</div><div class="v">7</div></div>
+            <div class="player-season-stat"><div class="k">G</div><div class="v">3</div></div>
+            <div class="player-season-stat"><div class="k">A</div><div class="v">4</div></div>
+            <div class="player-season-stat"><div class="k">S</div><div class="v">19</div></div>
+            <div class="player-season-stat"><div class="k">+/-</div><div class="v" style="color:#9df0b0;">+3</div></div>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>

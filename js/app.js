@@ -3063,20 +3063,41 @@ return;
 
   /* First-launch welcome modal */
   const SEEN_KEY = 'team-tracker-welcome-seen-v2';
-  const hasSeenWelcome = localStorage.getItem(SEEN_KEY);
-  if(!hasSeenWelcome){
+  let welcomeDismissAction = null;
+
+  function markWelcomeSeen(){
+    try{
+      localStorage.setItem(SEEN_KEY, '1');
+    }catch(_){}
+  }
+
+  function dismissWelcomeModal(){
+    $('welcomeModal').style.display = 'none';
+    markWelcomeSeen();
+    const nextAction = welcomeDismissAction;
+    welcomeDismissAction = null;
+    if(typeof nextAction === 'function') nextAction();
+  }
+
+  window.hasSeenWelcomeModal = function(){
+    try{
+      return !!localStorage.getItem(SEEN_KEY);
+    }catch(_){
+      return false;
+    }
+  };
+
+  window.showWelcomeModal = function(options = {}){
+    welcomeDismissAction = typeof options.onDismiss === 'function' ? options.onDismiss : null;
     $('btnHelp').classList.add('pulse');
     $('welcomeModal').style.display = 'flex';
-  }
-  $('btnWelcomeDismiss').onclick = function(){
-    $('welcomeModal').style.display = 'none';
-    localStorage.setItem(SEEN_KEY, '1');
   };
+
+  $('btnWelcomeDismiss').onclick = dismissWelcomeModal;
   // Also dismiss on backdrop click
   $('welcomeModal').addEventListener('click', function(e){
     if(e.target === $('welcomeModal')){
-      $('welcomeModal').style.display = 'none';
-      localStorage.setItem(SEEN_KEY, '1');
+      dismissWelcomeModal();
     }
   });
 

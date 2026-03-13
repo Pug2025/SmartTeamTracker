@@ -55,8 +55,19 @@ function showAuthForm() {
   if (landing) landing.style.display = 'none';
   if (auth) auth.style.display = 'flex';
   if (app) app.style.display = 'none';
-  // Landing page already shows how the app works — skip the welcome modal
-  try { localStorage.setItem('team-tracker-welcome-seen-v2', '1'); } catch(_){}
+}
+
+function handleLandingGetStarted() {
+  const hasSeenWelcome = typeof window.hasSeenWelcomeModal === 'function'
+    ? window.hasSeenWelcomeModal()
+    : false;
+
+  if (!hasSeenWelcome && typeof window.showWelcomeModal === 'function') {
+    window.showWelcomeModal({ onDismiss: showAuthForm });
+    return;
+  }
+
+  showAuthForm();
 }
 
 function showAuthScreen() {
@@ -210,8 +221,8 @@ function initAuthUI() {
   // Landing page → Auth screen transitions
   const landingCta1 = document.getElementById('landingGetStarted');
   const landingCta2 = document.getElementById('landingGetStarted2');
-  if (landingCta1) landingCta1.addEventListener('click', showAuthForm);
-  if (landingCta2) landingCta2.addEventListener('click', showAuthForm);
+  if (landingCta1) landingCta1.addEventListener('click', handleLandingGetStarted);
+  if (landingCta2) landingCta2.addEventListener('click', handleLandingGetStarted);
 
   // Auth screen → Back to landing
   const backLink = document.getElementById('authBackToLanding');

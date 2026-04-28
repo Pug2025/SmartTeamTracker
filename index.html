@@ -1133,10 +1133,14 @@
 <!-- Game Detail Modal -->
 <div class="modal" id="gameDetailModal"><div class="box modal-scroll-sm">
   <div class="modal-head">
-    <h3 class="modal-title" id="gameDetailTitle">Game Detail</h3>
+    <div class="game-detail-nav">
+      <button class="btn-detail-nav" id="gameDetailPrev" type="button" aria-label="Previous game">&lsaquo;</button>
+      <h3 class="modal-title" id="gameDetailTitle">Game Detail</h3>
+      <button class="btn-detail-nav" id="gameDetailNext" type="button" aria-label="Next game">&rsaquo;</button>
+    </div>
     <button class="btn-std btn-close-sm" id="gameDetailClose">Close</button>
   </div>
-  <div id="gameDetailBody" class="small"></div>
+  <div id="gameDetailBody"></div>
   <div class="mt-2xl text-center">
     <button class="btn-std btn-accent-them" id="gameDetailDelete">Delete Game</button>
   </div>

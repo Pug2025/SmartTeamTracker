@@ -3405,7 +3405,26 @@
 /* ===== Utility classes replacing inline styles ===== */
 .modal-scroll{ max-height:85vh; overflow-y:auto; }
 .modal-scroll-sm{ max-height:80vh; overflow-y:auto; }
-.modal-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.modal-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px; }
+.game-detail-nav{ display:flex; align-items:center; gap:6px; flex:1; min-width:0; }
+.game-detail-nav .modal-title{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:center; }
+.btn-detail-nav{
+  background:transparent;
+  border:1px solid var(--gray-400);
+  color:var(--ink);
+  width:30px;
+  height:30px;
+  border-radius:8px;
+  font-size:20px;
+  line-height:1;
+  cursor:pointer;
+  padding:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+}
+.btn-detail-nav:disabled{ opacity:0.25; cursor:default; }
 .modal-head-lg{ display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
 .modal-title{ margin:0; font-size:16px; }
 .modal-title-lg{ margin:0; font-size:18px; }

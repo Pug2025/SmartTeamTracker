@@ -4903,12 +4903,44 @@ $('historyList').addEventListener('click', async (e) => {
 
   const idx = Number(row.dataset.idx);
   const game = $('historyList')._games && $('historyList')._games[idx];
-  if(game) showGameDetail(game);
+  if(game) showGameDetail(game, idx);
 });
 
 let currentDetailGameId = null;
+let currentDetailIdx = -1;
 
-function showGameDetail(game){
+function showGameDetail(game, idx){
+  if(typeof idx === 'number') currentDetailIdx = idx;
+  renderHistoricSummary(game);
+  $('gameDetailModal').style.display = 'flex';
+  updateGameDetailNav();
+  const box = $('gameDetailModal') && $('gameDetailModal').querySelector('.box');
+  if(box) box.scrollTop = 0;
+}
+
+function updateGameDetailNav(){
+  const games = ($('historyList') && $('historyList')._games) || [];
+  const prevBtn = $('gameDetailPrev');
+  const nextBtn = $('gameDetailNext');
+  if(!prevBtn || !nextBtn) return;
+  const hasGames = games.length > 0 && currentDetailIdx >= 0;
+  prevBtn.disabled = !hasGames || currentDetailIdx <= 0;
+  nextBtn.disabled = !hasGames || currentDetailIdx >= games.length - 1;
+}
+
+function navigateGameDetail(delta){
+  const games = ($('historyList') && $('historyList')._games) || [];
+  const next = currentDetailIdx + delta;
+  if(next < 0 || next >= games.length) return;
+  currentDetailIdx = next;
+  renderHistoricSummary(games[next]);
+  updateGameDetailNav();
+  const box = $('gameDetailModal') && $('gameDetailModal').querySelector('.box');
+  if(box) box.scrollTop = 0;
+}
+
+function renderHistoricSummary(game){
+  if(!game){ $('gameDetailBody').innerHTML = ''; return; }
   const d = game.data || {};
   const opp = d.Opponent || game.opponent || 'Unknown';
   const date = d.Date || game.date || '—';
@@ -4916,37 +4948,177 @@ function showGameDetail(game){
 
   currentDetailGameId = game.id || null;
   $('gameDetailTitle').textContent = `${opp} — ${date}`;
-
-  const gf=d.GF??'—', ga=d.GA??'—', sf=d.SF??'—', sa=d.SA??'—';
-  const saves = d.Saves ?? '—', sv = d.SVPct ?? '—';
-  const shoot = d.OurShootingPct ?? '—';
-  const share = d.ShotShare != null ? Math.round(d.ShotShare*100)+'%' : '—';
-
-  const rows = [
-    ['Level', level], ['GF', gf], ['GA', ga],
-    ['SF', sf], ['SA', sa], ['Saves', saves],
-    ['SV%', sv], ['Our Shooting%', shoot], ['Shot Share', share],
-    ['Goalie Score', d.GoalieScore ?? '—'], ['Team Score', d.TeamScore ?? '—'],
-    ['Smothers', d.Smothers ?? '—'], ['Bad Rebounds', d.BadRebounds ?? '—'],
-    ['Big Saves', d.BigSaves ?? '—'], ['Soft Goals', d.SoftGoals ?? '—'],
-    ['Breakaways Ag', d.BreakawaysAgainst ?? '—'], ['DZ Turnovers', d.DZTurnovers ?? '—'],
-    ['Breakaways For', d.BreakawaysFor ?? '—'], ['Odd-Man Rush For', d.OddManRushFor ?? '—'], ['Forced Turnovers', d.ForcedTurnovers ?? '—'],
-    ['GA off BA', d.GA_BA ?? '—'], ['GA off DZ', d.GA_DZ ?? '—'],
-    ['GA off Bad Reb', d.GA_BR ?? '—'], ['GA Other', d.GA_Other ?? '—']
-  ];
-
-  let html = '<table><tr><th>Stat</th><th>Value</th><th>Stat</th><th>Value</th></tr>';
-  for(let i=0;i<rows.length;i+=2){
-    const a=rows[i], b=rows[i+1];
-    html+=`<tr><td>${a[0]}</td><td>${a[1]}</td><td>${b?b[0]:''}</td><td>${b?b[1]:''}</td></tr>`;
-  }
-  html+='</table>';
-
-  $('gameDetailBody').innerHTML = html;
   $('gameDetailDelete').style.display = currentDetailGameId ? 'inline-block' : 'none';
-  $('gameDetailModal').style.display = 'flex';
+
+  const GF = Number(d.GF || 0);
+  const GA = Number(d.GA || 0);
+  const SF = Number(d.SF || 0);
+  const SA = Number(d.SA || 0);
+  const saves = d.Saves != null ? Number(d.Saves) : Math.max(0, SA - GA);
+  const sv = d.SVPct != null ? d.SVPct : (SA ? (saves/SA).toFixed(3).slice(1) : '—');
+  const shoot = d.OurShootingPct != null ? d.OurShootingPct : (SF ? (GF/SF).toFixed(3).slice(1) : '—');
+  const share = d.ShotShare != null
+    ? Math.round(Number(d.ShotShare) * 100) + '%'
+    : ((SF+SA) ? Math.round(100*(SF/(SF+SA)))+'%' : '—');
+
+  const resultClass = GF > GA ? 'w' : GF < GA ? 'l' : 't';
+  const resultText  = GF > GA ? 'WIN' : GF < GA ? 'LOSS' : 'TIE';
+
+  const meTeam = getActiveTeamSafe();
+  const meName = (meTeam && meTeam.name) || 'Us';
+  const cap = (s) => { const v = String(s || ''); return v.length > 12 ? v.slice(0, 12) + '…' : v; };
+
+  const headerHTML = `
+    <div class="sum-header">
+      <div class="sum-meta">${level ? level + ' • ' : ''}${date}</div>
+      <div class="sum-score">
+        <div class="sum-score-num them">${GA}</div>
+        <div class="sum-score-dash">&ndash;</div>
+        <div class="sum-score-num us">${GF}</div>
+      </div>
+      <div class="sum-score-labels"><span>${cap(opp)}</span><span>${cap(meName)}</span></div>
+      <div><span class="sum-result-tag ${resultClass}">${resultText}</span></div>
+    </div>`;
+
+  const ringsHTML = `
+    <div class="ringsRow rings-mt">
+      <div class="ringCard">
+        <div class="small mb-sm">Goalie Score</div>
+        <div class="scoreRing">
+          <svg viewBox="0 0 80 80" class="ringSvg">
+            <circle class="ringBg" cx="40" cy="40" r="35"></circle>
+            <circle class="ringFg" id="gdGsArc" cx="40" cy="40" r="35"></circle>
+          </svg>
+          <div class="val" id="gdGoalieScoreNum">—</div>
+        </div>
+      </div>
+      <div class="ringCard">
+        <div class="small mb-sm">Team Score</div>
+        <div class="scoreRing">
+          <svg viewBox="0 0 80 80" class="ringSvg">
+            <circle class="ringBg" cx="40" cy="40" r="35"></circle>
+            <circle class="ringFg" id="gdTsArc" cx="40" cy="40" r="35"></circle>
+          </svg>
+          <div class="val" id="gdTeamScoreNum">—</div>
+        </div>
+      </div>
+    </div>`;
+
+  const shotsHTML = `
+    <div class="sum-section">
+      <div class="sum-section-label">Shots &amp; Scoring</div>
+      <div class="dashGrid">
+        ${tile('Goals Ag', GA)}
+        ${tile('Goals For', GF)}
+        ${tile('Saves', saves, `SV% ${sv}`)}
+        ${tile('Shots Ag', SA)}
+        ${tile('Shots For', SF)}
+        ${tile('Shot Share', share, 'SF / (SF+SA)')}
+      </div>
+    </div>`;
+
+  const goalieHTML = `
+    <div class="sum-section">
+      <div class="sum-section-label">Goaltending</div>
+      <div class="dashGrid">
+        ${tile('Big Saves', d.BigSaves ?? '—')}
+        ${tile('Smothers', d.Smothers ?? '—')}
+        ${tile('Bad Reb', d.BadRebounds ?? '—')}
+        ${tile('Soft Goals', d.SoftGoals ?? '—')}
+        ${tile('Missed Ch', d.MissedChancesAgainst ?? '—', 'Against')}
+        ${tile('Shooting %', shoot, 'GF / SF')}
+      </div>
+    </div>`;
+
+  const defenseHTML = `
+    <div class="sum-section">
+      <div class="sum-section-label dash-label-them">Defensive</div>
+      <div class="dashGrid">
+        ${tile('Breakaways Ag', d.BreakawaysAgainst ?? '—')}
+        ${tile('D-Zone TO', d.DZTurnovers ?? '—')}
+        ${tile('OMR Ag', d.OddManRushAgainst ?? '—')}
+        ${tile('Penalties Taken', d.PenaltiesAgainst ?? '—')}
+      </div>
+    </div>`;
+
+  const offenseHTML = `
+    <div class="sum-section">
+      <div class="sum-section-label dash-label-us">Offensive</div>
+      <div class="dashGrid">
+        ${tile('Breakaways', d.BreakawaysFor ?? '—')}
+        ${tile('Odd-Man Rush', d.OddManRushFor ?? '—')}
+        ${tile('Forced TO', d.ForcedTurnovers ?? '—')}
+        ${tile('Penalties Drawn', d.PenaltiesFor ?? '—')}
+        ${tile('Missed Ch', d.MissedChancesFor ?? '—', 'For')}
+      </div>
+    </div>`;
+
+  const totalGA = Number(d.GA_BA||0) + Number(d.GA_DZ||0) + Number(d.GA_BR||0) + Number(d.GA_Other||0);
+  let breakdownHTML = '';
+  if(totalGA > 0){
+    breakdownHTML = `
+      <div class="sum-section">
+        <div class="sum-section-label">Goal Breakdowns</div>
+        <div class="breakdown-grid">
+          <div class="card breakdown-card">
+            <div class="small breakdown-card-title breakdown-card-title-them">Goals Against (${totalGA})</div>
+            ${d.GA_BA ? `<div class="small">Breakaway: ${d.GA_BA}</div>` : ''}
+            ${d.GA_DZ ? `<div class="small">D-Zone TO: ${d.GA_DZ}</div>` : ''}
+            ${d.GA_BR ? `<div class="small">Bad Rebound: ${d.GA_BR}</div>` : ''}
+            ${d.GA_Other ? `<div class="small">Other: ${d.GA_Other}</div>` : ''}
+          </div>
+        </div>
+      </div>`;
+  }
+
+  let playerHTML = '';
+  const players = Array.isArray(d.players) ? d.players : [];
+  if(players.length){
+    const hasData = players.some(p => Number(p.shots||0) || Number(p.goals||0) || Number(p.assists||0));
+    if(hasData){
+      const hasPM = players.some(p => p.pm != null && Number(p.pm) !== 0);
+      const sorted = players.slice().sort((a,b)=>{
+        const na = Number(a.player); const nb = Number(b.player);
+        if(Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
+        return String(a.player||'').localeCompare(String(b.player||''));
+      });
+      let pTable = hasPM
+        ? '<table><tr><th>#</th><th>S</th><th>G</th><th>A</th><th>+/-</th></tr>'
+        : '<table><tr><th>#</th><th>S</th><th>G</th><th>A</th></tr>';
+      for(const p of sorted){
+        const num = p.player ?? '?';
+        const shots = p.shots ?? 0;
+        const goals = p.goals ?? 0;
+        const assists = p.assists ?? 0;
+        if(hasPM){
+          const pm = Number(p.pm||0);
+          const pmStr = pm > 0 ? `+${pm}` : String(pm);
+          pTable += `<tr><td>${num}</td><td>${shots}</td><td>${goals}</td><td>${assists}</td><td>${pmStr}</td></tr>`;
+        } else {
+          pTable += `<tr><td>${num}</td><td>${shots}</td><td>${goals}</td><td>${assists}</td></tr>`;
+        }
+      }
+      pTable += '</table>';
+      playerHTML = `
+        <div class="sum-section">
+          <div class="sum-section-label">Player Stats</div>
+          ${pTable}
+        </div>`;
+    }
+  }
+
+  $('gameDetailBody').innerHTML =
+    headerHTML + ringsHTML + shotsHTML + goalieHTML + defenseHTML + offenseHTML + breakdownHTML + playerHTML;
+
+  setRing(document.getElementById('gdGoalieScoreNum'), document.getElementById('gdGsArc'),
+          d.GoalieScore != null ? d.GoalieScore : '—');
+  setRing(document.getElementById('gdTeamScoreNum'), document.getElementById('gdTsArc'),
+          d.TeamScore != null ? d.TeamScore : '—');
 }
+
 $('gameDetailClose').addEventListener('click', ()=>{ $('gameDetailModal').style.display='none'; });
+$('gameDetailPrev').addEventListener('click', ()=> navigateGameDetail(-1));
+$('gameDetailNext').addEventListener('click', ()=> navigateGameDetail(1));
 
 $('gameDetailDelete').addEventListener('click', async ()=>{
   if(!currentDetailGameId) return;

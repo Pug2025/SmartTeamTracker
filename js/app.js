@@ -2247,6 +2247,10 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
   const resultClass = GF > GA ? 'w' : GF < GA ? 'l' : 't';
   const resultText = GF > GA ? 'WIN' : GF < GA ? 'LOSS' : 'TIE';
   $('sumResultTag').innerHTML = `<span class="sum-result-tag ${resultClass}">${resultText}</span>`;
+  const _sumTeam = getActiveTeamSafe();
+  const _cap = s => s.length > 12 ? s.slice(0, 12) + '…' : s;
+  $('sumThemLabel').textContent = _cap(state.opponent || 'Them');
+  $('sumUsLabel').textContent = _cap((_sumTeam && _sumTeam.name) || 'Us');
 
   // === Rings ===
   setRing($('goalieScoreNumSum'),$('gsArcSum'),K.total);

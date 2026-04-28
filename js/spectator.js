@@ -324,16 +324,8 @@
     }
     lastMilestoneGF = s.goalsFor;
 
-    // Shutout badge on spectator saves KPI
     if ($('specSavesPct')) {
-      const safeGA = Number.isFinite(s.goalsAgainst) ? s.goalsAgainst : 0;
-      const safeSA = Number.isFinite(s.shotsAgainst) ? s.shotsAgainst : 0;
-      const pctText = `SV% ${formatSavePct(s.svPct, s.shotsAgainst)}`;
-      if (safeSA >= 5 && safeGA === 0) {
-        $('specSavesPct').innerHTML = escapeHtml(pctText) + ' <span class="shutout-badge">Shutout</span>';
-      } else {
-        $('specSavesPct').textContent = pctText;
-      }
+      $('specSavesPct').textContent = `SV% ${formatSavePct(s.svPct, s.shotsAgainst)}`;
     }
 
     if ($('specPeriod')) $('specPeriod').textContent = periodLabel(s.period);
@@ -368,7 +360,7 @@
     if (meta) meta.classList.remove('spec-meta-stale');
     staleTimer = setTimeout(() => {
       if (!spectatorEnded && meta) meta.classList.add('spec-meta-stale');
-    }, 30000);
+    }, 120000);
   }
 
   function showContextCard(s) {
@@ -384,10 +376,8 @@
 
     const sf = s.shotsFor || 0;
     const sa = s.shotsAgainst || 0;
-    const svText = formatSavePct(s.svPct, s.shotsAgainst);
 
-    const parts = [periodLabel(s.period), scoreLine, sf + '-' + sa + ' shots'];
-    if (svText !== '—') parts.push('SV% ' + svText);
+    const parts = [periodLabel(s.period), scoreLine, sa + '-' + sf + ' shots'];
 
     const card = document.createElement('div');
     card.className = 'spec-context-card';

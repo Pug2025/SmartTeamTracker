@@ -3396,7 +3396,7 @@ function getTeamManager() {
     const id = getActiveTeamId();
     return id ? (loadTeams().find(t => t.id === id) || null) : null;
   };
-  const makeId = () => 't_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+  const makeId = () => 't_' + crypto.randomUUID().replace(/-/g, '').slice(0, 12);
   const createTeam = (name, level, roster) => {
     const teams = loadTeams();
     const team = {

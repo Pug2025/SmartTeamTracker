@@ -5192,21 +5192,58 @@ async function refreshPlayerStatsPanelIfOpen(){
   if($('playerStatsPanel').style.display !== 'block') return;
   await loadPlayerStatsPanel();
 }
+const historyViewState = { filter: 'all', games: [] };
 async function loadHistoryPanel(){
   resetHistorySwipeState();
   $('historyPanel').style.display = 'block';
   $('historyList').innerHTML = SKELETON_HTML;
+  historyViewState.filter = 'all';
+  setHistoryFilterActive('all');
   try{
     const games = await fetchScopedGames(50);
+    historyViewState.games = games || [];
     if(!games.length){
       $('historyList').innerHTML = '<div class="text-center" style="padding:20px;">No past games found.</div>';
       return;
     }
-    renderHistoryList(games);
+    renderHistoryView();
   }catch(e){
     console.error(e);
     $('historyList').innerHTML = '<div class="text-center" style="padding:20px; color:var(--accent-them);">Failed to load games. Check your connection.</div>';
   }
+}
+function setHistoryFilterActive(filter){
+  const bar = $('historyFilterBar');
+  if(!bar) return;
+  bar.querySelectorAll('.history-filter-tab').forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.filter === filter);
+  });
+}
+function renderHistoryView(){
+  const games = historyViewState.games || [];
+  const list = $('historyList');
+  // Game Detail open path reads ._games to resolve the tapped row — keep
+  // it pointing at the full unfiltered set so it works under any filter.
+  list._games = games;
+  if(historyViewState.filter === 'opp'){
+    list.innerHTML = '<div class="history-empty">By Opponent view coming next.</div>';
+    return;
+  }
+  let subset = games;
+  if(historyViewState.filter === 'wins'){
+    subset = games.filter(g => Number((g.data || {}).GF) > Number((g.data || {}).GA));
+    if(!subset.length){
+      list.innerHTML = '<div class="history-empty">No wins yet this season.</div>';
+      return;
+    }
+  } else if(historyViewState.filter === 'losses'){
+    subset = games.filter(g => Number((g.data || {}).GA) > Number((g.data || {}).GF));
+    if(!subset.length){
+      list.innerHTML = '<div class="history-empty">No losses recorded — good work.</div>';
+      return;
+    }
+  }
+  renderHistoryFlat(subset);
 }
 $('btnHistory').addEventListener('click', async ()=>{
   if(!getActiveTeamSafe()){
@@ -5214,6 +5251,15 @@ $('btnHistory').addEventListener('click', async ()=>{
     return;
   }
   await loadHistoryPanel();
+});
+$('historyFilterBar').addEventListener('click', (e) => {
+  const tab = e.target.closest('.history-filter-tab');
+  if(!tab) return;
+  const filter = tab.dataset.filter;
+  if(!filter || filter === historyViewState.filter) return;
+  historyViewState.filter = filter;
+  setHistoryFilterActive(filter);
+  renderHistoryView();
 });
 $('btnHistoryClose').addEventListener('click', ()=>{
   resetHistorySwipeState();
@@ -5329,9 +5375,10 @@ function finishHistorySwipe(){
 $('historyList').addEventListener('touchend', finishHistorySwipe, { passive:true });
 $('historyList').addEventListener('touchcancel', finishHistorySwipe, { passive:true });
 
-function renderHistoryList(games){
+function renderHistoryFlat(games){
   resetHistorySwipeState();
-  $('historyList').innerHTML = games.map((g,i) => {
+  const fullList = historyViewState.games || games;
+  $('historyList').innerHTML = games.map((g) => {
     const data = g.data || {};
     const gf = data.GF ?? '?';
     const ga = data.GA ?? '?';
@@ -5341,7 +5388,10 @@ function renderHistoryList(games){
     const gs = data.GoalieScore != null ? data.GoalieScore : '—';
     const ts = data.TeamScore != null ? data.TeamScore : '—';
     const scoreClass = gf > ga ? 'w' : gf < ga ? 'l' : 't';
-    return `<div class="history-row" data-idx="${i}" data-id="${g.id}">
+    // data-idx points into the full unfiltered list so Game Detail's
+    // prev/next nav walks the whole history, not just the visible subset.
+    const fullIdx = fullList.indexOf(g);
+    return `<div class="history-row" data-idx="${fullIdx}" data-id="${g.id}">
       <button class="history-delete-action" data-id="${g.id}" type="button" aria-label="Delete game">&#128465;</button>
       <div class="history-item">
         <div class="history-left">
@@ -5352,9 +5402,6 @@ function renderHistoryList(games){
       </div>
     </div>`;
   }).join('');
-
-  // Store games for detail view
-  $('historyList')._games = games;
 }
 $('historyList').addEventListener('click', async (e) => {
   if(Date.now() - historySwipe.justSwipedAt < 250) return;

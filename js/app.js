@@ -2390,7 +2390,8 @@ function computeGoalieBreakdown(){
         id: String(id),
         shots:0, saves:0, goalsAgainst:0,
         bigSaves:0, smothers:0,
-        goodRebounds:0, badRebounds:0, softGoals:0
+        goodRebounds:0, badRebounds:0, softGoals:0,
+        hdShots:0, hdSaves:0
       });
     }
     return map.get(id);
@@ -2398,23 +2399,29 @@ function computeGoalieBreakdown(){
   for(const ev of state.events){
     if(!ev || !ev.goalie) continue;
     const g = ensure(ev.goalie);
+    const hd = !!ev.highDanger;
     switch(ev.type){
       case 'shot':
         g.shots++; g.saves++;
         if(ev.goodRebound) g.goodRebounds++;
+        if(hd){ g.hdShots++; g.hdSaves++; }
         break;
       case 'goal':
         g.shots++; g.goalsAgainst++;
+        if(hd) g.hdShots++;
         break;
       case 'soft_goal':
         g.shots++; g.goalsAgainst++; g.softGoals++;
+        if(hd) g.hdShots++;
         break;
       case 'big_save':
         g.shots++; g.saves++; g.bigSaves++;
         if(ev.goodRebound) g.goodRebounds++;
+        if(hd){ g.hdShots++; g.hdSaves++; }
         break;
       case 'bad_rebound':
         g.shots++; g.saves++; g.badRebounds++;
+        if(hd){ g.hdShots++; g.hdSaves++; }
         break;
       case 'smother':
         g.smothers++;
@@ -2435,12 +2442,20 @@ function buildGoalieBreakdownTable(goalieStats){
     if(Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
     return String(a.id).localeCompare(String(b.id));
   });
-  let html = '<table><tr><th>Goalie</th><th>Saves</th><th>SV%</th><th>BS</th><th>Sm</th><th>Soft</th><th>GA</th></tr>';
+  let html = '<table><tr><th>Goalie</th><th>Saves</th><th>SV%</th><th>BS</th><th>Sm</th><th>Soft</th><th>GA</th><th>HD SV%</th><th>Reb Ctrl</th><th>Soft%</th></tr>';
   for(const g of rows){
     const label = isNumStr(String(g.id)) ? '#' + g.id : g.id;
     const sv = g.shots > 0 ? (g.saves/g.shots).toFixed(3).slice(1) : '—';
     const saveLine = `${g.saves}/${g.shots}`;
-    html += `<tr><td>${label}</td><td>${saveLine}</td><td>${sv}</td><td>${g.bigSaves}</td><td>${g.smothers}</td><td>${g.softGoals}</td><td>${g.goalsAgainst}</td></tr>`;
+    const hdShots = Number(g.hdShots) || 0;
+    const hdSaves = Number(g.hdSaves) || 0;
+    const hdSv = hdShots > 0 ? (hdSaves/hdShots).toFixed(3).slice(1) : '—';
+    const good = Number(g.goodRebounds) || 0;
+    const bad = Number(g.badRebounds) || 0;
+    const rebDenom = good + bad;
+    const rebCtrl = rebDenom > 0 ? Math.round(100 * good / rebDenom) + '%' : '—';
+    const soft = g.goalsAgainst > 0 ? Math.round(100 * g.softGoals / g.goalsAgainst) + '%' : '—';
+    html += `<tr><td>${label}</td><td>${saveLine}</td><td>${sv}</td><td>${g.bigSaves}</td><td>${g.smothers}</td><td>${g.softGoals}</td><td>${g.goalsAgainst}</td><td>${hdSv}</td><td>${rebCtrl}</td><td>${soft}</td></tr>`;
   }
   html += '</table>';
   return html;

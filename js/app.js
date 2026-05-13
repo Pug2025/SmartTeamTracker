@@ -5163,14 +5163,52 @@ async function resetSeasonStats(){
     showStatusToast('Failed to reset season stats', 'error', 3500);
   }
 }
+const seasonSelectors = { dashboard: 'current', history: 'current', playerStats: 'current' };
+async function fetchSeasonsList(){
+  const { userId, teamId } = getGameQueryScope();
+  if(!teamId) return { seasons: [], currentCount: 0 };
+  const params = ['seasons_list=1', 'team_id=' + encodeURIComponent(teamId)];
+  if(userId) params.push('user_id=' + encodeURIComponent(userId));
+  const res = await fetch('/api/games?' + params.join('&'), { cache:'no-store', headers: await authHeaders() });
+  const data = await res.json();
+  if(!data.success) throw new Error(data.error || 'Seasons list failed');
+  return { seasons: data.seasons || [], currentCount: data.currentCount || 0 };
+}
+function populateSeasonSelect(selectEl, listing, currentValue){
+  const seasons = listing.seasons || [];
+  const opts = ['<option value="current">Current Season</option>'];
+  for(const s of seasons){
+    const label = `${escapeHTML(s.season)} (${s.count})`;
+    opts.push(`<option value="${escapeHTML(s.season)}">${label}</option>`);
+  }
+  if(seasons.length > 0){
+    opts.push('<option value="all">All Seasons</option>');
+  }
+  selectEl.innerHTML = opts.join('');
+  // Honor the caller's selection if it still exists; otherwise fall back to
+  // current. Past seasons can disappear if all their games are deleted.
+  const wanted = currentValue || 'current';
+  const exists = Array.from(selectEl.options).some(o => o.value === wanted);
+  selectEl.value = exists ? wanted : 'current';
+  return selectEl.value;
+}
 async function loadSeasonPanel(){
   $('seasonPanel').style.display = 'block';
   $('seasonBody').innerHTML = SKELETON_HTML;
   try{
-    const games = await fetchScopedGames(100);
-    $('btnSeasonReset').classList.toggle('hidden', !games.length);
+    const listing = await fetchSeasonsList();
+    const hasPast = (listing.seasons || []).length > 0;
+    $('seasonSelectorRow').classList.toggle('hidden', !hasPast);
+    const selected = populateSeasonSelect($('seasonSelect'), listing, seasonSelectors.dashboard);
+    seasonSelectors.dashboard = selected;
+    const games = await fetchScopedGames(500, selected);
+    // Reset Season only acts on the current season's games, so hide the
+    // button outside of that selector value.
+    $('btnSeasonReset').classList.toggle('hidden', !(selected === 'current' && games.length));
     if(!games.length){
-      $('seasonBody').innerHTML = NO_GAMES_MESSAGE;
+      $('seasonBody').innerHTML = selected === 'current'
+        ? NO_GAMES_MESSAGE
+        : '<div class="text-center" style="padding:20px;">No games in this season.</div>';
       return;
     }
     renderSeasonDashboard(games);
@@ -5826,6 +5864,10 @@ $('btnSeason').addEventListener('click', async ()=>{
 });
 $('btnSeasonClose').addEventListener('click', ()=>{ $('seasonPanel').style.display='none'; });
 $('btnSeasonReset').addEventListener('click', resetSeasonStats);
+$('seasonSelect').addEventListener('change', async (e) => {
+  seasonSelectors.dashboard = e.target.value || 'current';
+  await loadSeasonPanel();
+});
 $('endSeasonCancel').addEventListener('click', ()=>{ $('endSeasonModal').style.display='none'; });
 $('endSeasonConfirm').addEventListener('click', confirmEndSeason);
 $('endSeasonNameInput').addEventListener('input', () => {

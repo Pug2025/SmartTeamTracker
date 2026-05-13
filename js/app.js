@@ -4067,6 +4067,7 @@ function renderTeamList() {
       </div>
       <div class="team-item-actions">
         <button class="btn-edit" data-id="${t.id}">Edit</button>
+        <button class="btn-end-season" data-id="${t.id}">End Season</button>
         <button class="btn-del" data-id="${t.id}">Del</button>
       </div>
     </div>`;
@@ -4076,6 +4077,7 @@ function renderTeamList() {
   $('teamList').onclick = function(e) {
     const TM = getTeamManager();
     const editBtn = e.target.closest('.btn-edit');
+    const endBtn = e.target.closest('.btn-end-season');
     const delBtn = e.target.closest('.btn-del');
     const row = e.target.closest('.team-list-item');
 
@@ -4083,6 +4085,11 @@ function renderTeamList() {
       e.stopPropagation();
       const team = TM.loadTeams().find(t => t.id === editBtn.dataset.id);
       if (team) showTeamForm(team);
+      return;
+    }
+    if (endBtn) {
+      e.stopPropagation();
+      openEndSeasonModal(endBtn.dataset.id);
       return;
     }
     if (delBtn) {
@@ -4118,7 +4125,6 @@ function showTeamForm(team) {
     $('teamRosterInput').value = (team.roster || []).join('\n');
     $('teamGoaliesInput').value = (team.goalies || []).join('\n');
     form.dataset.editId = team.id;
-    $('teamSeasonSection').classList.remove('hidden');
   } else {
     $('teamFormTitle').textContent = 'Add New Team';
     $('teamNameInput').value = '';
@@ -4126,7 +4132,6 @@ function showTeamForm(team) {
     $('teamRosterInput').value = '';
     $('teamGoaliesInput').value = '';
     form.dataset.editId = '';
-    $('teamSeasonSection').classList.add('hidden');
   }
   $('teamNameInput').focus();
 }
@@ -5821,25 +5826,6 @@ $('btnSeason').addEventListener('click', async ()=>{
 });
 $('btnSeasonClose').addEventListener('click', ()=>{ $('seasonPanel').style.display='none'; });
 $('btnSeasonReset').addEventListener('click', resetSeasonStats);
-$('btnEndSeason').addEventListener('click', () => {
-  const teamId = $('teamForm').dataset.editId || '';
-  if(!teamId){
-    showStatusToast('Save the team first, then end its season.', 'warn', 2800);
-    return;
-  }
-  openEndSeasonModal(teamId);
-});
-$('seasonBody').addEventListener('click', (e) => {
-  const btn = e.target.closest('#dashboardEndSeasonBtn');
-  if(!btn) return;
-  const TM = window.TeamManager;
-  const teamId = TM && TM.getActiveTeamId ? TM.getActiveTeamId() : null;
-  if(!teamId){
-    showStatusToast('No active team.', 'error', 2800);
-    return;
-  }
-  openEndSeasonModal(teamId);
-});
 $('endSeasonCancel').addEventListener('click', ()=>{ $('endSeasonModal').style.display='none'; });
 $('endSeasonConfirm').addEventListener('click', confirmEndSeason);
 $('endSeasonNameInput').addEventListener('input', () => {
@@ -6524,14 +6510,6 @@ function renderSeasonDashboard(games){
       <div class="spark-overlay">${sparkline(gfTrend,'#4caf50',24)}${sparkline(gaTrend,'#ff453a',24)}</div>
     </div>`;
   }
-
-  // End Season card — the natural close-out action after reviewing the
-  // season. Mirrors the one inside Team Manager's per-team edit form.
-  html += `<div class="team-season-section" style="margin-top:16px;">
-    <div class="team-season-label">End of Season</div>
-    <div class="small team-season-hint">Done with this season? Archive these games so next season starts fresh. Roster and goalies carry over.</div>
-    <button class="btn-std" id="dashboardEndSeasonBtn" type="button">End Season…</button>
-  </div>`;
 
   $('seasonBody').innerHTML = html;
 }

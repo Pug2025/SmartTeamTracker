@@ -730,6 +730,7 @@
       <div class="setup-panel-head">
         <h3 class="modal-title">Season Dashboard</h3>
         <div class="setup-panel-actions">
+          <button class="btn-std setup-panel-btn hidden" id="btnEndSeason" type="button">End Season</button>
           <button class="btn-std btn-danger-ghost setup-panel-btn hidden" id="btnSeasonReset" type="button">Reset Season</button>
           <button class="btn-std setup-panel-btn" id="btnSeasonClose" type="button">Close</button>
         </div>
@@ -1134,6 +1135,17 @@
   <div class="small mb-md">New goalie in net</div>
   <div class="pickerGrid picker-1col" id="goalieSwitchGrid"></div>
   <div class="rowbtn"><button class="btn-std" id="goalieSwitchCancel">Cancel</button></div>
+</div></div>
+
+<!-- End Season prompt -->
+<div class="modal" id="endSeasonModal"><div class="box">
+  <div class="modal-title mb-md">End the season?</div>
+  <div class="small mb-md" id="endSeasonBody">Archive current-season games under this name:</div>
+  <input type="text" id="endSeasonNameInput" class="textarea-dark" style="width:100%; padding:10px 12px; box-sizing:border-box; font-size:14px;" maxlength="60" />
+  <div class="rowbtn" style="margin-top:14px;">
+    <button class="btn-std" id="endSeasonCancel" type="button">Cancel</button>
+    <button class="btn-std" id="endSeasonConfirm" type="button">End Season</button>
+  </div>
 </div></div>
 
 <!-- High Danger prompt -->

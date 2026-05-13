@@ -5162,6 +5162,8 @@ async function loadSeasonPanel(){
   try{
     const games = await fetchScopedGames(100);
     $('btnSeasonReset').classList.toggle('hidden', !games.length);
+    $('btnEndSeason').classList.toggle('hidden', !games.length);
+    $('seasonPanel')._currentGames = games;
     if(!games.length){
       $('seasonBody').innerHTML = NO_GAMES_MESSAGE;
       return;
@@ -5172,9 +5174,28 @@ async function loadSeasonPanel(){
     $('seasonBody').innerHTML = '<div class="text-center" style="padding:20px; color:var(--accent-them);">Failed to load. Check your connection.</div>';
   }
 }
+function suggestSeasonName(dateStr){
+  // Hockey season convention: month >= 8 (Aug+) → start of YYYY-YY+1.
+  // Otherwise → previous year start. Falls back to today.
+  let d = null;
+  if(dateStr && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)){
+    const [y, m, day] = dateStr.split('-').map(Number);
+    d = new Date(y, m - 1, day);
+  }
+  if(!d || isNaN(d.getTime())) d = new Date();
+  const month = d.getMonth() + 1;
+  const year = d.getFullYear();
+  const startYear = month >= 8 ? year : year - 1;
+  const endYY = String(startYear + 1).slice(-2);
+  return `${startYear}–${endYY}`;
+}
 async function refreshSeasonPanelIfOpen(){
   if($('seasonPanel').style.display !== 'block') return;
   await loadSeasonPanel();
+}
+async function refreshHistoryPanelIfOpen(){
+  if($('historyPanel').style.display !== 'block') return;
+  await loadHistoryPanel();
 }
 async function loadPlayerStatsPanel(){
   $('playerStatsPanel').style.display = 'block';
@@ -5800,6 +5821,63 @@ $('btnSeason').addEventListener('click', async ()=>{
 });
 $('btnSeasonClose').addEventListener('click', ()=>{ $('seasonPanel').style.display='none'; });
 $('btnSeasonReset').addEventListener('click', resetSeasonStats);
+$('btnEndSeason').addEventListener('click', openEndSeasonModal);
+$('endSeasonCancel').addEventListener('click', ()=>{ $('endSeasonModal').style.display='none'; });
+$('endSeasonConfirm').addEventListener('click', confirmEndSeason);
+$('endSeasonNameInput').addEventListener('input', () => {
+  const v = $('endSeasonNameInput').value.trim();
+  $('endSeasonConfirm').disabled = !v;
+});
+function openEndSeasonModal(){
+  const games = $('seasonPanel')._currentGames || [];
+  if(!games.length){
+    showStatusToast('Nothing to archive.', 'warn', 2400);
+    return;
+  }
+  const TM = window.TeamManager;
+  const team = TM && TM.getActiveTeam ? TM.getActiveTeam() : null;
+  const teamName = (team && team.name) || 'Your team';
+  // games are newest-first from the API; first entry is the latest played.
+  const newest = (games[0] && (games[0].data?.Date || games[0].date)) || '';
+  const suggested = suggestSeasonName(newest);
+  $('endSeasonBody').textContent = `${teamName} has ${games.length} game${games.length === 1 ? '' : 's'} in the current season. Archive them under this name:`;
+  $('endSeasonNameInput').value = suggested;
+  $('endSeasonConfirm').disabled = false;
+  $('endSeasonModal').style.display = 'flex';
+  setTimeout(() => $('endSeasonNameInput').focus(), 30);
+}
+async function confirmEndSeason(){
+  const seasonName = $('endSeasonNameInput').value.trim();
+  if(!seasonName) return;
+  const TM = window.TeamManager;
+  const teamId = TM && TM.getActiveTeamId ? TM.getActiveTeamId() : null;
+  if(!teamId){
+    showStatusToast('No active team.', 'error', 3000);
+    return;
+  }
+  $('endSeasonConfirm').disabled = true;
+  try{
+    const res = await fetch('/api/end-season', {
+      method: 'POST',
+      headers: await authHeaders(),
+      body: JSON.stringify({ teamId, seasonName })
+    });
+    const data = await res.json().catch(() => ({}));
+    if(!res.ok || !data.success){
+      throw new Error(data.error || 'End Season failed');
+    }
+    $('endSeasonModal').style.display = 'none';
+    showStatusToast(`${data.archived} game${data.archived === 1 ? '' : 's'} archived as ${data.seasonName}.`, 'success', 3200);
+    invalidateSetupGamesCache();
+    await loadSeasonPanel();
+    await refreshHistoryPanelIfOpen();
+    await refreshPlayerStatsPanelIfOpen();
+  }catch(e){
+    console.error(e);
+    showStatusToast(e.message || 'End Season failed', 'error', 3500);
+    $('endSeasonConfirm').disabled = false;
+  }
+}
 $('btnPlayerStats').addEventListener('click', async ()=>{
   if(!getActiveTeamSafe()){
     showStatusToast('Add your team to view player stats.', 'warn', 3200);

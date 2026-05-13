@@ -366,6 +366,7 @@ const state = {
     forcedTurnovers:0
   },
   roster:[],
+  goalies:[],
   lastEventId:0,
   // Wall-clock timestamps (ms) for when each period started. Persisted to
   // localStorage so the live "P2 · 14 min" stays accurate across page reloads.
@@ -3021,10 +3022,62 @@ function removeRosterNumber(num){
 }
 function openRoster(){
   renderRosterList();
+  renderGoalieList();
   $('rosterModal').style.display='flex';
   $('rosterAddInput').value = '';
+  $('goalieAddInput').value = '';
 }
 function closeRoster(){ $('rosterModal').style.display='none'; }
+
+/* Goalies (mirrors roster helpers but accepts non-numeric entries — 4v4
+ * teams may not use jersey numbers, so the goalie input is free text.) */
+function renderGoalieList(){
+  const list = $('goalieList');
+  const goalies = state.goalies || [];
+  if(!goalies.length){
+    list.innerHTML = '<div class="roster-empty">No goalies yet. Add jersey #s or names below.</div>';
+    return;
+  }
+  list.innerHTML = goalies.map(n =>
+    `<div class="roster-entry" data-n="${n}">
+      <span class="roster-number">${isNumStr(String(n)) ? '#' + n : n}</span>
+      <button class="goalie-remove" type="button" aria-label="Remove ${n}">&times;</button>
+    </div>`
+  ).join('');
+}
+function persistGoalies(){
+  if (window.TeamManager && typeof window.TeamManager.getActiveTeamId === 'function') {
+    const id = window.TeamManager.getActiveTeamId();
+    if (id) window.TeamManager.updateTeam(id, { goalies: state.goalies });
+  }
+  save();
+}
+function parseGoalieInput(raw){
+  // Free-text: numbers or names. Split on whitespace/commas/semicolons.
+  return String(raw||'').split(/[,;\t\n]+/).map(x=>x.trim()).filter(x=>x.length > 0);
+}
+function addGoalieEntries(raw){
+  const items = parseGoalieInput(raw);
+  if(!items.length) return false;
+  const set = new Set((state.goalies||[]).map(x=>String(x).trim()));
+  let added = 0;
+  for(const n of items){ if(!set.has(n)){ set.add(n); added++; } }
+  if(!added) return false;
+  state.goalies = [...set];
+  persistGoalies();
+  renderGoalieList();
+  return true;
+}
+function removeGoalieEntry(num){
+  state.goalies = (state.goalies||[]).filter(x => String(x).trim() !== String(num).trim());
+  // If the active goalie was just removed, clear it so the next event won't
+  // tag a stranger. The pre-game / live picker (Step 3+) will re-select.
+  if(state.activeGoalie && String(state.activeGoalie).trim() === String(num).trim()){
+    state.activeGoalie = null;
+  }
+  persistGoalies();
+  renderGoalieList();
+}
 
 /* Player picker flow (supports scorer + assist) */
 let pickerFlow = {mode:null, pendingGoalEv:null};
@@ -3637,12 +3690,14 @@ function applyActiveTeam() {
   const team = TM.getActiveTeam();
   if (team) {
     state.roster = Array.isArray(team.roster) ? [...team.roster] : [];
+    state.goalies = Array.isArray(team.goalies) ? [...team.goalies] : [];
     state.level = team.level || state.level;
     $('level').value = state.level;
     try { localStorage.setItem(ROSTER_KEY, JSON.stringify(state.roster)); } catch (_) {}
     save();
   } else {
     state.roster = [];
+    state.goalies = [];
     try { localStorage.setItem(ROSTER_KEY, JSON.stringify(state.roster)); } catch (_) {}
   }
   refreshTeamUI();
@@ -3941,6 +3996,21 @@ $('rosterList').addEventListener('click', function(e){
   const entry = btn.closest('.roster-entry');
   if(!entry) return;
   removeRosterNumber(entry.dataset.n);
+});
+$('btnGoalieAdd').onclick=function(){
+  const inp = $('goalieAddInput');
+  if(addGoalieEntries(inp.value)) inp.value = '';
+  inp.focus();
+};
+$('goalieAddInput').addEventListener('keydown', function(e){
+  if(e.key === 'Enter'){ e.preventDefault(); $('btnGoalieAdd').click(); }
+});
+$('goalieList').addEventListener('click', function(e){
+  const btn = e.target.closest('.goalie-remove');
+  if(!btn) return;
+  const entry = btn.closest('.roster-entry');
+  if(!entry) return;
+  removeGoalieEntry(entry.dataset.n);
 });
 
 /* High Danger modal logic — auto-dismisses after 2s (defaults to No) */

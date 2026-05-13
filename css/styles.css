@@ -3477,7 +3477,7 @@
   font-weight:700;
 }
 .roster-number{ color:#e6edf5; }
-.roster-remove{
+.roster-remove, .goalie-remove{
   background:none;
   border:none;
   color:var(--muted);
@@ -3487,7 +3487,8 @@
   line-height:1;
   transition:color 0.15s;
 }
-.roster-remove:hover,.roster-remove:active{ color:var(--accent-them); }
+.roster-remove:hover,.roster-remove:active,
+.goalie-remove:hover,.goalie-remove:active{ color:var(--accent-them); }
 .roster-empty{
   color:var(--muted);
   font-size:12px;

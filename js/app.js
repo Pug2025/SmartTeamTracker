@@ -3494,6 +3494,19 @@ function applyActiveTeam() {
   }
   refreshTeamUI();
 }
+
+/* Expose UI hooks so the TeamManager cloud sync can repaint after pulling */
+/* fresh data. These are no-ops until app.js has finished initializing.    */
+window.refreshTeamUI = refreshTeamUI;
+window.applyActiveTeam = applyActiveTeam;
+window.refreshTeamModalIfOpen = function() {
+  try {
+    if ($('teamModal') && $('teamModal').style.display === 'flex') {
+      renderTeamList();
+    }
+  } catch (e) { console.error(e); }
+};
+
 window.onAuthReady = (user) => {
   invalidateSetupGamesCache();
   setupOpponentsLoadToken += 1;
@@ -3502,6 +3515,12 @@ window.onAuthReady = (user) => {
   refreshPlayerStatsPanelIfOpen().catch(err => console.error(err));
   if($('historyPanel').style.display === 'block'){
     loadHistoryPanel().catch(err => console.error(err));
+  }
+  // Pull teams from cloud so they appear on new devices. Fire-and-forget —
+  // failures fall back to localStorage. Skipped automatically for guests.
+  const TM = getTeamManager();
+  if (user && TM && typeof TM.syncFromCloud === 'function') {
+    TM.syncFromCloud().catch(err => console.error('Team sync failed:', err));
   }
   // 7B: Guest-to-account migration check
   if(user) checkGuestMigration();

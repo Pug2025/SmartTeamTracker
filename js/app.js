@@ -2248,6 +2248,51 @@ function compBar(label, score, color){
 }
 
 /**
+ * Special teams helpers — derive PP/PK conversion from event strength tags.
+ *
+ * Strength values on events: 'EV', 'PP' (our power play), 'SH' (we are
+ * shorthanded — i.e. opponent is on the power play). So:
+ *  - Our goal during PP   → for_goal + strength='PP' → counts as PP goal for us
+ *  - Their goal during SH → goal/soft_goal + strength='SH' → counts as PP
+ *    goal against us (we failed to kill)
+ *
+ * Opportunities come straight from team-level penalty counts:
+ *  - PP opps = penalties drawn by us
+ *  - PK opps = penalties taken by us
+ *
+ * Returns { ppGF, ppGA, ppOpps, pkOpps }.
+ */
+function computeSpecialTeams(){
+  let ppGF = 0, ppGA = 0;
+  for(const ev of state.events){
+    if(!ev) continue;
+    if(ev.type === 'for_goal' && ev.strength === 'PP') ppGF++;
+    else if((ev.type === 'goal' || ev.type === 'soft_goal') && ev.strength === 'SH') ppGA++;
+  }
+  return {
+    ppGF,
+    ppGA,
+    ppOpps: state.team.penaltiesFor || 0,
+    pkOpps: state.team.penaltiesAgainst || 0
+  };
+}
+
+/**
+ * Build the HTML for the Special Teams summary section. Returns the inner
+ * grid markup (two tiles) or '' if there's nothing to show. Caller toggles
+ * the wrapper visibility based on whether this returned content.
+ */
+function buildSpecialTeamsGrid({ ppGF, ppGA, ppOpps, pkOpps }){
+  if(!ppOpps && !pkOpps) return '';
+  const ppPct = ppOpps ? Math.round(100 * ppGF / ppOpps) + '%' : '—';
+  const ppSub = ppOpps ? `${ppGF} of ${ppOpps}` : 'No PP';
+  const kills = Math.max(0, pkOpps - ppGA);
+  const pkPct = pkOpps ? Math.round(100 * kills / pkOpps) + '%' : '—';
+  const pkSub = pkOpps ? `${kills} of ${pkOpps} killed` : 'No PK';
+  return `${tile('PP %', ppPct, ppSub)}${tile('PK %', pkPct, pkSub)}`;
+}
+
+/**
  * Render the Key Takeaway callout — a single coaching sentence on the
  * post-game summary identifying the lowest Team Score component, with a
  * plain-language reason drawn from the underlying stats. Hidden when there
@@ -2450,6 +2495,16 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
   gbHTML += '</div>';
   $('sumGoalBreakdowns').innerHTML = gbHTML;
 
+  // === Special Teams (PP% / PK%) ===
+  const st = computeSpecialTeams();
+  const stHTML = buildSpecialTeamsGrid(st);
+  if(stHTML){
+    $('sumSpecialTeamsWrap').style.display = '';
+    $('sumSpecialTeamsGrid').innerHTML = stHTML;
+  } else {
+    $('sumSpecialTeamsWrap').style.display = 'none';
+  }
+
   // === Strength Breakdown ===
   const sb = computeStrengthBreakdown();
   const hasStrength = (sb.for.EV||0)+(sb.for.PP||0)+(sb.for.SH||0)+(sb.against.EV||0)+(sb.against.PP||0)+(sb.against.SH||0) > 0;
@@ -2565,6 +2620,12 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
     GA_DZ: gaStats.DZ,
     GA_BR: gaStats.BR,
     GA_Other: gaStats.Other,
+    // Special teams — backward compatible; old games omit these fields and
+    // historic summary defaults them to 0/—.
+    PP_GF: st.ppGF,
+    PP_GA: st.ppGA,
+    PP_Opps: st.ppOpps,
+    PK_Opps: st.pkOpps,
     players: buildSavedGamePlayerRows()
   };
 
@@ -5162,6 +5223,27 @@ function renderHistoricSummary(game){
       </div>
     </div>`;
 
+  // Special Teams (PP/PK) — only when the saved game has the fields. Old
+  // games predate this and just omit the section.
+  let specialHTML = '';
+  const _ppOpps = Number(d.PP_Opps || 0);
+  const _pkOpps = Number(d.PK_Opps || 0);
+  if(_ppOpps || _pkOpps){
+    const _stGrid = buildSpecialTeamsGrid({
+      ppGF:   Number(d.PP_GF || 0),
+      ppGA:   Number(d.PP_GA || 0),
+      ppOpps: _ppOpps,
+      pkOpps: _pkOpps
+    });
+    if(_stGrid){
+      specialHTML = `
+        <div class="sum-section">
+          <div class="sum-section-label">Special Teams</div>
+          <div class="dashGrid">${_stGrid}</div>
+        </div>`;
+    }
+  }
+
   const totalGA = Number(d.GA_BA||0) + Number(d.GA_DZ||0) + Number(d.GA_BR||0) + Number(d.GA_Other||0);
   let breakdownHTML = '';
   if(totalGA > 0){
@@ -5217,7 +5299,7 @@ function renderHistoricSummary(game){
   }
 
   $('gameDetailBody').innerHTML =
-    headerHTML + ringsHTML + shotsHTML + goalieHTML + defenseHTML + offenseHTML + breakdownHTML + playerHTML;
+    headerHTML + ringsHTML + shotsHTML + goalieHTML + defenseHTML + offenseHTML + specialHTML + breakdownHTML + playerHTML;
 
   setRing(document.getElementById('gdGoalieScoreNum'), document.getElementById('gdGsArc'),
           d.GoalieScore != null ? d.GoalieScore : '—');
@@ -5710,6 +5792,8 @@ function renderSeasonDashboard(games){
   let wins=0, losses=0, ties=0;
   let totalGF=0, totalGA=0, totalSF=0, totalSA=0;
   let totalGK=0, totalTM=0, gkCount=0, tmCount=0;
+  // Special teams totals — accumulate across games that have the fields.
+  let totalPPGF=0, totalPPGA=0, totalPPOpps=0, totalPKOpps=0;
   const gkTrend=[], tmTrend=[], gfTrend=[], gaTrend=[], labels=[];
 
   // Process in chronological order (API returns newest first)
@@ -5721,6 +5805,10 @@ function renderSeasonDashboard(games){
     totalGA += ga;
     totalSF += Number(d.SF)||0;
     totalSA += Number(d.SA)||0;
+    totalPPGF   += Number(d.PP_GF)   || 0;
+    totalPPGA   += Number(d.PP_GA)   || 0;
+    totalPPOpps += Number(d.PP_Opps) || 0;
+    totalPKOpps += Number(d.PK_Opps) || 0;
     if(d.GoalieScore != null){ totalGK += d.GoalieScore; gkCount++; gkTrend.push(d.GoalieScore); }
     if(d.TeamScore != null){ totalTM += d.TeamScore; tmCount++; tmTrend.push(d.TeamScore); }
     gfTrend.push(gf);
@@ -5775,6 +5863,15 @@ function renderSeasonDashboard(games){
     <div class="season-results-row">Recent Results: ${recentResults}</div>
   </div>`;
 
+  // Special teams aggregates — show only when any game has logged PP/PK
+  // data. Older games predate this and would otherwise zero out the rate.
+  const ppPctSeason = totalPPOpps ? Math.round(100*totalPPGF/totalPPOpps)+'%' : '—';
+  const ppPctSub = totalPPOpps ? `${totalPPGF}/${totalPPOpps}` : 'No PP';
+  const pkKills = Math.max(0, totalPKOpps - totalPPGA);
+  const pkPctSeason = totalPKOpps ? Math.round(100*pkKills/totalPKOpps)+'%' : '—';
+  const pkPctSub = totalPKOpps ? `${pkKills}/${totalPKOpps}` : 'No PK';
+  const hasSpecialTeams = totalPPOpps > 0 || totalPKOpps > 0;
+
   // Key stats grid
   html += `<div class="dashGrid" style="margin-top:10px;">
     <div class="dashTile"><div class="k">Avg Goalie</div><div class="v">${avgGK}</div><div class="s">${trendArrow(gkTrend)}</div></div>
@@ -5785,6 +5882,8 @@ function renderSeasonDashboard(games){
     <div class="dashTile"><div class="k">Shooting%</div><div class="v">${shotPct}%</div><div class="s">${totalGF}/${totalSF}</div></div>
     <div class="dashTile"><div class="k">Shot Share</div><div class="v">${shotShare}%</div><div class="s">SF/(SF+SA)</div></div>
     <div class="dashTile"><div class="k">Goal Diff</div><div class="v" style="color:${totalGF-totalGA>=0?'var(--good)':'var(--accent-them)'}">${totalGF-totalGA>=0?'+':''}${totalGF-totalGA}</div></div>
+    ${hasSpecialTeams ? `<div class="dashTile"><div class="k">PP%</div><div class="v">${ppPctSeason}</div><div class="s">${ppPctSub}</div></div>` : ''}
+    ${hasSpecialTeams ? `<div class="dashTile"><div class="k">PK%</div><div class="v">${pkPctSeason}</div><div class="s">${pkPctSub}</div></div>` : ''}
   </div>`;
 
   // Sparklines

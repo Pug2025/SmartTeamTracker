@@ -3924,6 +3924,20 @@ select{
   display:none;
 }
 
+/* Key Takeaway callout — single coaching line on post-game summary */
+.key-takeaway{
+  font-size:12px;
+  line-height:1.5;
+  padding:8px 10px;
+  margin-bottom:10px;
+  background:var(--gray-200);
+  border-left:3px solid var(--accent-us);
+  border-radius:var(--radius-sm);
+  color:var(--ink);
+}
+.key-takeaway.hidden{ display:none; }
+.key-takeaway strong{ color:var(--ink); }
+
 /* Score explain toggle + panel (summary) */
 .score-explain-toggle{
   font-size:11px;

@@ -2227,6 +2227,62 @@ function compBar(label, score, color){
   </div>`;
 }
 
+/**
+ * Render the Key Takeaway callout — a single coaching sentence on the
+ * post-game summary identifying the lowest Team Score component, with a
+ * plain-language reason drawn from the underlying stats. Hidden when there
+ * isn't enough data (fewer than 5 total shots) to be meaningful.
+ */
+function renderKeyTakeaway(T, SF, SA, GF, GA, hdFor, hdAg){
+  const el = $('keyTakeaway');
+  if(!el) return;
+  const totalShots = (SF||0) + (SA||0);
+  if(totalShots < 5){ el.classList.add('hidden'); el.innerHTML = ''; return; }
+
+  // Find the lowest-scoring component
+  const components = [
+    { name: 'Result',         score: T.scoreFin },
+    { name: 'Possession',     score: T.scoreSS },
+    { name: 'Danger Control', score: T.scoreImp },
+    { name: 'Shot Quality',   score: T.scoreSQ || 0 },
+    { name: 'Discipline',     score: T.scoreDiscipline || 0 }
+  ];
+  const lowest = components.slice().sort((a,b) => a.score - b.score)[0];
+
+  // Plain-language reason based on real stats
+  const pf = state.team.penaltiesFor||0;
+  const pa = state.team.penaltiesAgainst||0;
+  let advice;
+  switch(lowest.name){
+    case 'Result':
+      if(GF < GA) advice = `Lost ${GF}–${GA}.`;
+      else if(GF === GA) advice = `Tied ${GF}–${GA}.`;
+      else advice = `Goal differential was tight (${GF}–${GA}).`;
+      break;
+    case 'Possession':
+      if(SF < SA) advice = `Outshot ${SF}–${SA}.`;
+      else advice = `Shot share dipped below 50%.`;
+      break;
+    case 'Danger Control':
+      if(hdAg > hdFor) advice = `Allowed ${hdAg} high-danger chance${hdAg!==1?'s':''} vs ${hdFor} created.`;
+      else advice = `High-danger chances trended the wrong way.`;
+      break;
+    case 'Shot Quality':
+      advice = `Shots came mostly from lower-percentage areas.`;
+      break;
+    case 'Discipline':
+      if(pa > pf) advice = `Took ${pa} penalt${pa!==1?'ies':'y'}, drew ${pf}.`;
+      else if(pa === pf && pa > 0) advice = `${pa} penalt${pa!==1?'ies':'y'} on each side.`;
+      else advice = `Penalties hurt the score.`;
+      break;
+    default:
+      advice = '';
+  }
+
+  el.innerHTML = `<strong>Focus area:</strong> ${lowest.name} (${Math.round(lowest.score)}). ${advice}`;
+  el.classList.remove('hidden');
+}
+
 function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}){
   const K=computeGoalieScore(), T=computeTeamScore();
   const sq = computeShotQuality();
@@ -2265,6 +2321,9 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
     compBar('Danger 20%', T.scoreImp, teamColor(T.scoreImp)) +
     compBar('Quality 20%', T.scoreSQ||0, teamColor(T.scoreSQ||0)) +
     compBar('Discipline 15%', T.scoreDiscipline||0, teamColor(T.scoreDiscipline||0));
+
+  // === Key Takeaway === (lowest Team Score component → plain-language line)
+  renderKeyTakeaway(T, SF, SA, GF, GA, hdFor, hdAg);
 
   // === Goalie Score Component Bars ===
   // Build meaningful bars from goalie data

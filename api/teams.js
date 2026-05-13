@@ -17,6 +17,7 @@ const TEAM_ID_RE = /^t_[a-z0-9]{1,40}$/i;
 const MAX_NAME_LEN = 80;
 const MAX_LEVEL_LEN = 20;
 const MAX_ROSTER_LEN = 100;
+const MAX_GOALIES_LEN = 20;
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
@@ -100,6 +101,7 @@ export default async function handler(req, res) {
         name: team.name,
         level: team.level,
         roster: team.roster,
+        goalies: team.goalies,
         updated_at: new Date().toISOString()
       };
 
@@ -177,10 +179,17 @@ function validateTeam(body) {
   if (!Array.isArray(roster)) return { error: 'Roster must be an array' };
   if (roster.length > MAX_ROSTER_LEN) return { error: `Too many roster entries (max ${MAX_ROSTER_LEN})` };
 
-  // Light sanitization — preserve existing shape but drop obvious junk.
-  roster = roster.filter((p) => p && typeof p === 'object').map((p) => ({ ...p }));
+  // Roster entries are free-text strings (jersey numbers or names) per
+  // existing app convention. Drop falsy/non-string entries.
+  roster = roster.filter((p) => typeof p === 'string' && p.trim()).map((p) => p.trim());
 
-  return { team: { id, name, level, roster } };
+  let goalies = body.goalies;
+  if (goalies == null) goalies = [];
+  if (!Array.isArray(goalies)) return { error: 'Goalies must be an array' };
+  if (goalies.length > MAX_GOALIES_LEN) return { error: `Too many goalies (max ${MAX_GOALIES_LEN})` };
+  goalies = goalies.filter((p) => typeof p === 'string' && p.trim()).map((p) => p.trim());
+
+  return { team: { id, name, level, roster, goalies } };
 }
 
 // Fallback body reader when Vercel doesn't pre-parse JSON.

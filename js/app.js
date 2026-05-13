@@ -370,7 +370,12 @@ const state = {
   // Wall-clock timestamps (ms) for when each period started. Persisted to
   // localStorage so the live "P2 · 14 min" stays accurate across page reloads.
   // Not synced to cloud — saved games don't carry this.
-  periodStarts:{}
+  periodStarts:{},
+  // Which goalie is currently in net (jersey number or name string from the
+  // active team's goalies array). null when no goalies are configured.
+  // Set at game start (auto if single goalie, picker if multiple) and via
+  // the mid-game Switch Goalie button. Sticky between events until changed.
+  activeGoalie:null
 };
 
 let per = {1:initP(),2:initP(),3:initP(),4:initP()};
@@ -2685,6 +2690,9 @@ function resetCurrentGame(){
   // Reset period timestamps — fresh slate for the new game. Period 1's
   // start is stamped when the game actually begins (see Start Game handler).
   state.periodStarts = {};
+  // Clear who's in net — the next game's start flow will pick (or auto-select
+  // when the team has a single goalie).
+  state.activeGoalie = null;
 
   save();
   validateState('new game reset');
@@ -3544,13 +3552,14 @@ function getTeamManager() {
     return id ? (loadTeams().find(t => t.id === id) || null) : null;
   };
   const makeId = () => 't_' + crypto.randomUUID().replace(/-/g, '').slice(0, 12);
-  const createTeam = (name, level, roster) => {
+  const createTeam = (name, level, roster, goalies) => {
     const teams = loadTeams();
     const team = {
       id: makeId(),
       name: String(name || '').trim(),
       level: level || 'U11',
-      roster: Array.isArray(roster) ? roster : []
+      roster: Array.isArray(roster) ? roster : [],
+      goalies: Array.isArray(goalies) ? goalies : []
     };
     teams.push(team);
     saveTeams(teams);
@@ -3563,6 +3572,7 @@ function getTeamManager() {
     if (updates.name !== undefined) teams[i].name = String(updates.name || '').trim();
     if (updates.level !== undefined) teams[i].level = updates.level;
     if (updates.roster !== undefined) teams[i].roster = updates.roster;
+    if (updates.goalies !== undefined) teams[i].goalies = Array.isArray(updates.goalies) ? updates.goalies : [];
     saveTeams(teams);
     return teams[i];
   };

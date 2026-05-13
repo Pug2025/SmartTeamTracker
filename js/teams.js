@@ -40,13 +40,14 @@ function getActiveTeam() {
   return loadTeams().find(t => t.id === id) || null;
 }
 
-function createTeam(name, level, roster) {
+function createTeam(name, level, roster, goalies) {
   const teams = loadTeams();
   const team = {
     id: genTeamId(),
     name: (name || '').trim(),
     level: level || 'U11',
-    roster: Array.isArray(roster) ? roster : []
+    roster: Array.isArray(roster) ? roster : [],
+    goalies: Array.isArray(goalies) ? goalies : []
   };
   teams.push(team);
   saveTeams(teams);
@@ -61,6 +62,7 @@ function updateTeam(id, updates) {
   if (updates.name !== undefined) teams[idx].name = (updates.name || '').trim();
   if (updates.level !== undefined) teams[idx].level = updates.level;
   if (updates.roster !== undefined) teams[idx].roster = updates.roster;
+  if (updates.goalies !== undefined) teams[idx].goalies = Array.isArray(updates.goalies) ? updates.goalies : [];
   saveTeams(teams);
   pushTeam(teams[idx]);
   return teams[idx];
@@ -146,7 +148,8 @@ function pushTeam(team) {
       id: team.id,
       name: team.name,
       level: team.level,
-      roster: team.roster
+      roster: team.roster,
+      goalies: team.goalies || []
     }
   });
 }
@@ -246,7 +249,8 @@ function normalizeTeam(row) {
     id: row.id,
     name: typeof row.name === 'string' ? row.name : '',
     level: typeof row.level === 'string' && row.level ? row.level : 'U11',
-    roster: Array.isArray(row.roster) ? row.roster : []
+    roster: Array.isArray(row.roster) ? row.roster : [],
+    goalies: Array.isArray(row.goalies) ? row.goalies : []
   };
 }
 

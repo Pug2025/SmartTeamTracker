@@ -249,10 +249,8 @@ Done at each step on both Mac and iPhone:
   saved games are from a season that's done and don't need this. Confirmed
   out of scope.
 
-## Open questions (none blocking — flag if any of these change before code starts)
+## Locked decisions on UI copy
 
-- Naming the chip: "In net: #31" vs "Goalie: #31" — small cosmetic call.
-  My default: **In net** (more rink-side natural).
-- Confirm dialog on Switch Goalie? Picker is already deliberate; I'd skip
-  a second confirm to keep it fast. If you want one for safety (so you
-  don't tap by mistake), I can add.
+- Chip label: **"Goalie: #31"**.
+- Switch confirm prompt: **"Are you sure you want to switch the goalie?"** —
+  shown after the picker selection, before the active goalie actually changes.

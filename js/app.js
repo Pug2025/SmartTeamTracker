@@ -2004,8 +2004,8 @@ function updateMeta(){
   if(F.shots > 0) $('hdForSub').textContent = Math.round(100*hdFor/F.shots)+'% of SF';
   if(A.shots > 0) $('hdAgSub').textContent = Math.round(100*hdAg/A.shots)+'% of SA';
   const mcFor = state.team.missedChancesFor||0, mcAg = state.team.missedChancesAgainst||0;
-  $('missedChanceVal').textContent = mcFor + mcAg;
-  $('missedSub').textContent = mcFor + ' for, ' + mcAg + ' ag';
+  $('missedChanceUsVal').textContent = mcFor;
+  $('missedChanceThemVal').textContent = mcAg;
 
   const shootPct = F.shots ? (F.goals/F.shots).toFixed(3).slice(1) : '—';
   $('shootPctVal').textContent = shootPct;

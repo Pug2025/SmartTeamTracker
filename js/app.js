@@ -3907,6 +3907,15 @@ function applyActiveTeam() {
     try { localStorage.setItem(ROSTER_KEY, JSON.stringify(state.roster)); } catch (_) {}
   }
   refreshTeamUI();
+  // If any of the team-scoped review panels are open, reload them so they
+  // show the newly-active team's data instead of the previous team's. The
+  // *IfOpen helpers no-op when the panel isn't currently visible.
+  invalidateSetupGamesCache();
+  refreshSeasonPanelIfOpen().catch(err => console.error(err));
+  refreshPlayerStatsPanelIfOpen().catch(err => console.error(err));
+  if($('historyPanel') && $('historyPanel').style.display === 'block'){
+    loadHistoryPanel().catch(err => console.error(err));
+  }
 }
 
 /* Expose UI hooks so the TeamManager cloud sync can repaint after pulling */

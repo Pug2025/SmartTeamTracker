@@ -2442,7 +2442,7 @@ function buildGoalieBreakdownTable(goalieStats){
     if(Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
     return String(a.id).localeCompare(String(b.id));
   });
-  let html = '<table><tr><th>Goalie</th><th>Saves</th><th>SV%</th><th>BS</th><th>Sm</th><th>Soft</th><th>GA</th><th>HD SV%</th><th>Reb Ctrl</th><th>Soft%</th></tr>';
+  let html = '<table><tr><th>Goalie</th><th>Saves</th><th>SV%</th><th>GA</th><th>HD SV%</th><th>Reb Ctrl</th><th>Soft%</th></tr>';
   for(const g of rows){
     const label = isNumStr(String(g.id)) ? '#' + g.id : g.id;
     const sv = g.shots > 0 ? (g.saves/g.shots).toFixed(3).slice(1) : '—';
@@ -2455,7 +2455,7 @@ function buildGoalieBreakdownTable(goalieStats){
     const rebDenom = good + bad;
     const rebCtrl = rebDenom > 0 ? Math.round(100 * good / rebDenom) + '%' : '—';
     const soft = g.goalsAgainst > 0 ? Math.round(100 * g.softGoals / g.goalsAgainst) + '%' : '—';
-    html += `<tr><td>${label}</td><td>${saveLine}</td><td>${sv}</td><td>${g.bigSaves}</td><td>${g.smothers}</td><td>${g.softGoals}</td><td>${g.goalsAgainst}</td><td>${hdSv}</td><td>${rebCtrl}</td><td>${soft}</td></tr>`;
+    html += `<tr><td>${label}</td><td>${saveLine}</td><td>${sv}</td><td>${g.goalsAgainst}</td><td>${hdSv}</td><td>${rebCtrl}</td><td>${soft}</td></tr>`;
   }
   html += '</table>';
   return html;
@@ -6257,7 +6257,7 @@ function renderSeasonDashboard(games){
       if(Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
       return String(a.id).localeCompare(String(b.id));
     });
-    let gTable = '<table><tr><th>Goalie</th><th>GP</th><th>Saves</th><th>SV%</th><th>BS</th><th>Sm</th><th>Soft</th><th>GA</th><th>HD SV%</th><th>Reb Ctrl</th><th>Soft%</th></tr>';
+    let gTable = '<table><tr><th>Goalie</th><th>GP</th><th>Saves</th><th>SV%</th><th>GA</th><th>HD SV%</th><th>Reb Ctrl</th><th>Soft%</th></tr>';
     for(const g of rows){
       const label = isNumStr(String(g.id)) ? '#' + g.id : g.id;
       const sv = g.shots > 0 ? (g.saves/g.shots).toFixed(3).slice(1) : '—';
@@ -6265,7 +6265,7 @@ function renderSeasonDashboard(games){
       const rebDenom = g.goodRebounds + g.badRebounds;
       const rebCtrl = rebDenom > 0 ? Math.round(100 * g.goodRebounds / rebDenom) + '%' : '—';
       const soft = g.goalsAgainst > 0 ? Math.round(100 * g.softGoals / g.goalsAgainst) + '%' : '—';
-      gTable += `<tr><td>${label}</td><td>${g.gp}</td><td>${g.saves}/${g.shots}</td><td>${sv}</td><td>${g.bigSaves}</td><td>${g.smothers}</td><td>${g.softGoals}</td><td>${g.goalsAgainst}</td><td>${hdSv}</td><td>${rebCtrl}</td><td>${soft}</td></tr>`;
+      gTable += `<tr><td>${label}</td><td>${g.gp}</td><td>${g.saves}/${g.shots}</td><td>${sv}</td><td>${g.goalsAgainst}</td><td>${hdSv}</td><td>${rebCtrl}</td><td>${soft}</td></tr>`;
     }
     gTable += '</table>';
     html += `<div class="season-goalie-section" style="margin-top:14px;">

@@ -3773,10 +3773,12 @@ function renderTeamList() {
   $('teamList').innerHTML = teams.map(t => {
     const isActive = t.id === activeId;
     const rosterCount = (t.roster || []).length;
+    const goalieCount = (t.goalies || []).length;
+    const goalieMeta = goalieCount ? ` &bull; ${goalieCount} goalie${goalieCount !== 1 ? 's' : ''}` : '';
     return `<div class="team-list-item${isActive ? ' active' : ''}" data-id="${t.id}">
       <div class="team-item-info">
         <span class="team-item-name">${t.name}</span>
-        <span class="team-item-meta">${t.level} &bull; ${rosterCount} player${rosterCount !== 1 ? 's' : ''}</span>
+        <span class="team-item-meta">${t.level} &bull; ${rosterCount} player${rosterCount !== 1 ? 's' : ''}${goalieMeta}</span>
       </div>
       <div class="team-item-actions">
         <button class="btn-edit" data-id="${t.id}">Edit</button>
@@ -3829,12 +3831,14 @@ function showTeamForm(team) {
     $('teamNameInput').value = team.name;
     $('teamLevelInput').value = team.level || 'U11';
     $('teamRosterInput').value = (team.roster || []).join('\n');
+    $('teamGoaliesInput').value = (team.goalies || []).join('\n');
     form.dataset.editId = team.id;
   } else {
     $('teamFormTitle').textContent = 'Add New Team';
     $('teamNameInput').value = '';
     $('teamLevelInput').value = 'U11';
     $('teamRosterInput').value = '';
+    $('teamGoaliesInput').value = '';
     form.dataset.editId = '';
   }
   $('teamNameInput').focus();
@@ -3855,13 +3859,14 @@ function saveTeamFromForm() {
   if (!name) { $('teamNameInput').focus(); return; }
   const level = $('teamLevelInput').value;
   const rosterRaw = $('teamRosterInput').value.split('\n').map(x => x.trim()).filter(Boolean);
+  const goaliesRaw = $('teamGoaliesInput').value.split('\n').map(x => x.trim()).filter(Boolean);
 
   const editId = $('teamForm').dataset.editId;
   if (editId) {
-    TM.updateTeam(editId, { name, level, roster: rosterRaw });
+    TM.updateTeam(editId, { name, level, roster: rosterRaw, goalies: goaliesRaw });
     if (TM.getActiveTeamId() === editId) applyActiveTeam();
   } else {
-    const team = TM.createTeam(name, level, rosterRaw);
+    const team = TM.createTeam(name, level, rosterRaw, goaliesRaw);
     TM.setActiveTeamId(team.id);
     applyActiveTeam();
   }

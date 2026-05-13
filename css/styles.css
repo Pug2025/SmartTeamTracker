@@ -1310,6 +1310,53 @@
     color:#94a4b4;
     font-size:13px;
   }
+  .history-opp-group{
+    margin-bottom:10px;
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:14px;
+    background:rgba(255,255,255,0.02);
+    overflow:hidden;
+  }
+  .history-opp-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    width:100%;
+    padding:12px 14px;
+    background:transparent;
+    border:0;
+    color:#eef4fb;
+    cursor:pointer;
+    font-family:inherit;
+    text-align:left;
+  }
+  .history-opp-name{
+    font-weight:800;
+    font-size:14px;
+  }
+  .history-opp-stats{
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    font-size:12px;
+    color:#94a4b4;
+    font-weight:700;
+  }
+  .history-opp-record{ color:#cdd6df; }
+  .history-opp-goals{ color:#94a4b4; }
+  .history-opp-chevron{
+    display:inline-block;
+    transition:transform 0.18s ease;
+    font-size:11px;
+    color:#7e8b99;
+  }
+  .history-opp-group.open .history-opp-chevron{ transform:rotate(90deg); }
+  .history-opp-body{
+    display:none;
+    padding:0 10px 10px;
+  }
+  .history-opp-group.open .history-opp-body{ display:block; }
+  .history-opp-body .history-row{ margin-top:8px; }
 
   /* ===== Split Brain Controls ===== */
   .split-grid{

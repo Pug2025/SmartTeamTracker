@@ -5226,7 +5226,7 @@ function renderHistoryView(){
   // it pointing at the full unfiltered set so it works under any filter.
   list._games = games;
   if(historyViewState.filter === 'opp'){
-    list.innerHTML = '<div class="history-empty">By Opponent view coming next.</div>';
+    renderHistoryByOpponent(games);
     return;
   }
   let subset = games;
@@ -5403,8 +5403,77 @@ function renderHistoryFlat(games){
     </div>`;
   }).join('');
 }
+function renderHistoryByOpponent(games){
+  resetHistorySwipeState();
+  const list = $('historyList');
+  const groups = new Map();
+  for(const g of games){
+    const rawName = (g.data && g.data.Opponent) || g.opponent || 'Unknown';
+    const key = normalizeOpponentName(rawName) || '__unknown__';
+    const display = cleanOpponentName(rawName) || 'Unknown';
+    let group = groups.get(key);
+    if(!group){
+      group = { key, display, games: [], newestDate: '' };
+      groups.set(key, group);
+    }
+    group.games.push(g);
+    const d = (g.data && g.data.Date) || g.date || '';
+    if(d && d > group.newestDate) group.newestDate = d;
+  }
+  const sorted = Array.from(groups.values()).sort((a, b) => {
+    if(b.games.length !== a.games.length) return b.games.length - a.games.length;
+    return (b.newestDate || '').localeCompare(a.newestDate || '');
+  });
+  list.innerHTML = sorted.map((group) => {
+    const m = buildMatchupRecord(group.games, group.display) || {
+      wins: 0, losses: 0, ties: 0, totalGF: 0, totalGA: 0
+    };
+    const recordParts = [`${m.wins}W`, `${m.losses}L`];
+    if(m.ties > 0) recordParts.push(`${m.ties}T`);
+    const recordText = recordParts.join('–');
+    const goalsText = `${m.totalGF}–${m.totalGA}`;
+    const innerRows = group.games.map((g) => {
+      const data = g.data || {};
+      const gf = data.GF ?? '?';
+      const ga = data.GA ?? '?';
+      const date = data.Date || g.date || '—';
+      const level = data.Level || g.level || '';
+      const gs = data.GoalieScore != null ? data.GoalieScore : '—';
+      const ts = data.TeamScore != null ? data.TeamScore : '—';
+      const scoreClass = gf > ga ? 'w' : gf < ga ? 'l' : 't';
+      const fullIdx = historyViewState.games.indexOf(g);
+      return `<div class="history-row" data-idx="${fullIdx}" data-id="${g.id}">
+        <button class="history-delete-action" data-id="${g.id}" type="button" aria-label="Delete game">&#128465;</button>
+        <div class="history-item">
+          <div class="history-left">
+            <span class="history-meta">${date} &bull; ${level} &bull; Goalie: ${gs} &middot; Team: ${ts}</span>
+          </div>
+          <div class="history-score"><span class="${scoreClass}">${gf}–${ga}</span></div>
+        </div>
+      </div>`;
+    }).join('');
+    return `<div class="history-opp-group" data-key="${escapeHTML(group.key)}">
+      <button class="history-opp-header" type="button">
+        <span class="history-opp-name">${escapeHTML(group.display)}</span>
+        <span class="history-opp-stats">
+          <span class="history-opp-record">${recordText}</span>
+          <span class="history-opp-goals">${goalsText}</span>
+          <span class="history-opp-chevron">&#9656;</span>
+        </span>
+      </button>
+      <div class="history-opp-body">${innerRows}</div>
+    </div>`;
+  }).join('');
+}
 $('historyList').addEventListener('click', async (e) => {
   if(Date.now() - historySwipe.justSwipedAt < 250) return;
+
+  const oppHeader = e.target.closest('.history-opp-header');
+  if(oppHeader){
+    const group = oppHeader.closest('.history-opp-group');
+    if(group) group.classList.toggle('open');
+    return;
+  }
 
   const deleteBtn = e.target.closest('.history-delete-action');
   if(deleteBtn){

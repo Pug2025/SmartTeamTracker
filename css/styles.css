@@ -2593,6 +2593,21 @@
 }
 .team-form.visible{ display:block; }
 .team-form-title{ font-size:14px; font-weight:700; color:#fff; margin-bottom:8px; }
+.team-season-section{
+  margin-top:14px;
+  padding:12px;
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:10px;
+  background:rgba(255,255,255,0.02);
+}
+.team-season-label{
+  font-size:12px;
+  font-weight:800;
+  color:#cdd6df;
+  letter-spacing:0.04em;
+  margin-bottom:4px;
+}
+.team-season-hint{ margin:0 0 10px; color:#94a4b4; }
 
 /* ===== Live Share Banner ===== */
 @keyframes banner-slide-in{

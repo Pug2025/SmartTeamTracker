@@ -4118,6 +4118,7 @@ function showTeamForm(team) {
     $('teamRosterInput').value = (team.roster || []).join('\n');
     $('teamGoaliesInput').value = (team.goalies || []).join('\n');
     form.dataset.editId = team.id;
+    $('teamSeasonSection').classList.remove('hidden');
   } else {
     $('teamFormTitle').textContent = 'Add New Team';
     $('teamNameInput').value = '';
@@ -4125,6 +4126,7 @@ function showTeamForm(team) {
     $('teamRosterInput').value = '';
     $('teamGoaliesInput').value = '';
     form.dataset.editId = '';
+    $('teamSeasonSection').classList.add('hidden');
   }
   $('teamNameInput').focus();
 }
@@ -5162,8 +5164,6 @@ async function loadSeasonPanel(){
   try{
     const games = await fetchScopedGames(100);
     $('btnSeasonReset').classList.toggle('hidden', !games.length);
-    $('btnEndSeason').classList.toggle('hidden', !games.length);
-    $('seasonPanel')._currentGames = games;
     if(!games.length){
       $('seasonBody').innerHTML = NO_GAMES_MESSAGE;
       return;
@@ -5821,38 +5821,62 @@ $('btnSeason').addEventListener('click', async ()=>{
 });
 $('btnSeasonClose').addEventListener('click', ()=>{ $('seasonPanel').style.display='none'; });
 $('btnSeasonReset').addEventListener('click', resetSeasonStats);
-$('btnEndSeason').addEventListener('click', openEndSeasonModal);
+$('btnEndSeason').addEventListener('click', () => {
+  const teamId = $('teamForm').dataset.editId || '';
+  if(!teamId){
+    showStatusToast('Save the team first, then end its season.', 'warn', 2800);
+    return;
+  }
+  openEndSeasonModal(teamId);
+});
 $('endSeasonCancel').addEventListener('click', ()=>{ $('endSeasonModal').style.display='none'; });
 $('endSeasonConfirm').addEventListener('click', confirmEndSeason);
 $('endSeasonNameInput').addEventListener('input', () => {
   const v = $('endSeasonNameInput').value.trim();
   $('endSeasonConfirm').disabled = !v;
 });
-function openEndSeasonModal(){
-  const games = $('seasonPanel')._currentGames || [];
+async function openEndSeasonModal(teamId){
+  if(!teamId){
+    showStatusToast('No team selected.', 'error', 2400);
+    return;
+  }
+  const { userId } = getGameQueryScope();
+  const params = ['team_id=' + encodeURIComponent(teamId), 'limit=500', 'season=current'];
+  if(userId) params.push('user_id=' + encodeURIComponent(userId));
+  let games = [];
+  try{
+    const res = await fetch('/api/games?' + params.join('&'), { cache:'no-store', headers: await authHeaders() });
+    const data = await res.json();
+    if(!data.success) throw new Error(data.error || 'Fetch failed');
+    games = data.games || [];
+  }catch(e){
+    console.error(e);
+    showStatusToast('Could not load this season’s games.', 'error', 3000);
+    return;
+  }
   if(!games.length){
     showStatusToast('Nothing to archive.', 'warn', 2400);
     return;
   }
   const TM = window.TeamManager;
-  const team = TM && TM.getActiveTeam ? TM.getActiveTeam() : null;
+  const teams = (TM && TM.loadTeams) ? TM.loadTeams() : [];
+  const team = teams.find(t => String(t.id) === String(teamId)) || null;
   const teamName = (team && team.name) || 'Your team';
-  // games are newest-first from the API; first entry is the latest played.
   const newest = (games[0] && (games[0].data?.Date || games[0].date)) || '';
   const suggested = suggestSeasonName(newest);
   $('endSeasonBody').textContent = `${teamName} has ${games.length} game${games.length === 1 ? '' : 's'} in the current season. Archive them under this name:`;
   $('endSeasonNameInput').value = suggested;
   $('endSeasonConfirm').disabled = false;
+  $('endSeasonModal').dataset.teamId = teamId;
   $('endSeasonModal').style.display = 'flex';
   setTimeout(() => $('endSeasonNameInput').focus(), 30);
 }
 async function confirmEndSeason(){
   const seasonName = $('endSeasonNameInput').value.trim();
   if(!seasonName) return;
-  const TM = window.TeamManager;
-  const teamId = TM && TM.getActiveTeamId ? TM.getActiveTeamId() : null;
+  const teamId = $('endSeasonModal').dataset.teamId || '';
   if(!teamId){
-    showStatusToast('No active team.', 'error', 3000);
+    showStatusToast('No team selected.', 'error', 3000);
     return;
   }
   $('endSeasonConfirm').disabled = true;
@@ -5869,7 +5893,7 @@ async function confirmEndSeason(){
     $('endSeasonModal').style.display = 'none';
     showStatusToast(`${data.archived} game${data.archived === 1 ? '' : 's'} archived as ${data.seasonName}.`, 'success', 3200);
     invalidateSetupGamesCache();
-    await loadSeasonPanel();
+    await refreshSeasonPanelIfOpen();
     await refreshHistoryPanelIfOpen();
     await refreshPlayerStatsPanelIfOpen();
   }catch(e){

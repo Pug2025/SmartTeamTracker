@@ -50,18 +50,19 @@ export default async function handler(req, res) {
     if (!rl.allowed) return sendRateLimited(res, rl.retryAfter);
 
     try {
-      const url = `${supabaseUrl}/rest/v1/teams?select=id,name,level,roster,created_at,updated_at&user_id=eq.${encodeURIComponent(uid)}&order=created_at.asc`;
+      const url = `${supabaseUrl}/rest/v1/teams?select=id,name,level,roster,goalies,created_at,updated_at&user_id=eq.${encodeURIComponent(uid)}&order=created_at.asc`;
       const r = await fetch(url, { headers: sbHeaders });
       const data = await r.json();
       if (!r.ok) {
         return res.status(r.status).json({ error: 'Fetch failed', details: data });
       }
-      // Normalize roster: ensure it's always an array
+      // Normalize roster + goalies: always arrays
       const teams = (Array.isArray(data) ? data : []).map((row) => ({
         id: row.id,
         name: row.name,
         level: row.level || 'U11',
         roster: Array.isArray(row.roster) ? row.roster : [],
+        goalies: Array.isArray(row.goalies) ? row.goalies : [],
         updated_at: row.updated_at
       }));
       return res.status(200).json({ success: true, teams });

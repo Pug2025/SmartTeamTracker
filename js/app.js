@@ -2370,6 +2370,83 @@ function compBar(label, score, color){
 }
 
 /**
+ * Per-goalie aggregation — walks state.events and tallies goalie-relevant
+ * events by ev.goalie. Returns an array of goalie stat objects, one per
+ * unique goalie that was tagged on at least one event. Empty array if no
+ * events were tagged (older games before goalie tracking, or zero-goalie
+ * teams).
+ *
+ * Accounting matches bump() exactly so per-goalie totals reconcile with
+ * the team-level aggregate counts:
+ *   shots = shot + goal + soft_goal + big_save + bad_rebound
+ *   saves = shots - (goal + soft_goal)
+ *   smothers tracked separately (not a shot)
+ */
+function computeGoalieBreakdown(){
+  const map = new Map();
+  const ensure = (id) => {
+    if(!map.has(id)){
+      map.set(id, {
+        id: String(id),
+        shots:0, saves:0, goalsAgainst:0,
+        bigSaves:0, smothers:0,
+        goodRebounds:0, badRebounds:0, softGoals:0
+      });
+    }
+    return map.get(id);
+  };
+  for(const ev of state.events){
+    if(!ev || !ev.goalie) continue;
+    const g = ensure(ev.goalie);
+    switch(ev.type){
+      case 'shot':
+        g.shots++; g.saves++;
+        if(ev.goodRebound) g.goodRebounds++;
+        break;
+      case 'goal':
+        g.shots++; g.goalsAgainst++;
+        break;
+      case 'soft_goal':
+        g.shots++; g.goalsAgainst++; g.softGoals++;
+        break;
+      case 'big_save':
+        g.shots++; g.saves++; g.bigSaves++;
+        if(ev.goodRebound) g.goodRebounds++;
+        break;
+      case 'bad_rebound':
+        g.shots++; g.saves++; g.badRebounds++;
+        break;
+      case 'smother':
+        g.smothers++;
+        break;
+    }
+  }
+  return Array.from(map.values());
+}
+
+/**
+ * Build an HTML table of per-goalie stats. Returns '' when there's nothing
+ * to render (caller toggles wrapper visibility).
+ */
+function buildGoalieBreakdownTable(goalieStats){
+  if(!Array.isArray(goalieStats) || goalieStats.length === 0) return '';
+  const rows = goalieStats.slice().sort((a,b) => {
+    const na = Number(a.id), nb = Number(b.id);
+    if(Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
+    return String(a.id).localeCompare(String(b.id));
+  });
+  let html = '<table><tr><th>Goalie</th><th>Saves</th><th>SV%</th><th>BS</th><th>Sm</th><th>Soft</th><th>GA</th></tr>';
+  for(const g of rows){
+    const label = isNumStr(String(g.id)) ? '#' + g.id : g.id;
+    const sv = g.shots > 0 ? (g.saves/g.shots).toFixed(3).slice(1) : '—';
+    const saveLine = `${g.saves}/${g.shots}`;
+    html += `<tr><td>${label}</td><td>${saveLine}</td><td>${sv}</td><td>${g.bigSaves}</td><td>${g.smothers}</td><td>${g.softGoals}</td><td>${g.goalsAgainst}</td></tr>`;
+  }
+  html += '</table>';
+  return html;
+}
+
+/**
  * Special teams helpers — derive PP/PK conversion from event strength tags.
  *
  * Strength values on events: 'EV', 'PP' (our power play), 'SH' (we are
@@ -2568,6 +2645,15 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
     tile('Soft Goals', state.countsA.softGoals) +
     tile('Missed Ch', (state.team.missedChancesAgainst||0), 'Against');
 
+  // === Per-Goalie Breakdown (only when 2+ goalies have logged events) ===
+  const goalieBreakdown = computeGoalieBreakdown();
+  if(goalieBreakdown.length >= 2){
+    $('sumPerGoalieWrap').style.display = '';
+    $('sumPerGoalieBody').innerHTML = buildGoalieBreakdownTable(goalieBreakdown);
+  } else {
+    $('sumPerGoalieWrap').style.display = 'none';
+  }
+
   // === Offensive ===
   $('sumOffenseGrid').innerHTML =
     tile('Breakaways', state.team.breakawaysFor) +
@@ -2748,6 +2834,10 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
     PP_GA: st.ppGA,
     PP_Opps: st.ppOpps,
     PK_Opps: st.pkOpps,
+    // Per-goalie breakdown (Phase 3). Empty array when no events were tagged
+    // (zero-goalie team or older game before goalie tracking). Historic
+    // summary uses presence + length to decide whether to render the table.
+    goalies: goalieBreakdown,
     players: buildSavedGamePlayerRows()
   };
 
@@ -5406,6 +5496,22 @@ function renderHistoricSummary(game){
       </div>
     </div>`;
 
+  // Per-goalie breakdown — only when the saved game has 2+ tagged goalies.
+  // Older games or single-goalie games render the combined Goaltending grid
+  // above and skip this section entirely.
+  const savedGoalies = Array.isArray(d.goalies) ? d.goalies : [];
+  let perGoalieHTML = '';
+  if(savedGoalies.length >= 2){
+    const tbl = buildGoalieBreakdownTable(savedGoalies);
+    if(tbl){
+      perGoalieHTML = `
+        <div class="sum-section">
+          <div class="sum-section-label">By Goalie</div>
+          ${tbl}
+        </div>`;
+    }
+  }
+
   const defenseHTML = `
     <div class="sum-section">
       <div class="sum-section-label dash-label-them">Defensive</div>
@@ -5505,7 +5611,7 @@ function renderHistoricSummary(game){
   }
 
   $('gameDetailBody').innerHTML =
-    headerHTML + ringsHTML + shotsHTML + goalieHTML + defenseHTML + offenseHTML + specialHTML + breakdownHTML + playerHTML;
+    headerHTML + ringsHTML + shotsHTML + goalieHTML + perGoalieHTML + defenseHTML + offenseHTML + specialHTML + breakdownHTML + playerHTML;
 
   setRing(document.getElementById('gdGoalieScoreNum'), document.getElementById('gdGsArc'),
           d.GoalieScore != null ? d.GoalieScore : '—');

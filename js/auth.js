@@ -58,6 +58,11 @@ function showAuthForm() {
 }
 
 function handleLandingGetStarted() {
+  // Hide the landing page first — it has a higher z-index than .modal,
+  // so the welcome modal would otherwise render underneath it and look like nothing happened.
+  const landing = document.getElementById('landingPage');
+  if (landing) landing.style.display = 'none';
+
   const hasSeenWelcome = typeof window.hasSeenWelcomeModal === 'function'
     ? window.hasSeenWelcomeModal()
     : false;

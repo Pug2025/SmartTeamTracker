@@ -6246,7 +6246,7 @@ function renderSeasonDashboard(games){
   let totalGK=0, totalTM=0, gkCount=0, tmCount=0;
   // Special teams totals — accumulate across games that have the fields.
   let totalPPGF=0, totalPPGA=0, totalPPOpps=0, totalPKOpps=0;
-  const gkTrend=[], tmTrend=[], gfTrend=[], gaTrend=[], labels=[];
+  const gkTrend=[], tmTrend=[], gfTrend=[], gaTrend=[], ssTrend=[], labels=[];
 
   // Process in chronological order (API returns newest first)
   const chrono = stats.slice().reverse();
@@ -6255,8 +6255,9 @@ function renderSeasonDashboard(games){
     if(gf > ga) wins++; else if(ga > gf) losses++; else ties++;
     totalGF += gf;
     totalGA += ga;
-    totalSF += Number(d.SF)||0;
-    totalSA += Number(d.SA)||0;
+    const sf = Number(d.SF)||0, sa = Number(d.SA)||0;
+    totalSF += sf;
+    totalSA += sa;
     totalPPGF   += Number(d.PP_GF)   || 0;
     totalPPGA   += Number(d.PP_GA)   || 0;
     totalPPOpps += Number(d.PP_Opps) || 0;
@@ -6265,6 +6266,7 @@ function renderSeasonDashboard(games){
     if(d.TeamScore != null){ totalTM += d.TeamScore; tmCount++; tmTrend.push(d.TeamScore); }
     gfTrend.push(gf);
     gaTrend.push(ga);
+    ssTrend.push((sf+sa) > 0 ? Math.round(100*sf/(sf+sa)) : 0);
     labels.push(d.Opponent ? d.Opponent.substring(0,8) : '?');
   }
 
@@ -6276,13 +6278,18 @@ function renderSeasonDashboard(games){
   const shotPct = totalSF ? ((totalGF/totalSF)*100).toFixed(1) : '—';
   const shotShare = (totalSF+totalSA) ? Math.round((totalSF/(totalSF+totalSA))*100) : '—';
 
-  // Recent form (last 5)
+  // Recent form (last 5) — each chip shows the W/L/T badge plus the score
+  // underneath so a glance gives both the result and how close it was.
   const recent5 = chrono.slice(-5);
   const recentResults = recent5.map(d => {
     const gf = Number(d.GF)||0, ga = Number(d.GA)||0;
-    if(gf > ga) return '<span class="season-result-w">W</span>';
-    if(ga > gf) return '<span class="season-result-l">L</span>';
-    return '<span class="season-result-t">T</span>';
+    let cls = 'season-result-t', letter = 'T';
+    if(gf > ga){ cls = 'season-result-w'; letter = 'W'; }
+    else if(ga > gf){ cls = 'season-result-l'; letter = 'L'; }
+    return `<span class="season-result-cell">
+      <span class="${cls}">${letter}</span>
+      <span class="season-result-score">${gf}–${ga}</span>
+    </span>`;
   }).join('');
 
   // Trend arrows (compare last 3 avg to previous 3 avg)
@@ -6312,7 +6319,8 @@ function renderSeasonDashboard(games){
   html += `<div class="season-record">
     <div class="season-record-main">${wins}W – ${losses}L${ties?' – '+ties+'T':''}</div>
     <div class="season-record-sub">${n} game${n>1?'s':''} played</div>
-    <div class="season-results-row">Recent Results: ${recentResults}</div>
+    <div class="season-results-label">Recent Form</div>
+    <div class="season-results-row">${recentResults}</div>
   </div>`;
 
   // Special teams aggregates — show only when any game has logged PP/PK
@@ -6395,6 +6403,7 @@ function renderSeasonDashboard(games){
     html += `<div class="season-spark-section">
       <div class="season-spark-label">Goalie Score Trend</div>${sparkline(gkTrend,'#4da3ff',30)}
       <div class="season-spark-label" style="margin-top:8px;">Team Score Trend</div>${sparkline(tmTrend,'#4caf50',30)}
+      <div class="season-spark-label" style="margin-top:8px;">Shot Share Trend</div>${sparkline(ssTrend,'#9aa9b8',24)}
       <div class="season-spark-label" style="margin-top:8px;">Goals (green=for, red=against)</div>
       <div class="spark-overlay">${sparkline(gfTrend,'#4caf50',24)}${sparkline(gaTrend,'#ff453a',24)}</div>
     </div>`;

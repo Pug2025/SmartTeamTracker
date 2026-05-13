@@ -2440,7 +2440,27 @@
   display:flex;
   align-items:center;
   justify-content:center;
-  gap:4px;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.season-results-label{
+  margin-top:8px;
+  font-size:11px;
+  color:var(--muted);
+  text-align:center;
+  letter-spacing:0.04em;
+}
+.season-result-cell{
+  display:inline-flex;
+  flex-direction:column;
+  align-items:center;
+  gap:2px;
+}
+.season-result-score{
+  font-size:10px;
+  font-weight:700;
+  color:#cdd6df;
+  line-height:1;
 }
 .season-result-w{
   display:inline-block; width:20px; height:20px; line-height:20px;

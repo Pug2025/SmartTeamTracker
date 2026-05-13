@@ -6198,6 +6198,51 @@ function renderSeasonDashboard(games){
     ${hasSpecialTeams ? `<div class="dashTile"><div class="k">PK%</div><div class="v">${pkPctSeason}</div><div class="s">${pkPctSub}</div></div>` : ''}
   </div>`;
 
+  // === Per-Goalie Season Totals ===
+  // Aggregate each tagged goalie's stats across every game that carries the
+  // Phase 3 `goalies` array. Games that predate goalie tracking just don't
+  // contribute. Renders only when at least one goalie surfaces.
+  const goalieAggMap = new Map();
+  for(const d of chrono){
+    const arr = Array.isArray(d.goalies) ? d.goalies : [];
+    for(const g of arr){
+      if(!g || g.id == null) continue;
+      const key = String(g.id);
+      const cur = goalieAggMap.get(key) || {
+        id: key, gp: 0, shots: 0, saves: 0, goalsAgainst: 0,
+        bigSaves: 0, smothers: 0, goodRebounds: 0, badRebounds: 0, softGoals: 0
+      };
+      cur.gp += 1;
+      cur.shots        += Number(g.shots)        || 0;
+      cur.saves        += Number(g.saves)        || 0;
+      cur.goalsAgainst += Number(g.goalsAgainst) || 0;
+      cur.bigSaves     += Number(g.bigSaves)     || 0;
+      cur.smothers     += Number(g.smothers)     || 0;
+      cur.goodRebounds += Number(g.goodRebounds) || 0;
+      cur.badRebounds  += Number(g.badRebounds)  || 0;
+      cur.softGoals    += Number(g.softGoals)    || 0;
+      goalieAggMap.set(key, cur);
+    }
+  }
+  if(goalieAggMap.size > 0){
+    const rows = Array.from(goalieAggMap.values()).sort((a,b) => {
+      const na = Number(a.id), nb = Number(b.id);
+      if(Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
+      return String(a.id).localeCompare(String(b.id));
+    });
+    let gTable = '<table><tr><th>Goalie</th><th>GP</th><th>Saves</th><th>SV%</th><th>BS</th><th>Sm</th><th>Soft</th><th>GA</th></tr>';
+    for(const g of rows){
+      const label = isNumStr(String(g.id)) ? '#' + g.id : g.id;
+      const sv = g.shots > 0 ? (g.saves/g.shots).toFixed(3).slice(1) : '—';
+      gTable += `<tr><td>${label}</td><td>${g.gp}</td><td>${g.saves}/${g.shots}</td><td>${sv}</td><td>${g.bigSaves}</td><td>${g.smothers}</td><td>${g.softGoals}</td><td>${g.goalsAgainst}</td></tr>`;
+    }
+    gTable += '</table>';
+    html += `<div class="season-goalie-section" style="margin-top:14px;">
+      <div class="season-spark-label" style="margin-bottom:6px;">By Goalie</div>
+      ${gTable}
+    </div>`;
+  }
+
   // Sparklines
   if(gkTrend.length >= 3){
     html += `<div class="season-spark-section">

@@ -5057,7 +5057,7 @@ async function deleteOpponentRecord(opponentId){
   }
   return data;
 }
-function buildGamesApiUrl({ limit = 50, id = null, includeLimit = true, opponent = null } = {}){
+function buildGamesApiUrl({ limit = 50, id = null, includeLimit = true, opponent = null, season = 'current' } = {}){
   const params = [];
   if(includeLimit) params.push('limit=' + encodeURIComponent(String(limit)));
   if(id !== null && id !== undefined) params.push('id=' + encodeURIComponent(String(id)));
@@ -5065,10 +5065,13 @@ function buildGamesApiUrl({ limit = 50, id = null, includeLimit = true, opponent
   const { userId, teamId } = getGameQueryScope();
   if(userId) params.push('user_id=' + encodeURIComponent(userId));
   if(teamId) params.push('team_id=' + encodeURIComponent(teamId));
+  // Single-game id lookups bypass the season filter — the row is identified
+  // by id alone and we still want it whether it's current or archived.
+  if(season && id == null) params.push('season=' + encodeURIComponent(String(season)));
   return '/api/games' + (params.length ? '?' + params.join('&') : '');
 }
-async function fetchScopedGames(limit = 50){
-  const res = await fetch(buildGamesApiUrl({ limit }), { cache:'no-store', headers: await authHeaders() });
+async function fetchScopedGames(limit = 50, season = 'current'){
+  const res = await fetch(buildGamesApiUrl({ limit, season }), { cache:'no-store', headers: await authHeaders() });
   const data = await res.json();
   if(!data.success) throw new Error(data.error || 'Fetch failed');
   return data.games || [];
@@ -5126,7 +5129,7 @@ async function resetSeasonStats(){
     return;
   }
 
-  const ok = await showConfirm('Reset season stats for the active team? This deletes all saved games for that team.');
+  const ok = await showConfirm('Reset stats for the current season? This deletes all current-season games for this team. Past seasons are not affected.');
   if(!ok) return;
 
   try{

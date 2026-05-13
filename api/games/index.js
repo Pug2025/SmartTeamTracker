@@ -19,19 +19,58 @@ export default async function handler(req, res) {
 
   if (req.method === "GET") {
     try {
-      const limit = Math.min(Number(req.query.limit) || 50, 500);
-      // Use verified uid instead of client-supplied user_id
       const userId = uid || req.query.user_id || null;
+      const teamId = req.query.team_id || null;
+      const seasonsListMode = req.query.seasons_list === '1' || req.query.seasons_list === 'true';
+      const seasonFilter = buildSeasonFilter(req.query.season);
 
-      // Build query URL — filter by user_id if provided
-      let queryUrl = `${supabaseUrl}/rest/v1/games?select=id,game_id,date,opponent,level,data&order=created_at.desc&limit=${limit}`;
+      // Seasons-list mode: return distinct season labels for the active team,
+      // plus the count of current-season games. Drives the season selector UI.
+      if (seasonsListMode) {
+        if (!teamId) {
+          return res.status(400).json({ error: "team_id is required for seasons_list" });
+        }
+        let url = `${supabaseUrl}/rest/v1/games?select=season,date&team_id=eq.${encodeURIComponent(teamId)}&limit=2000`;
+        if (userId) url += `&user_id=eq.${encodeURIComponent(userId)}`;
+        const r = await fetch(url, {
+          headers: {
+            "apikey": supabaseKey,
+            "Authorization": `Bearer ${supabaseKey}`,
+            "Content-Type": "application/json"
+          }
+        });
+        const rows = await r.json();
+        if (!r.ok) {
+          return res.status(r.status).json({ error: "Fetch failed", details: rows });
+        }
+        const map = new Map();
+        let currentCount = 0;
+        for (const row of Array.isArray(rows) ? rows : []) {
+          if (row.season == null) { currentCount++; continue; }
+          const k = String(row.season);
+          const prev = map.get(k);
+          const date = row.date || '';
+          if (!prev) map.set(k, { season: k, count: 1, newest_date: date });
+          else {
+            prev.count += 1;
+            if (date > prev.newest_date) prev.newest_date = date;
+          }
+        }
+        const seasons = Array.from(map.values()).sort((a, b) =>
+          (b.newest_date || '').localeCompare(a.newest_date || '')
+        );
+        return res.status(200).json({ success: true, seasons, currentCount });
+      }
+
+      const limit = Math.min(Number(req.query.limit) || 50, 500);
+      let queryUrl = `${supabaseUrl}/rest/v1/games?select=id,game_id,date,opponent,level,season,data&order=created_at.desc&limit=${limit}`;
       if (userId) {
         queryUrl += `&user_id=eq.${encodeURIComponent(userId)}`;
       }
-      const teamId = req.query.team_id || null;
       if (teamId) {
         queryUrl += `&team_id=eq.${encodeURIComponent(teamId)}`;
       }
+      queryUrl += seasonFilter;
 
       const response = await fetch(
         queryUrl,
@@ -109,6 +148,7 @@ export default async function handler(req, res) {
 
       // Bulk delete scoped to authenticated user
       let deleteUrl = `${supabaseUrl}/rest/v1/games?team_id=eq.${encodeURIComponent(teamId)}&user_id=eq.${encodeURIComponent(uid)}`;
+      deleteUrl += buildSeasonFilter(req.query.season);
 
       const response = await fetch(
         deleteUrl,
@@ -185,4 +225,14 @@ async function deleteGamesByIds({ supabaseUrl, supabaseKey, ids }) {
 
 function normalizeOpponentName(value) {
   return String(value || "").trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+// Map a `season` query param to a PostgREST filter suffix.
+//   'current' | (omitted in seasons-aware callers) → season is null
+//   'all'     | (omitted in legacy callers)        → no filter
+//   <label>                                        → season = <label>
+function buildSeasonFilter(seasonParam) {
+  if (!seasonParam || seasonParam === 'all') return '';
+  if (seasonParam === 'current') return '&season=is.null';
+  return '&season=eq.' + encodeURIComponent(seasonParam);
 }

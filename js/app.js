@@ -488,6 +488,22 @@ $('btnStartGame').addEventListener('click', ()=>{
   // Starting from setup must not carry an existing live share session forward.
   if(state.shareCode) stopLiveShare();
 
+  // Decide who's in net before flipping to active. With 0 goalies we skip
+  // tracking entirely. With 1 goalie we auto-select. With 2+ we open the
+  // pre-game picker and only proceed after the choice is made.
+  const goalies = Array.isArray(team.goalies) ? team.goalies.filter(g => g && String(g).trim()) : [];
+  if(goalies.length === 0){
+    state.activeGoalie = null;
+    proceedWithStartGame();
+  } else if(goalies.length === 1){
+    state.activeGoalie = String(goalies[0]).trim();
+    proceedWithStartGame();
+  } else {
+    showGoalieStartPicker(goalies, () => proceedWithStartGame());
+  }
+});
+
+function proceedWithStartGame(){
   state.gameState = 'active';
   // Stamp period 1's start time on first kickoff. resumeSavedGame won't
   // overwrite this — only the initial Start Game press seeds it.
@@ -504,7 +520,29 @@ $('btnStartGame').addEventListener('click', ()=>{
   });
   vibrate(HAPTIC.tap);
   maybeShowOnboarding();
-});
+}
+
+/**
+ * Show the pre-game "Who's in net?" picker. Required choice — no skip,
+ * no backdrop dismiss. Calls onPick() after the user selects.
+ */
+function showGoalieStartPicker(goalies, onPick){
+  const grid = $('goalieStartGrid');
+  grid.innerHTML = goalies.map(g => {
+    const label = isNumStr(String(g)) ? '#' + g : g;
+    return `<div class="pickerBtn" data-goalie="${String(g).replace(/"/g,'&quot;')}">${label}</div>`;
+  }).join('');
+  // One-shot click handler — wired fresh each open so old games don't bleed.
+  grid.onclick = (e) => {
+    const btn = e.target.closest('.pickerBtn');
+    if(!btn) return;
+    state.activeGoalie = btn.dataset.goalie;
+    $('goalieStartModal').style.display = 'none';
+    grid.onclick = null;
+    if(typeof onPick === 'function') onPick();
+  };
+  $('goalieStartModal').style.display = 'flex';
+}
 
 $('btnEditSetup').addEventListener('click', ()=>{ toggleSetup(true); });
 

@@ -599,6 +599,15 @@
     </div>
     <div class="quality-bar-text" id="qualityText"></div>
   </div>
+
+  <!-- Goalie chip — shown in-game when the active team has goalies configured -->
+  <div class="goalie-chip-wrap" id="goalieChipWrap" style="display:none;">
+    <div class="goalie-chip">
+      <span class="goalie-chip-label">Goalie:</span>
+      <span class="goalie-chip-num" id="goalieChipNum">—</span>
+      <button class="goalie-chip-switch" id="btnSwitchGoalie" type="button">Switch</button>
+    </div>
+  </div>
 </header>
 
 <div class="wrap">
@@ -1106,6 +1115,13 @@
 <div class="modal" id="goalieStartModal"><div class="box">
   <div class="small mb-md">Who's in net?</div>
   <div class="pickerGrid picker-1col" id="goalieStartGrid"></div>
+</div></div>
+
+<!-- Mid-game goalie switch picker (after confirm) -->
+<div class="modal" id="goalieSwitchModal"><div class="box">
+  <div class="small mb-md">New goalie in net</div>
+  <div class="pickerGrid picker-1col" id="goalieSwitchGrid"></div>
+  <div class="rowbtn"><button class="btn-std" id="goalieSwitchCancel">Cancel</button></div>
 </div></div>
 
 <!-- High Danger prompt -->

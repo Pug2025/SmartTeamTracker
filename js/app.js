@@ -73,6 +73,13 @@ const OFFLINE_QUEUE_KEY = 'team-tracker-offline-queue';
 const PREFS_KEY = 'team-tracker-prefs';
 const MAX_PERIOD = 4;
 
+// Event types that get tagged with the active goalie at log time so per-
+// goalie season stats can be derived later (shots faced, saves, soft goals
+// allowed, etc.). Non-goalie events stay untagged.
+const GOALIE_EVENT_TYPES = new Set([
+  'shot', 'goal', 'soft_goal', 'big_save', 'smother', 'bad_rebound', 'good_rebound'
+]);
+
 let prefs = { trackPlusMinus: true };
 try { const p = JSON.parse(localStorage.getItem(PREFS_KEY)); if(p) prefs = {...prefs, ...p}; } catch(_){}
 function savePrefs(){ try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch(_){} }
@@ -428,6 +435,7 @@ function setInGameHeader(inGame){
   }
 
   document.body.classList.toggle('in-game', inGame);
+  updateGoalieChip();
   closeHeaderMenu();
   updateHeaderContext();
   updateScoreLabels();
@@ -542,6 +550,69 @@ function showGoalieStartPicker(goalies, onPick){
     if(typeof onPick === 'function') onPick();
   };
   $('goalieStartModal').style.display = 'flex';
+}
+
+/**
+ * Sync the live goalie chip with the current state. Visible in-game and only
+ * when the active team has at least one goalie configured. Switch button only
+ * shown when there are 2+ goalies to pick from.
+ */
+function updateGoalieChip(){
+  const wrap = $('goalieChipWrap');
+  if(!wrap) return;
+  const inGame = document.body.classList.contains('in-game');
+  const goalies = (state.goalies || []).filter(g => g && String(g).trim());
+  if(!inGame || goalies.length === 0){
+    wrap.style.display = 'none';
+    return;
+  }
+  wrap.style.display = '';
+  const active = state.activeGoalie;
+  const numEl = $('goalieChipNum');
+  if(active){
+    numEl.textContent = isNumStr(String(active)) ? '#' + active : active;
+  } else {
+    numEl.textContent = '—';
+  }
+  $('btnSwitchGoalie').classList.toggle('hidden', goalies.length < 2);
+}
+
+/**
+ * Mid-game switch flow: confirm, then show picker (excluding current),
+ * then update active goalie. Subsequent events tag the new goalie.
+ */
+async function switchGoalieFlow(){
+  const goalies = (state.goalies || []).filter(g => g && String(g).trim());
+  if(goalies.length < 2) return;
+
+  const ok = typeof window.showAppConfirm === 'function'
+    ? await window.showAppConfirm('Are you sure you want to switch the goalie?')
+    : window.confirm('Are you sure you want to switch the goalie?');
+  if(!ok) return;
+
+  const current = state.activeGoalie;
+  const options = goalies.filter(g => String(g) !== String(current));
+  if(!options.length) return;
+
+  const grid = $('goalieSwitchGrid');
+  grid.innerHTML = options.map(g => {
+    const label = isNumStr(String(g)) ? '#' + g : g;
+    return `<div class="pickerBtn" data-goalie="${String(g).replace(/"/g,'&quot;')}">${label}</div>`;
+  }).join('');
+
+  grid.onclick = (e) => {
+    const btn = e.target.closest('.pickerBtn');
+    if(!btn) return;
+    state.activeGoalie = btn.dataset.goalie;
+    save();
+    $('goalieSwitchModal').style.display = 'none';
+    grid.onclick = null;
+    updateGoalieChip();
+    const lbl = isNumStr(String(state.activeGoalie)) ? '#' + state.activeGoalie : state.activeGoalie;
+    showStatusToast('Goalie switched to ' + lbl, 'success');
+  };
+
+  $('goalieSwitchModal').style.display = 'flex';
 }
 
 $('btnEditSetup').addEventListener('click', ()=>{ toggleSetup(true); });
@@ -1033,6 +1104,13 @@ function addEvent(type, meta={}){
     period: sanitizePeriod(state.period),
     ...meta
   };
+
+  // Tag goalie-relevant events with whoever's currently in net so per-goalie
+  // stats can be computed at game end. Skipped silently when no goalie is
+  // configured (older saves and zero-goalie teams continue to work as today).
+  if(state.activeGoalie && ev.goalie == null && GOALIE_EVENT_TYPES.has(type)){
+    ev.goalie = state.activeGoalie;
+  }
 
   // Track plain shots for linking
   if(type === 'shot'){
@@ -4039,6 +4117,11 @@ $('btnGoalieAdd').onclick=function(){
   const inp = $('goalieAddInput');
   if(addGoalieEntries(inp.value)) inp.value = '';
   inp.focus();
+};
+$('btnSwitchGoalie').onclick = function(){ switchGoalieFlow().catch(err => console.error(err)); };
+$('goalieSwitchCancel').onclick = function(){
+  $('goalieSwitchModal').style.display = 'none';
+  const grid = $('goalieSwitchGrid'); grid.onclick = null; grid.innerHTML = '';
 };
 $('goalieAddInput').addEventListener('keydown', function(e){
   if(e.key === 'Enter'){ e.preventDefault(); $('btnGoalieAdd').click(); }

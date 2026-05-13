@@ -3925,6 +3925,40 @@ select{
   display:none;
 }
 
+/* Goalie chip — live in-game indicator of who's in net */
+.goalie-chip-wrap{
+  display:flex;
+  justify-content:center;
+  padding:6px 12px 4px;
+}
+.goalie-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  background:var(--gray-200);
+  border:1px solid var(--gray-400);
+  border-radius:999px;
+  padding:4px 4px 4px 12px;
+  font-size:12px;
+  line-height:1;
+}
+.goalie-chip-label{ color:var(--muted); }
+.goalie-chip-num{ font-weight:700; color:var(--ink); }
+.goalie-chip-switch{
+  background:transparent;
+  border:1px solid var(--gray-400);
+  color:var(--accent-us);
+  border-radius:999px;
+  font-size:11px;
+  padding:3px 10px;
+  cursor:pointer;
+  font-family:inherit;
+  -webkit-tap-highlight-color:transparent;
+  transition:opacity 0.1s;
+}
+.goalie-chip-switch:active{ opacity:0.65; }
+.goalie-chip-switch.hidden{ display:none; }
+
 /* Key Takeaway callout — single coaching line on post-game summary */
 .key-takeaway{
   font-size:12px;

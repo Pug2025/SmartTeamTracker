@@ -183,6 +183,9 @@ async function syncFromCloud() {
   _syncing = true;
   try {
     const cachedUid = localStorage.getItem(CACHE_USER_KEY);
+    // First sync for this user on this device. True when no prior sync has
+    // ever run, OR when the cached uid belongs to a different account.
+    const firstSyncForUser = (cachedUid !== uid);
     if (cachedUid && cachedUid !== uid) {
       // Different user than last sync — wipe stale cache before merging
       saveTeams([]);
@@ -199,20 +202,29 @@ async function syncFromCloud() {
     const cloudTeams = Array.isArray(result.teams) ? result.teams.map(normalizeTeam).filter(Boolean) : [];
     const localTeams = loadTeams();
     const cloudIds = new Set(cloudTeams.map(t => t.id));
-
-    // Push local-only teams up (initial-migration case for Jamie)
     const localOnly = localTeams.filter(t => t && t.id && !cloudIds.has(t.id));
-    for (const t of localOnly) {
-      pushTeam(t);
+
+    let merged;
+    if (firstSyncForUser) {
+      // First sync for this user — treat local-only teams as a migration
+      // (Mac had teams in localStorage before team sync existed; push them
+      // up so they survive on other devices).
+      for (const t of localOnly) {
+        pushTeam(t);
+      }
+      merged = [...cloudTeams, ...localOnly.map(normalizeTeam).filter(Boolean)];
+    } else {
+      // Subsequent syncs — cloud is the source of truth. Drop any local
+      // teams that aren't in cloud; they're stale from a prior device
+      // generation and shouldn't be re-uploaded.
+      merged = cloudTeams;
     }
 
-    // Merged state = cloud teams (authoritative) + local-only teams (queued)
-    const merged = [...cloudTeams, ...localOnly.map(normalizeTeam).filter(Boolean)];
     saveTeams(merged);
     localStorage.setItem(CACHE_USER_KEY, uid);
 
     // Reconcile active team — if the previous active was deleted on another
-    // device, pick the first available team (or clear if none).
+    // device or dropped as stale, pick the first available team.
     const activeId = getActiveTeamId();
     if (activeId && !merged.some(t => t.id === activeId)) {
       setActiveTeamId(merged.length ? merged[0].id : null);

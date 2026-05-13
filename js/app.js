@@ -235,12 +235,23 @@ function updateHeaderContext(){
   if(!el) return;
 
   if(document.body.classList.contains('in-game')){
-    const periodLabel = sanitizePeriod(state.period) === 4 ? 'OT' : `P${sanitizePeriod(state.period)}`;
-    el.textContent = `Live Tracking • ${periodLabel}`;
+    const p = sanitizePeriod(state.period);
+    const periodLabel = p === 4 ? 'OT' : `P${p}`;
+    const startMs = state.periodStarts && state.periodStarts[p];
+    let timeStr = '';
+    if(startMs){
+      const elapsedMin = Math.max(0, Math.floor((Date.now() - startMs) / 60000));
+      timeStr = ` · ${elapsedMin} min`;
+    }
+    el.textContent = `Live Tracking • ${periodLabel}${timeStr}`;
   } else {
     el.textContent = 'Game Setup';
   }
 }
+// Tick the header roughly every 30s so the period elapsed minute updates
+// without the user having to interact. Cheap when not in-game (early-out
+// inside updateHeaderContext).
+setInterval(updateHeaderContext, 30000);
 function normalizeGameState(value){
   return value === 'active' || value === 'summary' ? value : 'setup';
 }
@@ -355,7 +366,11 @@ const state = {
     forcedTurnovers:0
   },
   roster:[],
-  lastEventId:0
+  lastEventId:0,
+  // Wall-clock timestamps (ms) for when each period started. Persisted to
+  // localStorage so the live "P2 · 14 min" stays accurate across page reloads.
+  // Not synced to cloud — saved games don't carry this.
+  periodStarts:{}
 };
 
 let per = {1:initP(),2:initP(),3:initP(),4:initP()};
@@ -468,6 +483,11 @@ $('btnStartGame').addEventListener('click', ()=>{
   if(state.shareCode) stopLiveShare();
 
   state.gameState = 'active';
+  // Stamp period 1's start time on first kickoff. resumeSavedGame won't
+  // overwrite this — only the initial Start Game press seeds it.
+  if(!state.periodStarts || !state.periodStarts[1]){
+    state.periodStarts = Object.assign({}, state.periodStarts || {}, { 1: Date.now() });
+  }
   save();
   validateState('start game');
   toggleSetup(false);
@@ -2601,6 +2621,9 @@ function resetCurrentGame(){
   state.gameId = crypto.randomUUID();
   state.startedAt = new Date().toISOString();
   state.lastEventId = 0;
+  // Reset period timestamps — fresh slate for the new game. Period 1's
+  // start is stamped when the game actually begins (see Start Game handler).
+  state.periodStarts = {};
 
   save();
   validateState('new game reset');
@@ -3923,6 +3946,14 @@ $('periodChips').addEventListener('click',e=>{
 $('btnNextPeriod').onclick=()=>{
   const prevP = state.period;
   state.period=sanitizePeriod(Math.min(MAX_PERIOD, Number(state.period) + 1));
+  // Stamp the new period's wall-clock start so the header timer is accurate.
+  // Only stamp on first entry — re-advancing after a chip-jump shouldn't reset.
+  if(state.period !== prevP){
+    state.periodStarts = state.periodStarts || {};
+    if(!state.periodStarts[state.period]){
+      state.periodStarts[state.period] = Date.now();
+    }
+  }
   save();
   validateState('next period');
   highlightPeriod();

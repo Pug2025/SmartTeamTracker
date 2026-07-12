@@ -720,7 +720,8 @@
     if (!iso) return '';
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return '';
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    // hour:'numeric' (not 2-digit) matches the feed rows' fmtLiveTimeLabel — "3:00 PM", never "03:00 PM"
+    return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   }
 
   // First letters of the first two words, else the first two letters, uppercased.

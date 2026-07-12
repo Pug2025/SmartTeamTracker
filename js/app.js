@@ -4409,7 +4409,15 @@ $('btnNextPeriod').onclick=()=>{
   showPeriodFlash(prevP);
 };
 
-$('btnEnd').onclick=endGame;
+$('btnEnd').onclick=async function(){
+  // Ending saves to history — guard the single tap (adjacent to the dashboard,
+  // easy to fat-finger rink-side).
+  const them = state.countsA.goals || 0;
+  const us = state.countsF.goals || 0;
+  const ok = await showConfirm(`End the game? P${sanitizePeriod(state.period)}, ${them}–${us}. This saves the game to history.`);
+  if(!ok) return;
+  endGame();
+};
 
 $('btnBackToGame').onclick=()=>{
   state.gameState = 'active';

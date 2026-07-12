@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Spectator — Ice Study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@500;600;700;800;900&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --us:#2F6FED; --them:#DB3B4B; --ice:#17B6C8; --win:#1FB880; --warn:#F4A627;
+    --ink:#EEF4FA; --muted:#C2CEDD; --muted2:#9DAABE;
+    --card:rgba(13,19,31,0.52);
+    --line:rgba(255,255,255,0.16);
+    --display:'Saira Semi Condensed',sans-serif; --ui:'Hanken Grotesk',sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{font-family:var(--ui);color:var(--ink);background:#05070C;-webkit-font-smoothing:antialiased;display:flex;align-items:center;justify-content:center;min-height:100vh;overflow:hidden;}
+  /* fixed phone canvas — image aspect 682:1372; nets at ~5% and ~94% of height */
+  .stage{position:relative;width:472px;height:950px;flex:none;overflow:hidden;transform-origin:center center;
+    background:
+      url('../assets/rink-ice.png') center center / cover no-repeat,
+      #0A0F18;}
+  /* frost / ice texture */
+  .frost{position:absolute;inset:0;pointer-events:none;opacity:.62;mix-blend-mode:multiply;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");}
+  /* skate scrapes */
+  .scrapes{position:absolute;inset:0;pointer-events:none;opacity:.6;
+    background:repeating-linear-gradient(64deg, transparent 0 26px, rgba(90,125,160,0.05) 26px 27px),
+               repeating-linear-gradient(-58deg, transparent 0 34px, rgba(90,125,160,0.045) 34px 35px),
+               repeating-linear-gradient(72deg, transparent 0 90px, rgba(90,125,160,0.04) 90px 91px);}
+  .rink{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+  .rink svg{width:100%;height:100%;}
+  .topbloom{position:absolute;top:-60px;left:50%;width:420px;height:300px;transform:translateX(-50%);pointer-events:none;
+    background:radial-gradient(circle, rgba(255,255,255,0.7), transparent 65%);filter:blur(8px);}
+  /* content fills the net-to-net region and centers the cards within it */
+  .content{position:absolute;left:0;right:0;top:5.6%;bottom:6.4%;z-index:2;padding:0 18px;
+    display:flex;flex-direction:column;justify-content:center;gap:11px;}
+
+  .spec-top{display:none;}
+  .hero{padding-top:12px;}
+  .hero-top{display:flex;flex-direction:column;align-items:center;gap:8px;padding-bottom:11px;margin-bottom:4px;border-bottom:1px solid rgba(255,255,255,.10);}
+  .hr{height:1px;background:rgba(255,255,255,.10);margin:12px 0 10px;}
+  .live{display:inline-flex;align-items:center;gap:7px;font-weight:800;font-size:12px;letter-spacing:2.4px;color:#04210f;
+    background:linear-gradient(90deg,#27D17C,#16A862);padding:7px 14px;border-radius:999px;box-shadow:0 8px 22px rgba(31,184,128,.4);}
+  .live .pulse{width:7px;height:7px;border-radius:50%;background:#04210f;animation:pulse 2.4s ease-out infinite;}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(4,33,15,.5)}70%{box-shadow:0 0 0 7px rgba(4,33,15,0)}100%{box-shadow:0 0 0 0 rgba(4,33,15,0)}}
+  .spec-title{font-family:var(--display);font-weight:700;font-size:18px;letter-spacing:.6px;color:#fff;text-transform:uppercase;}
+
+  .glass{position:relative;overflow:hidden;background:rgba(9,14,24,0.9);border:1px solid var(--line);border-radius:22px;
+    box-shadow:0 24px 54px rgba(6,12,22,0.5), 0 2px 8px rgba(6,12,22,0.3), inset 0 1px 0 rgba(255,255,255,.16);}
+  .glass.board-glass{background:rgba(9,14,24,0.82);}
+  .glass .tname,.glass .shots,.glass .card-t,.glass .card-meta,.glass .qtext,.glass .maxis span,.glass .ev,.glass .period,.glass .clock{text-shadow:0 1px 3px rgba(0,0,0,.65);}
+  .glass .score{text-shadow:0 2px 12px rgba(0,0,0,.55), 0 1px 3px rgba(0,0,0,.5);}
+  .glass::after{content:'';position:absolute;top:0;left:-30%;width:60%;height:100%;pointer-events:none;
+    background:linear-gradient(105deg, transparent, rgba(255,255,255,.10) 45%, rgba(255,255,255,.16) 50%, transparent 60%);transform:skewX(-12deg);}
+  .glass::before{content:'';position:absolute;left:18px;right:18px;top:0;height:1px;border-radius:999px;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.45),transparent);}
+  .board{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding:12px 16px 14px;}
+  .team{display:flex;flex-direction:column;align-items:center;gap:7px;}
+  .crest{width:50px;height:54px;border-radius:13px 13px 15px 15px;display:flex;align-items:center;justify-content:center;
+    font-family:var(--display);font-weight:800;font-size:21px;position:relative;border:1px solid rgba(255,255,255,.16);box-shadow:0 8px 20px rgba(0,0,0,.4);}
+  .crest::after{content:'';position:absolute;left:9px;right:9px;top:0;height:2px;border-radius:999px;background:rgba(255,255,255,.4);}
+  .crest.them{background:linear-gradient(180deg,#3a4654,#262e3a);color:#cdd6e2;}
+  .crest.us{background:linear-gradient(180deg,#2a5fd6,#163a86);color:#dce9ff;box-shadow:0 10px 28px rgba(47,111,237,.45);}
+  .tname{font-size:11px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);}
+  .score{font-family:var(--display);font-weight:900;font-size:58px;line-height:.82;font-variant-numeric:tabular-nums;letter-spacing:-1px;}
+  .score.them{color:#ff8088;}
+  .score.us{color:#7aacff;}
+  .shots{font-size:11px;color:var(--muted);font-weight:700;margin-top:2px;}
+  .period{font-family:var(--display);font-weight:700;font-size:22px;color:#dbe3f0;padding:9px 13px;border-radius:13px;
+    border:1px solid var(--line);background:rgba(255,255,255,.06);font-variant-numeric:tabular-nums;text-align:center;}
+  .period .clock{display:block;font-family:var(--ui);font-size:10px;font-weight:700;color:var(--muted2);letter-spacing:.5px;margin-top:3px;}
+
+  .card{padding:13px 16px;}
+  .card-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;}
+  .card-t{font-size:11px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);}
+  .card-meta{font-size:11px;font-weight:800;color:#42d6e6;}
+  .mtrack{height:16px;border-radius:999px;border:1px solid rgba(255,255,255,.10);position:relative;overflow:hidden;
+    background:linear-gradient(90deg,rgba(219,59,75,.85) 0%,rgba(120,70,80,.5) 38%,rgba(40,55,75,.6) 50%,rgba(60,110,150,.5) 62%,rgba(23,182,200,.9) 100%);}
+  .mmid{position:absolute;top:0;bottom:0;left:50%;width:2px;background:rgba(255,255,255,.6);}
+  .mneedle{position:absolute;top:-3px;left:50%;width:6px;height:22px;border-radius:999px;background:#36e0f0;
+    box-shadow:0 0 16px rgba(54,224,240,1);transform:translateX(-50%);transition:left 1.2s cubic-bezier(.22,1,.36,1);}
+  .maxis{display:flex;justify-content:space-between;margin-top:8px;font-size:10px;font-weight:800;letter-spacing:1px;color:var(--muted);}
+  .qtrack{height:9px;border-radius:999px;background:rgba(255,255,255,.12);position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.10);}
+  .qmid{position:absolute;left:50%;top:0;bottom:0;width:2px;background:rgba(255,255,255,.4);z-index:1;}
+  .qfill{position:absolute;left:50%;top:0;bottom:0;border-radius:999px;background:linear-gradient(90deg,#36e0f0,#21d693);box-shadow:0 0 14px rgba(54,224,240,.7);}
+  .qtext{font-size:12px;color:#8fefd2;font-weight:700;margin-top:8px;}
+  .feed{display:flex;flex-direction:column;gap:3px;}
+  .ev{display:flex;align-items:center;gap:11px;padding:7px 10px;border-radius:11px;font-size:13px;font-weight:600;color:#c4d0e0;}
+  .ev .ic{width:22px;height:22px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;font-family:var(--display);font-weight:800;}
+  .ev .meta{margin-left:auto;font-size:11px;color:var(--muted2);font-weight:600;font-variant-numeric:tabular-nums;}
+  .ev.goalfor{background:linear-gradient(90deg,rgba(31,184,128,.16),transparent);color:#7ce0b6;font-weight:800;}
+  .ev.goalfor .ic{background:rgba(31,184,128,.22);color:var(--win);}
+  .ev.goalag{background:linear-gradient(90deg,rgba(219,59,75,.14),transparent);color:#ff9aa1;font-weight:800;}
+  .ev.goalag .ic{background:rgba(219,59,75,.22);color:var(--them);}
+  .ev.good .ic{background:rgba(47,111,237,.2);color:#8fb6ff;}
+  .ev.save .ic{background:rgba(23,182,200,.2);color:#3ec6d6;}
+  .pw{position:absolute;left:0;right:0;bottom:1.5%;text-align:center;z-index:2;font-size:11px;color:#cdd8e6;font-weight:600;letter-spacing:.4px;text-shadow:0 1px 4px rgba(0,0,0,.7);}
+  .pw b{color:#2a7a86;font-weight:800;letter-spacing:.6px;}
+  .badge-note{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:9;font-size:11px;color:#3C4F66;
+    background:rgba(255,255,255,.7);border:1px solid rgba(60,90,120,.2);padding:6px 13px;border-radius:999px;backdrop-filter:blur(8px);}
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="content">
+
+      <div class="glass board-glass hero">
+        <div class="hero-top">
+          <div class="live"><span class="pulse"></span>LIVE</div>
+          <div class="spec-title">Riverview U11 · vs Napanee</div>
+        </div>
+        <div class="board">
+          <div class="team"><div class="crest them">NS</div><div class="tname">Napanee</div><div class="score them">2</div><div class="shots">17 shots</div></div>
+          <div class="period">P3<span class="clock">12:04</span></div>
+          <div class="team"><div class="crest us">RV</div><div class="tname">Us</div><div class="score us">4</div><div class="shots">29 shots</div></div>
+        </div>
+      </div>
+
+      <div class="glass card">
+        <div class="card-h"><span class="card-t">Momentum</span><span class="card-meta">Pushing</span></div>
+        <div class="mtrack"><div class="mmid"></div><div class="mneedle" id="needle" style="left:50%"></div></div>
+        <div class="maxis"><span>THEM</span><span>US</span></div>
+        <div class="hr"></div>
+        <div class="card-h" style="margin-top:2px"><span class="card-t">Chance Quality</span></div>
+        <div class="qtrack"><div class="qmid"></div><div class="qfill" style="width:18%"></div></div>
+        <div class="qtext">We're getting the better looks</div>
+      </div>
+
+      <div class="glass card">
+        <div class="card-h"><span class="card-t">Game Feed</span></div>
+        <div class="feed">
+          <div class="ev goalfor"><span class="ic">&#9650;</span>GOAL — Riverview<span class="meta">P3 · 7:42</span></div>
+          <div class="ev save"><span class="ic">&#10003;</span>Big save<span class="meta">P3 · 7:38</span></div>
+          <div class="ev good"><span class="ic">&#9656;</span>Our odd-man rush<span class="meta">P3 · 7:36</span></div>
+          <div class="ev goalag"><span class="ic">&#9660;</span>Goal against<span class="meta">P3 · 7:18</span></div>
+          <div class="ev goalfor"><span class="ic">&#9650;</span>GOAL — Riverview<span class="meta">P2 · 7:21</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pw">Powered by <b>SMART TEAM TRACKER</b></div>
+  </div>
+  <div class="badge-note">Ice study · dark cards on a frosted rink</div>
+  <script>
+    const n=document.getElementById('needle');const pos=[62,68,58,71,64];let i=0;
+    setInterval(()=>{i=(i+1)%pos.length;n.style.left=pos[i]+'%';},2600);
+    // scale the fixed phone canvas to fit the viewport as one unit
+    const stage=document.querySelector('.stage');
+    function fit(){const s=Math.min(window.innerWidth/472, window.innerHeight/950);stage.style.transform='scale('+s+')';}
+    window.addEventListener('resize',fit);fit();
+  </script>
+</body>
+</html>

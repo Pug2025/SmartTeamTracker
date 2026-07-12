@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1600" viewBox="0 0 1600 1600">
+  <defs>
+    <style>
+      @font-face{font-family:Saira;src:url('../fonts/SairaSemiCondensed-ExtraBold.ttf')}@font-face{font-family:Hanken;src:url('../fonts/HankenGrotesk-Bold.ttf')}
+      .display{font-family:Saira,'Arial Narrow',sans-serif}.ui{font-family:Hanken,Arial,sans-serif}.eyebrow{font-size:18px;font-weight:700;letter-spacing:4px;fill:#17B6C8}.label{font-size:16px;font-weight:700;letter-spacing:2.5px;fill:#9DAABE}
+    </style>
+    <linearGradient id="icon-bg" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#141C26"/><stop offset="1" stop-color="#0C1219"/></linearGradient>
+    <filter id="teal-glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="13" result="b"/><feFlood flood-color="#36E0F0" flood-opacity=".28"/><feComposite in2="b" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <clipPath id="board-upper"><path d="M0 0H128V56L0 74Z"/></clipPath><clipPath id="board-lower"><path d="M0 74 128 56V128H0Z"/></clipPath>
+    <symbol id="mark" viewBox="0 0 128 128"><path fill="#17B6C8" clip-path="url(#board-upper)" d="M14 18h72c18 0 29 11 29 27S104 72 86 72H44c-8 0-12 4-12 11s4 11 12 11h70v16H42c-18 0-29-11-29-27s11-27 29-27h42c8 0 12-4 12-11s-4-11-12-11H14V18Z"/><path fill="#EEF4FA" clip-path="url(#board-lower)" d="M14 18h72c18 0 29 11 29 27S104 72 86 72H44c-8 0-12 4-12 11s4 11 12 11h70v16H42c-18 0-29-11-29-27s11-27 29-27h42c8 0 12-4 12-11s-4-11-12-11H14V18Z"/></symbol>
+    <symbol id="mark-mono" viewBox="0 0 128 128"><path fill="#FFF" d="M14 18h72c18 0 29 11 29 27S104 72 86 72H44c-8 0-12 4-12 11s4 11 12 11h70v16H42c-18 0-29-11-29-27s11-27 29-27h42c8 0 12-4 12-11s-4-11-12-11H14V18Z"/></symbol>
+  </defs>
+  <rect width="1600" height="1600" fill="#05070C"/>
+  <path d="M0 470H1600M0 1180H1600" stroke="#EEF4FA" stroke-opacity=".05"/>
+  <path d="M1330 0v1600M280 0v1600" stroke="#17B6C8" stroke-opacity=".045" stroke-width="2"/>
+
+  <text x="90" y="86" class="ui eyebrow">SMART TEAM TRACKER · IDENTITY ROUTE</text>
+  <text x="90" y="152" class="display" fill="#EEF4FA" font-size="62" font-weight="800" letter-spacing="-1">SHIFT S</text>
+  <text x="90" y="193" class="ui" fill="#C2CEDD" font-size="20">Two opposing shifts resolve into one measured read.</text>
+
+  <!-- primary lockup -->
+  <g transform="translate(86 300)">
+    <rect width="1020" height="330" rx="22" fill="#0C1219" stroke="#EEF4FA" stroke-opacity=".16"/>
+    <path d="M24 .5H996" stroke="#EEF4FA" stroke-opacity=".38"/>
+    <use href="#mark" x="64" y="73" width="184" height="184"/>
+    <text x="310" y="192" class="display" fill="#EEF4FA" font-size="74" font-weight="800" letter-spacing="-1.2">SMART TEAM TRACKER</text>
+    <rect x="312" y="222" width="92" height="7" rx="3.5" fill="#17B6C8"/>
+    <text x="0" y="374" class="ui label">PRIMARY HORIZONTAL LOCKUP</text>
+  </g>
+
+  <!-- app icon -->
+  <g transform="translate(1185 260)">
+    <rect width="300" height="300" rx="68" fill="url(#icon-bg)"/>
+    <rect x=".5" y=".5" width="299" height="299" rx="67.5" fill="none" stroke="#EEF4FA" stroke-opacity=".16"/>
+    <use href="#mark" x="62" y="62" width="176" height="176" filter="url(#teal-glow)"/>
+    <text x="0" y="344" class="ui label">APP ICON CONTEXT</text>
+  </g>
+
+  <!-- large standalone and rationale -->
+  <g transform="translate(90 760)">
+    <use href="#mark" x="0" y="0" width="330" height="330"/>
+    <text x="470" y="40" class="ui eyebrow">THE IDEA</text>
+    <text x="470" y="105" class="display" fill="#EEF4FA" font-size="50" font-weight="800">Fast without a speed cliché.</text>
+    <text x="470" y="160" class="ui" fill="#C2CEDD" font-size="22">The two bands behave like shifts on a game feed:</text>
+    <text x="470" y="197" class="ui" fill="#C2CEDD" font-size="22">separate events, one continuous performance story.</text>
+    <text x="470" y="250" class="ui" fill="#C2CEDD" font-size="22">The compressed S is proprietary, athletic, and readable</text>
+    <text x="470" y="287" class="ui" fill="#C2CEDD" font-size="22">without relying on a puck, stick, shield, or target.</text>
+  </g>
+
+  <!-- tests -->
+  <g transform="translate(90 1260)">
+    <text x="0" y="0" class="ui label">COLOR</text><use href="#mark" x="0" y="42" width="112" height="112"/>
+    <text x="205" y="0" class="ui label">MONO</text><use href="#mark-mono" x="205" y="42" width="112" height="112"/>
+    <text x="410" y="0" class="ui label">32 PX</text><rect x="410" y="42" width="80" height="80" rx="17" fill="#0C1219"/><use href="#mark" x="434" y="66" width="32" height="32"/>
+    <text x="585" y="0" class="ui label">16 PX</text><rect x="585" y="42" width="80" height="80" rx="17" fill="#0C1219"/><use href="#mark" x="617" y="74" width="16" height="16"/>
+    <path d="M790 20V165" stroke="#EEF4FA" stroke-opacity=".12"/>
+    <text x="850" y="0" class="ui label">LOCKED COLOR</text>
+    <circle cx="865" cy="69" r="15" fill="#17B6C8"/><text x="895" y="77" class="ui" fill="#EEF4FA" font-size="20">#17B6C8</text>
+    <circle cx="865" cy="123" r="15" fill="#EEF4FA"/><text x="895" y="131" class="ui" fill="#EEF4FA" font-size="20">#EEF4FA</text>
+  </g>
+  <text x="90" y="1530" class="ui" fill="#9DAABE" font-size="17">Vector geometry · flat color · mono-safe · meaningful detail remains inside the central 80% icon zone</text>
+</svg>

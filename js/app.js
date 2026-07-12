@@ -768,6 +768,17 @@ function vibrate(pattern=20){
 
 /* Status toast (replaces alert) */
 let statusToastTimer = null;
+/* Shared 3-decimal rate formatter (SV%, shooting %). Hockey convention:
+   .917, 1.000 (never ".000" for a perfect rate), em dash when no attempts. */
+function fmtSvPct(makes, attempts){
+  const att = Number(attempts) || 0;
+  if(att <= 0) return '—';
+  const scaled = Math.round(((Number(makes) || 0) / att) * 1000);
+  if(scaled >= 1000) return '1.000';
+  if(scaled <= 0) return '.000';
+  return '.' + String(scaled).padStart(3, '0');
+}
+
 function showStatusToast(msg, type='success', duration=2500){
   const el = $('statusToast');
   el.textContent = msg;
@@ -809,7 +820,7 @@ function showPeriodFlash(p){
   const sf = pData.F_shots || 0;
   const gf = pData.F_goals || 0;
   const saves = Math.max(0, sa - ga);
-  const svPct = sa > 0 ? (saves / sa).toFixed(3).slice(1) : '—';
+  const svPct = fmtSvPct(saves, sa);
 
   const el = document.createElement('div');
   el.className = 'period-flash';
@@ -2125,7 +2136,7 @@ function updateMeta(){
   $('liveSF_sub').textContent = `SF: ${F.shots}`;
 
   const saves=Math.max(0,A.shots-A.goals);
-  const svText = A.shots ? (saves/A.shots).toFixed(3).slice(1) : '—';
+  const svText = fmtSvPct(saves, A.shots);
   $('liveSA_sub').textContent = A.shots ? `SA: ${A.shots} · ${svText}` : `SA: 0`;
 
   $('savesVal').textContent = saves;
@@ -2159,7 +2170,7 @@ function updateMeta(){
   $('missedChanceUsVal').textContent = mcFor;
   $('missedChanceThemVal').textContent = mcAg;
 
-  const shootPct = F.shots ? (F.goals/F.shots).toFixed(3).slice(1) : '—';
+  const shootPct = fmtSvPct(F.goals, F.shots);
   $('shootPctVal').textContent = shootPct;
 
   const share = (F.shots + A.shots) ? Math.round(100 * (F.shots/(F.shots+A.shots)))+'%' : '—';
@@ -2455,11 +2466,11 @@ function buildGoalieBreakdownTable(goalieStats){
   let html = '<table><tr><th>Goalie</th><th>Saves</th><th>SV%</th><th>GA</th><th>HD SV%</th><th>Reb Ctrl</th><th>Soft%</th></tr>';
   for(const g of rows){
     const label = isNumStr(String(g.id)) ? '#' + g.id : g.id;
-    const sv = g.shots > 0 ? (g.saves/g.shots).toFixed(3).slice(1) : '—';
+    const sv = fmtSvPct(g.saves, g.shots);
     const saveLine = `${g.saves}/${g.shots}`;
     const hdShots = Number(g.hdShots) || 0;
     const hdSaves = Number(g.hdSaves) || 0;
-    const hdSv = hdShots > 0 ? (hdSaves/hdShots).toFixed(3).slice(1) : '—';
+    const hdSv = fmtSvPct(hdSaves, hdShots);
     const good = Number(g.goodRebounds) || 0;
     const bad = Number(g.badRebounds) || 0;
     const rebDenom = good + bad;
@@ -2578,8 +2589,8 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
   const date = state.date || getLocalTodayYMD();
   const SF=state.countsF.shots, SA=state.countsA.shots, GF=state.countsF.goals, GA=state.countsA.goals;
   const saves=Math.max(0,SA-GA);
-  const svText = SA ? (saves/SA).toFixed(3).slice(1) : '—';
-  const shootPct = SF ? (GF/SF).toFixed(3).slice(1) : '—';
+  const svText = fmtSvPct(saves, SA);
+  const shootPct = fmtSvPct(GF, SF);
   const share = (SF+SA) ? Math.round(100*(SF/(SF+SA)))+'%' : '—';
   const goodReb = state.events.filter(e=>e.goodRebound).length;
   const hdFor = state.events.filter(e=>(e.type==='for_shot'||e.type==='for_goal')&&e.highDanger).length;
@@ -3121,8 +3132,8 @@ function exportGameCSV(){
 
   const SF=state.countsF.shots, SA=state.countsA.shots, GF=state.countsF.goals, GA=state.countsA.goals;
   const saves=Math.max(0,SA-GA);
-  const svText = SA ? (saves/SA).toFixed(3).slice(1) : '';
-  const shootPct = SF ? (GF/SF).toFixed(3).slice(1) : '';
+  const svText = SA ? fmtSvPct(saves, SA) : '';
+  const shootPct = SF ? fmtSvPct(GF, SF) : '';
 
   const gameRow = {
     date,
@@ -4600,8 +4611,8 @@ $('btnCopySummary').addEventListener('click', ()=>{
   const date = state.date || getLocalTodayYMD();
   const SF=state.countsF.shots, SA=state.countsA.shots, GF=state.countsF.goals, GA=state.countsA.goals;
   const saves=Math.max(0,SA-GA);
-  const svText = SA ? (saves/SA).toFixed(3).slice(1) : '—';
-  const shootPct = SF ? (GF/SF).toFixed(3).slice(1) : '—';
+  const svText = fmtSvPct(saves, SA);
+  const shootPct = fmtSvPct(GF, SF);
   const share = (SF+SA) ? Math.round(100*(SF/(SF+SA)))+'%' : '—';
   const K=computeGoalieScore(), T=computeTeamScore();
   const gfCtx = computeGFContextBreakdown();
@@ -5675,8 +5686,8 @@ function renderHistoricSummary(game){
   const SF = Number(d.SF || 0);
   const SA = Number(d.SA || 0);
   const saves = d.Saves != null ? Number(d.Saves) : Math.max(0, SA - GA);
-  const sv = d.SVPct != null ? d.SVPct : (SA ? (saves/SA).toFixed(3).slice(1) : '—');
-  const shoot = d.OurShootingPct != null ? d.OurShootingPct : (SF ? (GF/SF).toFixed(3).slice(1) : '—');
+  const sv = d.SVPct != null ? d.SVPct : fmtSvPct(saves, SA);
+  const shoot = d.OurShootingPct != null ? d.OurShootingPct : fmtSvPct(GF, SF);
   const share = d.ShotShare != null
     ? Math.round(Number(d.ShotShare) * 100) + '%'
     : ((SF+SA) ? Math.round(100*(SF/(SF+SA)))+'%' : '—');
@@ -6465,8 +6476,8 @@ function renderSeasonDashboard(games){
   const avgTM = tmCount ? Math.round(totalTM/tmCount) : '—';
   const avgGF = (totalGF/n).toFixed(1);
   const avgGA = (totalGA/n).toFixed(1);
-  const svPct = totalSA ? (((totalSA - totalGA)/totalSA)*100).toFixed(1) : '—';
-  const shotPct = totalSF ? ((totalGF/totalSF)*100).toFixed(1) : '—';
+  const svPct = fmtSvPct(totalSA - totalGA, totalSA);
+  const shotPct = fmtSvPct(totalGF, totalSF);
   const shotShare = (totalSF+totalSA) ? Math.round((totalSF/(totalSF+totalSA))*100) : '—';
 
   // Recent form (last 5) — each chip shows the W/L/T badge plus the score
@@ -6529,8 +6540,8 @@ function renderSeasonDashboard(games){
     <div class="dashTile"><div class="k">Avg Team</div><div class="v">${avgTM}</div><div class="s">${trendArrow(tmTrend)}</div></div>
     <div class="dashTile"><div class="k">Goals For/G</div><div class="v">${avgGF}</div><div class="s">Total: ${totalGF}</div></div>
     <div class="dashTile"><div class="k">Goals Ag/G</div><div class="v">${avgGA}</div><div class="s">Total: ${totalGA}</div></div>
-    <div class="dashTile"><div class="k">SV%</div><div class="v">${svPct}%</div><div class="s">${totalSA-totalGA}/${totalSA}</div></div>
-    <div class="dashTile"><div class="k">Shooting%</div><div class="v">${shotPct}%</div><div class="s">${totalGF}/${totalSF}</div></div>
+    <div class="dashTile"><div class="k">SV%</div><div class="v">${svPct}</div><div class="s">${totalSA-totalGA}/${totalSA}</div></div>
+    <div class="dashTile"><div class="k">Shooting%</div><div class="v">${shotPct}</div><div class="s">${totalGF}/${totalSF}</div></div>
     <div class="dashTile"><div class="k">Shot Share</div><div class="v">${shotShare}%</div><div class="s">SF/(SF+SA)</div></div>
     <div class="dashTile"><div class="k">Goal Diff</div><div class="v" style="color:${totalGF-totalGA>=0?'var(--good)':'var(--accent-them)'}">${totalGF-totalGA>=0?'+':''}${totalGF-totalGA}</div></div>
     ${hasSpecialTeams ? `<div class="dashTile"><div class="k">PP%</div><div class="v">${ppPctSeason}</div><div class="s">${ppPctSub}</div></div>` : ''}
@@ -6575,8 +6586,8 @@ function renderSeasonDashboard(games){
     let gTable = '<table><tr><th>Goalie</th><th>GP</th><th>Saves</th><th>SV%</th><th>GA</th><th>HD SV%</th><th>Reb Ctrl</th><th>Soft%</th></tr>';
     for(const g of rows){
       const label = isNumStr(String(g.id)) ? '#' + g.id : g.id;
-      const sv = g.shots > 0 ? (g.saves/g.shots).toFixed(3).slice(1) : '—';
-      const hdSv = g.hdShots > 0 ? (g.hdSaves/g.hdShots).toFixed(3).slice(1) : '—';
+      const sv = fmtSvPct(g.saves, g.shots);
+      const hdSv = fmtSvPct(g.hdSaves, g.hdShots);
       const rebDenom = g.goodRebounds + g.badRebounds;
       const rebCtrl = rebDenom > 0 ? Math.round(100 * g.goodRebounds / rebDenom) + '%' : '—';
       const soft = g.goalsAgainst > 0 ? Math.round(100 * g.softGoals / g.goalsAgainst) + '%' : '—';

@@ -6996,7 +6996,7 @@ async function endLiveShare() {
       body: JSON.stringify({
         share_code: code,
         game_id: state.gameId,
-        state: { ...buildLiveState(), final: true }
+        state: { ...buildLiveState(), final: true, ended: true }
       })
     });
   } catch (_) {}
@@ -7016,17 +7016,32 @@ async function endLiveShare() {
 
 async function stopLiveShare() {
   const code = state.shareCode;
+  // Snapshot before local share state is cleared so spectators keep the last board.
+  const endedState = code ? { ...buildLiveState(), ended: true } : null;
+  const endedGameId = state.gameId;
   state.shareCode = null;
   save();
 
   // Hide controls & reset button state
   setLiveShareUi(false);
 
-  // Delete from server immediately (manual stop = no need to linger)
   if (code) {
+    // Push one last update flagged ended so spectators see "SHARING ENDED"
+    // within one poll instead of a 404 race.
     try {
-      await fetch(`/api/live-game?code=${encodeURIComponent(code)}`, { method: 'DELETE', headers: await authHeaders() });
+      await fetch('/api/live-game', {
+        method: 'PUT',
+        headers: await authHeaders(),
+        body: JSON.stringify({ share_code: code, game_id: endedGameId, state: endedState })
+      });
     } catch (_) {}
+
+    // Clean up the record after 5 minutes (same policy as endLiveShare).
+    setTimeout(async () => {
+      try {
+        await fetch(`/api/live-game?code=${encodeURIComponent(code)}`, { method: 'DELETE', headers: await authHeaders() });
+      } catch (_) {}
+    }, 5 * 60 * 1000);
   }
 }
 

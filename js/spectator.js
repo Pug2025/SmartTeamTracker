@@ -129,6 +129,10 @@
         spectatorEnded = true;
         renderFinal();
         clearInterval(pollInterval);
+      } else if (incoming.ended) {
+        spectatorEnded = true;
+        renderEnded();
+        clearInterval(pollInterval);
       } else if ($('specStatus')) {
         $('specStatus').textContent = 'Live - updating every few seconds';
       }
@@ -181,7 +185,8 @@
       momentum: normalizeMomentum(raw.momentum),
       events: normalizeEvents(raw.events),
       hatTricks: Array.isArray(raw.hatTricks) ? raw.hatTricks : [],
-      final: !!raw.final
+      final: !!raw.final,
+      ended: !!raw.ended
     };
 
     if (!Number.isFinite(out.saves)) {
@@ -611,7 +616,7 @@
     if (view) view.classList.add('spec-ended');
     const badge = view ? view.querySelector('.spectator-badge') : null;
     if (badge) {
-      badge.textContent = 'FINAL';
+      badge.textContent = 'SHARING ENDED';
       badge.classList.add('spec-badge-final');
     }
     if ($('specMetaLine')) $('specMetaLine').textContent = 'Live sharing has ended';

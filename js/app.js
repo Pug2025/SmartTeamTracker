@@ -3336,6 +3336,9 @@ function openPicker(mode, label, { showNone=false, exclude=[] } = {}){
   pickerFlow.mode = mode;
   $('pickerTitle').textContent = label || 'Select Player';
 
+  // Visibility via inline style only — the .hidden utility class has
+  // !important and permanently defeated this toggle (unassisted goals were
+  // being recorded as assist-unknown because "No Assist" could never appear).
   $('pickerNone').style.display = showNone ? 'inline-block' : 'none';
 
   const excludeSet = new Set((exclude || []).map(x => String(x).trim()).filter(Boolean));

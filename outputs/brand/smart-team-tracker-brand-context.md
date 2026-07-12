@@ -62,7 +62,9 @@ Aim for these five traits, in order of priority:
 4. **Modern-dark** — sharp, high-contrast, at home on an OLED phone screen at ice level.
 5. **Approachable** — a volunteer coach should feel "this is for me," not "this is for an NHL analytics department."
 
-Avoid: aggressive/macho sports clichés (flames, snarling animals, beveled chrome), corporate-SaaS blandness, anything that only works on white backgrounds, thin hairline details that vanish at 16 px.
+**Approved style direction:** bold, dimensional, sports-badge energy — beveled chrome/silver lettering with glossy blue accents, italic/forward-leaning wordmark, hockey-stick integrated into the lockup. The approved reference is the existing "Smart Team Tracker" chrome logo (silver SMART/TRACKER, glossy blue TEAM, stick sweeping through). New assets must match that style; do NOT flatten it into minimalist geometry.
+
+Avoid: flat corporate-SaaS minimalism, mascots/snarling animals/flames, anything that only works on white backgrounds, thin hairline details that vanish at 16 px.
 
 ## 7. Assets needed
 
@@ -84,9 +86,9 @@ In priority order:
 
 - **Small-size legibility is the #1 test.** The icon must be readable at 32 px on a phone home screen and as a favicon. If a concept fails at 32 px, it fails.
 - Logo must work on pure black (`#000000`) first; light-background version is secondary.
+- **Every deliverable needs a transparent background** (PNG with alpha) — never baked onto white.
 - Portrait-phone context: most users only ever see this brand on a phone screen.
-- No mascots, no photorealistic renders as the primary mark, no gradients that band on cheap screens.
-- Vector-first: primary deliverables should be describable/reproducible as SVG.
+- No mascots, no photorealistic renders as the primary mark. Gradients/bevels in the approved chrome style are fine; keep them smooth (no banding) and simplify detail at small sizes.
 - The word "Smart" must not visually dominate — the emphasis balance across the three words should be even, or lean on "Team Tracker" with "Smart" as the modifier.
 
 ## 9. Motifs worth exploring (suggestions, not requirements)

@@ -1,63 +1,116 @@
   :root{
-    /* Theme: High Contrast / Split Brain */
-    --bg:#000000;
-    --panel:#111111;
-    --ink:#ffffff;
-    --muted:#888888;
-
-    /* Zones */
-    --zone-us:#0a1a2a;       /* Dark Blue background for 'Us' */
-    --zone-them:#1f0a0a;     /* Dark Red background for 'Them' */
-    --accent-us:#4da3ff;     /* Bright Blue */
-    --accent-them:#ff453a;   /* Bright Red */
-    --good:#32d74b;
-    --warn:#ff9f0a;
-    --comp-good:#5ee07a;     /* Pastel green for component bars */
-    --comp-warn:#ffb84d;     /* Pastel amber for component bars */
-    --comp-poor:#ff7b73;     /* Pastel red for component bars */
-
-    /* Gray scale */
-    --gray-50:#0a0a0a;
-    --gray-100:#111111;
-    --gray-200:#1a1a1a;
-    --gray-300:#222222;
-    --gray-400:#333333;
-    --gray-500:#444444;
-    --gray-600:#888888;
-    --gray-700:#aaaaaa;
-    --gray-800:#cccccc;
-    --gray-900:#eeeeee;
-
-    /* Border radius tokens */
-    --radius-xs:4px;
-    --radius-sm:8px;
-    --radius-md:12px;
-    --radius-lg:16px;
-    --radius-xl:20px;
-    --radius-2xl:24px;
-    --radius-full:999px;
-
-    --radius:16px;
-    --header-height:100px;
-    --score-box-width:108px;
-    --period-cluster-width:132px;
-
-    /* ===== Ice design tokens (Phase 1) =====
-       Defined globally so Phase 2 can consume them app-wide, but currently
-       consumed ONLY by the spectator skin (#spectatorView). Ice ink/muted/
-       line/warn get an -ice suffix because the legacy tokens above
-       (--ink, --muted, --warn) are still live on coach screens. */
+    /* =====================================================================
+       Ice design tokens — Phase 2 app-wide (P2.1)
+       Palette defined in Phase 1; extended here with surfaces, tints, type
+       scale, radii, shadows, and motion. The legacy token names below are
+       ALIASES onto these values during the Stage A migration and are
+       deleted in Stage B (P2.6).
+       ===================================================================== */
+    /* Palette */
     --us:#2F6FED;
     --them:#DB3B4B;
     --ice:#17B6C8;
+    --ice-deep:#0FA0B1;      /* darker ice for CTA gradients */
     --win:#1FB880;
     --warn-ice:#F4A627;
     --ink-ice:#EEF4FA;
     --muted-ice:#C2CEDD;
     --muted2-ice:#9DAABE;
-    --line-ice:rgba(255,255,255,0.16);
+
+    /* Surface ramp */
+    --surface-0:#05070C;     /* page */
+    --surface-1:#0C1219;     /* card */
+    --surface-2:#141C26;     /* nested */
+    --surface-3:#1D2733;     /* pressed / hover */
+
+    /* Team zone surfaces (solid, ice-hued; re-derived again in P2.4) */
+    --zone-us:#101D32;
+    --zone-them:#2A171F;
+    --zone-us-strong:#14284E;
+    --zone-them-strong:#38141C;
+
+    /* Hairlines + subtle fills */
+    --line-ice:rgba(255,255,255,0.16);   /* the single hairline */
+    --line-soft:rgba(255,255,255,0.08);  /* soft inner hairline */
+    --fill-1:rgba(255,255,255,0.04);     /* faint fill on dark cards */
+    --fill-2:rgba(255,255,255,0.07);     /* chip / pill fill */
+    --fill-dark:rgba(0,0,0,0.25);        /* inset dark fill on cards */
+    --scrim:rgba(0,0,0,0.75);            /* modal backdrop */
+
+    /* Semantic tints */
+    --win-tint:rgba(31,184,128,.14);
+    --warn-tint:rgba(244,166,39,.14);
+    --them-tint:rgba(219,59,75,.12);
+    --us-tint:rgba(47,111,237,.12);
+    --ice-tint:rgba(23,182,200,.14);
+    --us-line:rgba(47,111,237,.32);
+    --them-line:rgba(219,59,75,.30);
+
+    /* Type */
     --display:'Saira Semi Condensed',ui-sans-serif,sans-serif;
     --ui:'Hanken Grotesk',-apple-system,sans-serif;
+    --fs-11:11px;
+    --fs-12:12px;
+    --fs-13:13px;
+    --fs-15:15px;
+    --fs-17:17px;
+    --fs-20:20px;
+    --fs-24:24px;
+    --fs-32:32px;
+    --fs-44:44px;
+
+    /* Shape: radius tokens are ONLY 8 / 12 / 16 / 22 / 999 */
+    --radius-sm:8px;
+    --radius-md:12px;
+    --radius-lg:16px;
+    --radius-xl:22px;
+    --radius-full:999px;
+
+    /* Elevation */
+    --shadow-1:0 2px 8px rgba(3,6,12,.35);
+    --shadow-2:0 10px 28px rgba(3,6,12,.45);
+    --shadow-3:0 24px 60px rgba(3,6,12,.55);
+    --focus-ring:0 0 0 3px rgba(23,182,200,.35);
+
+    /* Motion */
+    --ease:cubic-bezier(.22,1,.36,1);
+    --dur-1:120ms;
+    --dur-2:240ms;
+    --dur-3:400ms;
+
+    /* Layout constants (unchanged) */
+    --radius:16px;
+    --header-height:100px;
+    --score-box-width:108px;
+    --period-cluster-width:132px;
+
+    /* =====================================================================
+       Legacy aliases — old names point at Ice values during Stage A.
+       Stage B (P2.6) deletes every alias below.
+       ===================================================================== */
+    --bg:var(--surface-0);
+    --panel:var(--surface-1);
+    --ink:var(--ink-ice);
+    --muted:var(--muted2-ice);
+    --accent-us:var(--us);
+    --accent-them:var(--them);
+    --good:var(--win);
+    --warn:var(--warn-ice);
+    --comp-good:var(--win);
+    --comp-warn:var(--warn-ice);
+    --comp-poor:var(--them);
+    --gray-50:var(--surface-0);
+    --gray-100:var(--surface-1);
+    --gray-200:var(--surface-2);
+    --gray-300:var(--surface-3);
+    --gray-400:var(--surface-3);
+    --gray-500:var(--surface-3);
+    --gray-600:var(--muted2-ice);
+    --gray-700:var(--muted-ice);
+    --gray-800:var(--muted-ice);
+    --gray-900:var(--ink-ice);
+    --radius-xs:var(--radius-sm);
+    --radius-2xl:var(--radius-xl);
   }
   html,body{height:100%}
   body{

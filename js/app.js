@@ -1458,6 +1458,16 @@ $('gaSkip').addEventListener('click', ()=>{
     continueAfterGATag(lastGAEvent, true);
   }
 });
+$('gaCancel').addEventListener('click', ()=>{
+  // A mis-tapped Goal Against can be aborted here: removes the committed goal
+  // (removeEventById reverts counts and shows the Removed/Restore toast).
+  $('gaOverlay').style.display='none';
+  if(lastGAEvent){
+    const id = lastGAEvent.id;
+    lastGAEvent=null;
+    removeEventById(id);
+  }
+});
 
 /* BR window = 5s; BA/DZ window = 10s */
 function tagGACause(gaEv){
@@ -3339,8 +3349,17 @@ $('pickerNone').addEventListener('click', ()=>{
 });
 $('pickerCancel').addEventListener('click', ()=>{
   $('pickerModal').style.display='none';
+  abortGoalEnrichmentIfPending();
   pickerFlow.mode=null;
 });
+
+/* A committed goal survives any abort of its enrichment chain; tell the coach. */
+function abortGoalEnrichmentIfPending(){
+  if((pickerFlow.mode==='for_goal_scorer' || pickerFlow.mode==='for_goal_assist') && pickerFlow.pendingGoalEv){
+    pickerFlow.pendingGoalEv = null;
+    showStatusToast('Goal saved — details skipped. Use Undo to remove.', 'warn', 3200);
+  }
+}
 
 function applyPickerSelection(num){
   const mode = pickerFlow.mode;
@@ -3360,12 +3379,16 @@ function applyPickerSelection(num){
   }
 
   if(mode==='for_goal_scorer'){
-    // scorer can be unknown
-    const scorer = (num===null ? '?' : String(num));
-    ensureRosterNumber(scorer);
+    // The goal event was already committed on the Goal For tap — this step
+    // only enriches it with the scorer.
+    const ev = pickerFlow.pendingGoalEv;
+    if(!ev){ pickerFlow.mode=null; return; }
 
-    const ev = addEvent('for_goal',{player:scorer});
-    pickerFlow.pendingGoalEv = ev;
+    const scorer = (num===null ? '?' : String(num));
+    if(scorer!=='?') ensureRosterNumber(scorer);
+    ev.player = scorer;
+    save();
+    renderAll();
 
     // next: assist picker (optional, can be unknown too)
     pickerFlow.mode='for_goal_assist';
@@ -4301,7 +4324,14 @@ $('btnShot').onclick=function(){ flashBtn(this); const ev = addEvent('shot'); op
 $('btnGoal').onclick=function(){ flashBtn(this); addEvent('goal'); };
 
 $('btnForShot').onclick=function(){ flashBtn(this); openPicker('for_shot','Shooter'); };
-$('btnForGoal').onclick=function(){ flashBtn(this); openPicker('for_goal_scorer','Scorer'); };
+$('btnForGoal').onclick=function(){
+  flashBtn(this);
+  // Commit the goal immediately — the score must never depend on finishing the
+  // picker chain (backdrop tap / reload mid-chain used to silently discard it).
+  const ev = addEvent('for_goal',{player:'?'});
+  pickerFlow.pendingGoalEv = ev;
+  openPicker('for_goal_scorer','Scorer');
+};
 
 $('btnSoftGoal').onclick=function(){ flashBtn(this); addEvent('soft_goal'); };
 $('btnBadRebound').onclick=function(){ flashBtn(this); addEvent('bad_rebound'); };
@@ -4382,12 +4412,29 @@ document.querySelectorAll('.modal').forEach(m=>
   m.addEventListener('click',e=>{
     if(e.target!==m) return;
     m.style.display='none';
-    // Clean up state for modals that track pending operations
+    // Clean up state for modals that track pending operations.
+    // Committed events must survive a backdrop tap — a gloved mis-tap on the
+    // dark area around a modal is expected rink input, not an abort request.
     const mid = m.id;
-    if(mid==='pickerModal'){ pickerFlow.mode=null; }
-    if(mid==='strengthModal'){ strengthTarget=null; }
-    if(mid==='gaOverlay'){ lastGAEvent=null; }
-    if(mid==='onIceModal'){ multiPick.eventRef=null; }
+    if(mid==='pickerModal'){ abortGoalEnrichmentIfPending(); pickerFlow.mode=null; }
+    if(mid==='strengthModal' && strengthTarget){
+      showStatusToast('Saved — situation skipped.', 'warn', 2500);
+      strengthTarget=null;
+    }
+    if(mid==='gaOverlay' && lastGAEvent){
+      // Behave exactly like "Tag Later": goal stays, context flagged for later,
+      // and the +/- and strength steps still run.
+      lastGAEvent.needsContext = true;
+      save();
+      renderAll();
+      const ev = lastGAEvent;
+      lastGAEvent=null;
+      continueAfterGATag(ev, true);
+    }
+    if(mid==='onIceModal' && multiPick.eventRef){
+      showStatusToast('Saved — on-ice players skipped.', 'warn', 2500);
+      multiPick.eventRef=null;
+    }
     if(mid==='playerDetailModal'){ currentPlayerDetailKey = null; }
   })
 );

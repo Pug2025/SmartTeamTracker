@@ -4367,7 +4367,7 @@ select{
 }
 #spectatorView .spec-momentum-axis{
   display:flex; justify-content:space-between; margin-top:8px;
-  font-size:12px; font-weight:800; letter-spacing:1px; color:var(--muted-ice);
+  font-size:13px; font-weight:800; letter-spacing:1px; color:var(--muted-ice);
 }
 #spectatorView .spec-qtrack{
   height:9px; border-radius:999px; background:rgba(255,255,255,.12);
@@ -4385,7 +4385,7 @@ select{
   transition:left .35s ease, width .35s ease;
 }
 #spectatorView .spec-intensity-text{
-  margin-top:8px; font-size:15px; color:#8fefd2; font-weight:700; line-height:1.35;
+  margin-top:8px; font-size:16px; color:#8fefd2; font-weight:700; line-height:1.35;
 }
 
 /* --- KPI grid: hidden in this skin (elements stay for spectator.js) --- */
@@ -4479,7 +4479,7 @@ select{
 #spectatorView .spec-pw{
   position:absolute; left:0; right:0; bottom:1.5%; z-index:2;
   text-align:center; font-family:var(--ui);
-  font-size:14px; color:#cdd8e6; font-weight:600; letter-spacing:.4px;
+  font-size:14px; color:var(--muted-ice); font-weight:600; letter-spacing:.4px;
   text-shadow:0 1px 4px rgba(0,0,0,.7);
 }
 #spectatorView .spec-pw b{

@@ -360,7 +360,12 @@
 
   function renderState(s) {
     lastTeamName = s.teamName || '';
-    setBadgeLive();
+    // Stale handling is age-based: only a genuinely NEWER update restores the
+    // LIVE pill and re-arms the stale timer. A reachable-but-static row
+    // (same updatedAt on every successful poll) must still go amber after 30s.
+    const stateMs = s.updatedAt ? Date.parse(s.updatedAt) : NaN;
+    const updateAdvanced = !Number.isFinite(stateMs) || !lastUpdateMs || stateMs > lastUpdateMs;
+    if (updateAdvanced) setBadgeLive();
     const opponentDisplay = s.opponentName || s.opponent || 'Opponent';
     let title;
     if (s.teamName) {
@@ -434,8 +439,23 @@
         ? 'Live updates'
         : `Updated ${updated.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
     }
-    resetStaleTimer();
+    if (updateAdvanced) {
+      resetStaleTimer();
+    } else {
+      refreshStaleness();
+    }
     showContextCard(s);
+  }
+
+  // Age check on every poll: if the newest data we have is older than 30s,
+  // show the amber pill (minutes derive from the payload age in setBadgeStale).
+  function refreshStaleness() {
+    if (spectatorEnded) return;
+    if (lastUpdateMs && Date.now() - lastUpdateMs > 30000) {
+      const meta = $('specMetaLine');
+      if (meta) meta.classList.add('spec-meta-stale');
+      setBadgeStale();
+    }
   }
 
   function resetStaleTimer() {

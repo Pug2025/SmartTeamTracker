@@ -6803,6 +6803,14 @@ function computeLiveMomentumSummary(){
   };
 }
 
+// Spectator feed rows use 12-hour times (no seconds) to match the feed's
+// "Game started at ..." anchor. Used ONLY for the live-payload timeLabel.
+function fmtLiveTimeLabel(iso) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+
 function buildLiveState() {
   // Build a compact state object for spectators (score, quality, momentum, key events)
   const quality = computeLiveQualitySummary();
@@ -6853,7 +6861,7 @@ function buildLiveState() {
       side: classifyLiveEventSide(e.type),
       period: sanitizePeriod(e.period || state.period),
       tISO: e.tISO || null,
-      timeLabel: e.tISO ? fmtTime(e.tISO) : '',
+      timeLabel: e.tISO ? fmtLiveTimeLabel(e.tISO) : '',
       player: e.player || null,
       assist: e.assist || null,
       strength: e.strength || null,

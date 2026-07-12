@@ -24,6 +24,13 @@
   margin-bottom: 6px;
 }
 
+.auth-logo-img {
+  display: block;
+  width: min(280px, 78%);
+  height: auto;
+  margin: 0 auto 10px;
+}
+
 .auth-sub {
   font-size: 13px;
   color: #888;
@@ -217,6 +224,13 @@
   color: #4da3ff;
   text-transform: uppercase;
   margin-bottom: 16px;
+}
+
+.landing-logo-img {
+  display: block;
+  width: min(320px, 84%);
+  height: auto;
+  margin: 0 auto 22px;
 }
 
 .landing-headline {

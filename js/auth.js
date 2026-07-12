@@ -19,6 +19,9 @@ const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 
 /* ===== Auth State ===== */
+// Guest sessions persist across reloads: without this flag, every cold load
+// mid-game dropped guests onto the marketing page (looks like data loss rink-side).
+const GUEST_MODE_KEY = 'team-tracker-guest-mode';
 let currentUser = null;
 let authReadyResolve;
 const authReady = new Promise(r => { authReadyResolve = r; });
@@ -33,6 +36,10 @@ onAuthStateChanged(auth, (user) => {
   if (user) {
     hideAuthScreen();
     if (typeof window.onAuthReady === 'function') window.onAuthReady(user);
+  } else if (localStorage.getItem(GUEST_MODE_KEY) === '1') {
+    // Returning guest: straight into the app, never through the landing page.
+    hideAuthScreen();
+    if (typeof window.onAuthReady === 'function') window.onAuthReady(null);
   } else {
     showAuthScreen();
   }
@@ -181,6 +188,13 @@ async function handleSignOut() {
       : Promise.resolve(window.confirm('Sign out now?'));
     const ok = await ask;
     if (!ok) return;
+    localStorage.removeItem(GUEST_MODE_KEY);
+    if (!currentUser) {
+      // Guest "sign out": no Firebase state to change, so show the landing
+      // page directly (onAuthStateChanged won't re-fire).
+      showLandingPage();
+      return;
+    }
     await signOut(auth);
   } catch (err) {
     console.error('Sign out error:', err);
@@ -218,6 +232,7 @@ function initAuthUI() {
     guestBtn.addEventListener('click', () => {
       // Guest mode: hide auth screen, but currentUser stays null
       // Data will only be stored locally
+      localStorage.setItem(GUEST_MODE_KEY, '1');
       hideAuthScreen();
       if (typeof window.onAuthReady === 'function') window.onAuthReady(null);
     });

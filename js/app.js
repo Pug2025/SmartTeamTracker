@@ -685,8 +685,16 @@ async function persistStorage(){
     }
   }catch(_){}
 }
+/* save() is reachable before init's async load() resolves (4s autosave
+   interval, pagehide/visibilitychange, team hooks) — writing the default
+   in-memory state at that point would wipe a stored live game. Gate it. */
+let stateLoaded = false;
 async function save(){
   if(IS_SPECTATOR_MODE) return;
+  if(!stateLoaded){
+    console.warn('save() skipped: state not loaded yet');
+    return;
+  }
   try{
     const json = JSON.stringify(state);
     checkStorageQuota(json.length);
@@ -3455,6 +3463,7 @@ return;
   pingCloud();
 
   load().then(loaded=>{
+    stateLoaded = true; // save() is safe from here on
     let shouldResaveLoadedState = false;
     if(loaded && Array.isArray(loaded.events)){
       Object.assign(state, loaded);

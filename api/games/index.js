@@ -19,7 +19,10 @@ export default async function handler(req, res) {
 
   if (req.method === "GET") {
     try {
-      const userId = uid || req.query.user_id || null;
+      // Server-verified uid only — anonymous callers may not read other
+      // users' rows by passing ?user_id=; they are scoped to guest rows
+      // (user_id is null) below.
+      const userId = uid || null;
       const teamId = req.query.team_id || null;
       const seasonsListMode = req.query.seasons_list === '1' || req.query.seasons_list === 'true';
       const seasonFilter = buildSeasonFilter(req.query.season);
@@ -31,7 +34,7 @@ export default async function handler(req, res) {
           return res.status(400).json({ error: "team_id is required for seasons_list" });
         }
         let url = `${supabaseUrl}/rest/v1/games?select=season,date&team_id=eq.${encodeURIComponent(teamId)}&limit=2000`;
-        if (userId) url += `&user_id=eq.${encodeURIComponent(userId)}`;
+        url += userId ? `&user_id=eq.${encodeURIComponent(userId)}` : `&user_id=is.null`;
         const r = await fetch(url, {
           headers: {
             "apikey": supabaseKey,
@@ -64,9 +67,9 @@ export default async function handler(req, res) {
 
       const limit = Math.min(Number(req.query.limit) || 50, 500);
       let queryUrl = `${supabaseUrl}/rest/v1/games?select=id,game_id,date,opponent,level,season,data&order=created_at.desc&limit=${limit}`;
-      if (userId) {
-        queryUrl += `&user_id=eq.${encodeURIComponent(userId)}`;
-      }
+      queryUrl += userId
+        ? `&user_id=eq.${encodeURIComponent(userId)}`
+        : `&user_id=is.null`;
       if (teamId) {
         queryUrl += `&team_id=eq.${encodeURIComponent(teamId)}`;
       }

@@ -20,7 +20,8 @@ export default async function handler(req, res) {
   if (req.method === "GET") {
     try {
       const teamId = req.query.team_id || null;
-      const userId = uid || req.query.user_id || null;
+      // Server-verified uid only — anonymous callers are scoped to guest rows.
+      const userId = uid || null;
       const limit = Math.min(Number(req.query.limit) || 25, 100);
 
       if (!teamId) {

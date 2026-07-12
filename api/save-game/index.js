@@ -43,8 +43,10 @@ export default async function handler(req, res) {
 
     const game = payload.game;
 
-    // Use server-verified uid instead of client-supplied user_id
-    const verifiedUserId = uid || game.user_id || null;
+    // Use server-verified uid ONLY. Never fall back to client-supplied
+    // game.user_id — an unauthenticated caller could otherwise insert rows
+    // under any user's id. Guest rows are stored with user_id null.
+    const verifiedUserId = uid || null;
 
     // Build the row: top-level columns for querying, everything else in data
     const row = {

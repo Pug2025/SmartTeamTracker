@@ -1,9 +1,9 @@
 // -----------------------------
 // Smart Team Tracker - Service Worker
-// Version: v6.3.20
+// Version: v6.3.21
 // -----------------------------
 
-const ASSET_VERSION = "6.3.20";
+const ASSET_VERSION = "6.3.21";
 const CACHE_VERSION = `team-tracker-cache-v${ASSET_VERSION}`;
 const CACHE_NAME = CACHE_VERSION;
 
@@ -19,7 +19,9 @@ const ASSETS_TO_CACHE = [
   `/manifest.json?v=${ASSET_VERSION}`,
   "/favicon.ico",
   "/icon-192.png",
-  "/icon-512.png"
+  "/icon-512.png",
+  "/icon-maskable-512.png",
+  "/apple-touch-icon.png"
 ];
 
 // Install - pre-cache core shell

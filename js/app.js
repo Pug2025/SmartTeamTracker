@@ -5945,7 +5945,13 @@ $('seasonSelect').addEventListener('change', async (e) => {
   seasonSelectors.dashboard = e.target.value || 'current';
   await loadSeasonPanel();
 });
-$('endSeasonCancel').addEventListener('click', ()=>{ $('endSeasonModal').style.display='none'; });
+$('endSeasonCancel').addEventListener('click', ()=>{
+  $('endSeasonModal').style.display='none';
+  if($('endSeasonModal').dataset.reopenTeamModal === '1'){
+    $('endSeasonModal').dataset.reopenTeamModal = '';
+    openTeamModal(false);
+  }
+});
 $('endSeasonConfirm').addEventListener('click', confirmEndSeason);
 $('endSeasonNameInput').addEventListener('input', () => {
   const v = $('endSeasonNameInput').value.trim();
@@ -5984,6 +5990,12 @@ async function openEndSeasonModal(teamId){
   $('endSeasonNameInput').value = suggested;
   $('endSeasonConfirm').disabled = false;
   $('endSeasonModal').dataset.teamId = teamId;
+  // The team manager modal shares the same z-index and precedes this modal in
+  // the DOM, so it would render ON TOP of the End Season dialog. Close it and
+  // remember to bring it back on cancel.
+  const teamModalWasOpen = $('teamModal').style.display === 'flex';
+  $('endSeasonModal').dataset.reopenTeamModal = teamModalWasOpen ? '1' : '';
+  if(teamModalWasOpen) $('teamModal').style.display = 'none';
   $('endSeasonModal').style.display = 'flex';
   setTimeout(() => $('endSeasonNameInput').focus(), 30);
 }

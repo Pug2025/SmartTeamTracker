@@ -6863,10 +6863,14 @@ function buildLiveState() {
       gaCause: e.ga_cause || null
     }));
 
+  const liveActiveTeam = getActiveTeamSafe();
+
   return {
     schema: 2,
     updatedAt: new Date().toISOString(),
     opponent: state.opponent || 'Opponent',
+    teamName: (liveActiveTeam && liveActiveTeam.name) || '',
+    opponentName: state.opponent || '',
     level: state.level || '',
     date: state.date || '',
     period: state.period,

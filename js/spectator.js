@@ -157,6 +157,8 @@
       schema: toNum(raw.schema) || 1,
       updatedAt: str(raw.updatedAt),
       opponent: str(raw.opponent) || 'Opponent',
+      teamName: str(raw.teamName),
+      opponentName: str(raw.opponentName) || str(raw.opponent) || 'Opponent',
       level: str(raw.level),
       date: str(raw.date),
       period: normalizePeriod(raw.period),
@@ -288,13 +290,24 @@
   }
 
   function renderState(s) {
-    const title = (s.opponent || 'Opponent') + (s.level ? ' • ' + s.level : '');
+    const opponentDisplay = s.opponentName || s.opponent || 'Opponent';
+    let title;
+    if (s.teamName) {
+      // New payloads: "{TEAMNAME} {LEVEL} · VS {OPPONENT}" (uppercase)
+      title = (s.teamName + (s.level ? ' ' + s.level : '') + ' · VS ' + opponentDisplay).toUpperCase();
+    } else {
+      // Old payloads: current behavior
+      title = (s.opponent || 'Opponent') + (s.level ? ' • ' + s.level : '');
+    }
     if ($('specTitle')) $('specTitle').textContent = title;
     if ($('specSubtitle')) {
       $('specSubtitle').textContent = formatGameDate(s.date) || 'Live now';
     }
 
-    if ($('specThemLabel')) $('specThemLabel').textContent = (s.opponent || 'THEM').toUpperCase();
+    if ($('specThemLabel')) $('specThemLabel').textContent = (opponentDisplay || 'THEM').toUpperCase();
+    if ($('specUsLabel')) $('specUsLabel').textContent = (s.teamName || 'US').toUpperCase();
+    if ($('specCrestThem')) $('specCrestThem').textContent = crestInitials(opponentDisplay, 'TH');
+    if ($('specCrestUs')) $('specCrestUs').textContent = crestInitials(s.teamName, 'US');
 
     const prevGF = lastState ? lastState.goalsFor : s.goalsFor;
     const prevGA = lastState ? lastState.goalsAgainst : s.goalsAgainst;
@@ -616,6 +629,14 @@
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return '';
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  // First letters of the first two words, else the first two letters, uppercased.
+  function crestInitials(name, fallback) {
+    const words = String(name || '').trim().split(/\s+/).filter(Boolean);
+    if (!words.length) return fallback;
+    if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+    return words[0].slice(0, 2).toUpperCase();
   }
 
   function formatGameDate(dateStr) {

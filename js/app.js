@@ -787,11 +787,18 @@ function fmtSvPct(makes, attempts){
   return '.' + String(scaled).padStart(3, '0');
 }
 
+let statusToastSeq = 0;
 function showStatusToast(msg, type='success', duration=2500){
   const el = $('statusToast');
+  const token = ++statusToastSeq;
   el.textContent = msg;
   el.className = 'status-toast ' + type;
-  requestAnimationFrame(()=>el.classList.add('show'));
+  requestAnimationFrame(()=>{
+    // A backgrounded tab can defer this frame until after the hide timer has
+    // already fired, which used to re-add .show permanently (stuck toast).
+    // Only show if this is still the current toast and its hide is pending.
+    if(token === statusToastSeq && statusToastTimer) el.classList.add('show');
+  });
   if(statusToastTimer) clearTimeout(statusToastTimer);
   statusToastTimer = setTimeout(()=>{
     el.classList.remove('show');

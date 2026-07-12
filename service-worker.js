@@ -1,9 +1,9 @@
 // -----------------------------
 // Smart Team Tracker - Service Worker
-// Version: v6.3.21
+// Version: v6.3.22
 // -----------------------------
 
-const ASSET_VERSION = "6.3.21";
+const ASSET_VERSION = "6.3.22";
 const CACHE_VERSION = `team-tracker-cache-v${ASSET_VERSION}`;
 const CACHE_NAME = CACHE_VERSION;
 
@@ -21,8 +21,15 @@ const ASSETS_TO_CACHE = [
   "/icon-192.png",
   "/icon-512.png",
   "/icon-maskable-512.png",
-  "/apple-touch-icon.png"
+  "/apple-touch-icon.png",
+  "/assets/rink-ice.webp",
+  // Ice skin webfonts (system fallbacks keep the page usable offline/blocked)
+  "https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@700;800;900&display=swap",
+  "https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;700;800&display=swap",
+  "https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@700;800;900&family=Hanken+Grotesk:wght@600;700;800&display=swap"
 ];
+
+const FONT_HOSTS = ["fonts.googleapis.com", "fonts.gstatic.com"];
 
 // Install - pre-cache core shell
 self.addEventListener("install", (event) => {
@@ -131,12 +138,13 @@ self.addEventListener("fetch", (event) => {
 
       return fetch(request)
         .then((response) => {
-          // Only cache successful same-origin responses
+          // Cache successful same-origin responses, plus Google Fonts CSS/woff2
+          // so the Ice skin typography survives offline.
           if (
             response &&
             response.status === 200 &&
-            response.type === "basic" &&
-            url.origin === self.location.origin
+            ((response.type === "basic" && url.origin === self.location.origin) ||
+              (response.type === "cors" && FONT_HOSTS.includes(url.hostname)))
           ) {
             const copy = response.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));

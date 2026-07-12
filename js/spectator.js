@@ -11,6 +11,15 @@
   // Signal to other scripts that we're in spectator mode.
   window.__spectatorMode = true;
 
+  // Preload the rink art as early as possible (spectator route only).
+  try {
+    const rinkPreload = document.createElement('link');
+    rinkPreload.rel = 'preload';
+    rinkPreload.as = 'image';
+    rinkPreload.href = 'assets/rink-ice.webp';
+    document.head.appendChild(rinkPreload);
+  } catch (_) {}
+
   const $ = id => document.getElementById(id);
 
   const POLL_MS = 3000;
@@ -27,6 +36,9 @@
   let seenHatTrickPlayers = new Set();
   let lastMilestoneGF = 0;
   let staleTimer = null;
+  let staleTicker = null;
+  let staleArmedMs = 0;
+  let lastTeamName = '';
   let hasShownContextCard = false;
 
   document.addEventListener('DOMContentLoaded', () => {
@@ -37,9 +49,59 @@
     if (authScreen) authScreen.style.display = 'none';
     if (appShell) appShell.style.display = 'none';
     if (specView) specView.style.display = 'flex';
+    // The stage is fixed and self-contained; never let the page scroll behind it.
+    document.body.style.overflow = 'hidden';
+
+    // Scale the fixed 472x950 stage to the viewport as one unit.
+    // visualViewport (not bare innerHeight) so mobile URL-bar jumps re-fit.
+    const stage = $('specStage');
+    function fitStage() {
+      if (!stage) return;
+      const vv = window.visualViewport;
+      const vw = (vv && vv.width) || document.documentElement.clientWidth;
+      const vh = (vv && vv.height) || document.documentElement.clientHeight;
+      stage.style.transform = `scale(${Math.min(vw / 472, vh / 950)})`;
+    }
+    window.addEventListener('resize', fitStage);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', fitStage);
+      window.visualViewport.addEventListener('scroll', fitStage);
+    }
+    fitStage();
 
     initSpectator(liveCode);
   });
+
+  /* ===== State pill (LIVE / STARTING SOON / stale / FINAL-ENDED) ===== */
+  function badgeEl() {
+    const view = $('spectatorView');
+    return view ? view.querySelector('.spectator-badge') : null;
+  }
+
+  function setBadgeLive() {
+    const badge = badgeEl();
+    if (!badge || spectatorEnded) return;
+    badge.classList.remove('spec-badge-waiting', 'spec-badge-stale');
+    badge.innerHTML = '<span class="spec-pulse" aria-hidden="true"></span>LIVE';
+  }
+
+  function setBadgeWaiting() {
+    const badge = badgeEl();
+    if (!badge || spectatorEnded || hasSeenLiveData) return;
+    badge.classList.remove('spec-badge-stale');
+    badge.classList.add('spec-badge-waiting');
+    badge.textContent = 'STARTING SOON';
+  }
+
+  function setBadgeStale() {
+    const badge = badgeEl();
+    if (!badge || spectatorEnded) return;
+    const baseMs = lastUpdateMs || staleArmedMs || Date.now();
+    const mins = Math.max(1, Math.round((Date.now() - baseMs) / 60000));
+    badge.classList.remove('spec-badge-waiting');
+    badge.classList.add('spec-badge-stale');
+    badge.textContent = `LIVE · UPDATED ${mins} MIN AGO`;
+  }
 
   function startPolling(code) {
     if (pollInterval) clearInterval(pollInterval);
@@ -50,8 +112,9 @@
     if ($('specStatus')) $('specStatus').textContent = 'Connecting...';
 
     await fetchLiveState(code);
-    if (!hasSeenLiveData && !spectatorEnded && $('specStatus')) {
-      $('specStatus').textContent = 'Waiting for coach to start live sharing...';
+    if (!hasSeenLiveData && !spectatorEnded) {
+      if ($('specStatus')) $('specStatus').textContent = 'Waiting for coach to start live sharing...';
+      setBadgeWaiting();
     }
 
     startPolling(code);
@@ -75,6 +138,7 @@
         consecutiveNotFound += 1;
         if (!hasSeenLiveData) {
           if ($('specStatus')) $('specStatus').textContent = 'Waiting for coach to start live sharing...';
+          setBadgeWaiting();
           return false;
         }
 
@@ -295,6 +359,8 @@
   }
 
   function renderState(s) {
+    lastTeamName = s.teamName || '';
+    setBadgeLive();
     const opponentDisplay = s.opponentName || s.opponent || 'Opponent';
     let title;
     if (s.teamName) {
@@ -319,8 +385,8 @@
 
     if ($('specGF')) $('specGF').textContent = s.goalsFor;
     if ($('specGA')) $('specGA').textContent = s.goalsAgainst;
-    if ($('specSF')) $('specSF').textContent = `${s.shotsFor} shots`;
-    if ($('specSA')) $('specSA').textContent = `${s.shotsAgainst} shots`;
+    if ($('specSF')) $('specSF').textContent = shotsLabel(s.shotsFor);
+    if ($('specSA')) $('specSA').textContent = shotsLabel(s.shotsAgainst);
 
     if (s.goalsFor !== prevGF) pulseScore('specGF');
     if (s.goalsAgainst !== prevGA) pulseScore('specGA');
@@ -358,7 +424,7 @@
     const chanceAgainst = hdAgainst + (Number.isFinite(s.missedAgainst) ? s.missedAgainst : 0);
     renderSplitValue('specDangerLine', chanceFor, chanceAgainst);
 
-    renderQuality(s.quality);
+    renderQuality(s.quality, (s.shotsFor || 0) + (s.shotsAgainst || 0));
     renderMomentum(s.momentum);
     renderEvents(s.events || []);
 
@@ -374,11 +440,20 @@
 
   function resetStaleTimer() {
     if (staleTimer) clearTimeout(staleTimer);
+    if (staleTicker) { clearInterval(staleTicker); staleTicker = null; }
     const meta = $('specMetaLine');
     if (meta) meta.classList.remove('spec-meta-stale');
+    staleArmedMs = Date.now();
     staleTimer = setTimeout(() => {
-      if (!spectatorEnded && meta) meta.classList.add('spec-meta-stale');
-    }, 120000);
+      if (spectatorEnded) return;
+      if (meta) meta.classList.add('spec-meta-stale');
+      // Fold the "updated N min ago" info into the state pill.
+      setBadgeStale();
+      staleTicker = setInterval(() => {
+        if (spectatorEnded) { clearInterval(staleTicker); staleTicker = null; return; }
+        setBadgeStale();
+      }, 30000);
+    }, 30000);
   }
 
   function showContextCard(s) {
@@ -416,83 +491,69 @@
     setTimeout(function() { if (card.parentNode) card.remove(); }, 300);
   }
 
-  function renderQuality(q) {
-    const pctFor = q && Number.isFinite(q.pctFor) ? q.pctFor : 50;
+  function renderQuality(q, totalShots) {
+    // Minimum-sample guard (mirrors renderMomentum): under 6 total shots the
+    // signal is noise — render neutral copy and a 50% (empty) fill.
+    const enoughSample = !Number.isFinite(totalShots) || totalShots >= 6;
+    const pctFor = enoughSample && q && Number.isFinite(q.pctFor) ? q.pctFor : 50;
     if ($('specQualityLabel')) $('specQualityLabel').textContent = 'Chance Quality';
     if ($('specQualityText')) {
-      if (pctFor >= 61) {
-        $('specQualityText').textContent = 'We are getting the better looks';
-        $('specQualityText').style.color = '#6fda8e';
+      let text;
+      if (!enoughSample) {
+        text = 'Feeling each other out';
+      } else if (pctFor >= 61) {
+        text = 'We are getting the better looks';
       } else if (pctFor >= 54) {
-        $('specQualityText').textContent = 'Small edge for us';
-        $('specQualityText').style.color = '#6fda8e';
+        text = 'Small edge for us';
       } else if (pctFor <= 39) {
-        $('specQualityText').textContent = 'They are getting the better looks';
-        $('specQualityText').style.color = '#ff7b75';
+        text = 'They are getting the better looks';
       } else if (pctFor <= 46) {
-        $('specQualityText').textContent = 'Small edge for them';
-        $('specQualityText').style.color = '#ff7b75';
+        text = 'Small edge for them';
       } else {
-        $('specQualityText').textContent = 'The chances have been pretty even';
-        $('specQualityText').style.color = '#9fb0cf';
+        text = 'The chances have been pretty even';
       }
+      $('specQualityText').textContent = text;
     }
 
     const fill = $('specQualityFill');
     if (!fill) return;
 
+    // Fill grows out from the 50% midline; color comes from the Ice skin CSS.
     if (pctFor >= 50) {
       fill.style.left = '50%';
       fill.style.width = `${pctFor - 50}%`;
-      fill.style.background = 'rgba(50, 215, 75, 0.9)';
     } else {
       fill.style.left = `${pctFor}%`;
       fill.style.width = `${50 - pctFor}%`;
-      fill.style.background = 'rgba(255, 91, 85, 0.9)';
     }
   }
 
   function renderMomentum(m) {
     const usPct = m && Number.isFinite(m.usPct) ? m.usPct : 50;
     const eventCount = m && Number.isFinite(m.eventCount) ? m.eventCount : 0;
-    const tilt = Math.round(usPct - 50);
 
     if ($('specMomentumLabel')) $('specMomentumLabel').textContent = 'Momentum';
     if ($('specMomentumNeedle')) {
-      const needle = $('specMomentumNeedle');
-      needle.style.left = `${usPct}%`;
-      if (tilt >= 8) {
-        needle.style.background = '#32d74b';
-        needle.style.boxShadow = '0 0 0 1px rgba(4,8,15,0.7), 0 0 10px rgba(50,215,75,0.45)';
-      } else if (tilt <= -8) {
-        needle.style.background = '#ff5b55';
-        needle.style.boxShadow = '0 0 0 1px rgba(4,8,15,0.7), 0 0 10px rgba(255,91,85,0.45)';
-      } else {
-        needle.style.background = '#b8c6e0';
-        needle.style.boxShadow = '0 0 0 1px rgba(4,8,15,0.7), 0 0 10px rgba(184,198,224,0.45)';
-      }
+      // Needle position only; needle color/glow comes from the Ice skin CSS.
+      $('specMomentumNeedle').style.left = `${usPct}%`;
     }
 
     if ($('specMomentumText')) {
+      let text;
       if (eventCount <= 1) {
-        $('specMomentumText').textContent = 'Still settling in';
-        $('specMomentumText').style.color = '#9fb0cf';
+        text = 'Still settling in';
       } else if (usPct >= 64) {
-        $('specMomentumText').textContent = 'We have had the push lately';
-        $('specMomentumText').style.color = '#6fda8e';
+        text = 'We have had the push lately';
       } else if (usPct >= 56) {
-        $('specMomentumText').textContent = 'Momentum is leaning our way';
-        $('specMomentumText').style.color = '#6fda8e';
+        text = 'Momentum is leaning our way';
       } else if (usPct <= 36) {
-        $('specMomentumText').textContent = 'They have had the push lately';
-        $('specMomentumText').style.color = '#ff7b75';
+        text = 'They have had the push lately';
       } else if (usPct <= 44) {
-        $('specMomentumText').textContent = 'Momentum is leaning their way';
-        $('specMomentumText').style.color = '#ff7b75';
+        text = 'Momentum is leaning their way';
       } else {
-        $('specMomentumText').textContent = 'It has been back and forth lately';
-        $('specMomentumText').style.color = '#9fb0cf';
+        text = 'It has been back and forth lately';
       }
+      $('specMomentumText').textContent = text;
     }
   }
 
@@ -565,10 +626,15 @@
 
   function eventLabel(ev) {
     switch (ev.type) {
-      case 'for_goal':
+      case 'for_goal': {
+        // Our goals celebrate the team by name; old payloads fall back to "GOAL!".
+        const suffix = lastTeamName ? ` — ${lastTeamName}` : '!';
+        return (isBreakawayGoalEvent(ev) ? 'BREAKAWAY GOAL' : 'GOAL') + suffix;
+      }
       case 'goal':
       case 'soft_goal':
-        return isBreakawayGoalEvent(ev) ? 'BREAKAWAY GOAL!' : 'GOAL!';
+        // Never celebratory for opponent goals.
+        return isBreakawayGoalEvent(ev) ? 'Breakaway goal against' : 'Goal against';
       case 'penalty_for': return 'Penalty on them';
       case 'penalty_against': return 'Penalty on us';
       case 'breakaway_for': return 'Our breakaway';
@@ -590,6 +656,7 @@
   function eventToneClass(type, side) {
     if (type === 'for_goal') return 'ev-goal-for';
     if (type === 'goal' || type === 'soft_goal') return 'ev-goal-against';
+    if (type === 'big_save') return 'ev-good ev-save';
     if (side === 'us') return 'ev-good';
     if (side === 'them') return 'ev-danger';
     return '';
@@ -675,6 +742,11 @@
     const newest = events[events.length - 1];
     if (!newest || !newest.tISO) return NaN;
     return Date.parse(newest.tISO);
+  }
+
+  function shotsLabel(n) {
+    const v = Number.isFinite(n) ? Math.round(n) : 0;
+    return v === 1 ? '1 shot' : `${v} shots`;
   }
 
   function formatSavePct(svPct, shotsAgainst) {

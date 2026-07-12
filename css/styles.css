@@ -41,6 +41,23 @@
     --header-height:100px;
     --score-box-width:108px;
     --period-cluster-width:132px;
+
+    /* ===== Ice design tokens (Phase 1) =====
+       Defined globally so Phase 2 can consume them app-wide, but currently
+       consumed ONLY by the spectator skin (#spectatorView). Ice ink/muted/
+       line/warn get an -ice suffix because the legacy tokens above
+       (--ink, --muted, --warn) are still live on coach screens. */
+    --us:#2F6FED;
+    --them:#DB3B4B;
+    --ice:#17B6C8;
+    --win:#1FB880;
+    --warn-ice:#F4A627;
+    --ink-ice:#EEF4FA;
+    --muted-ice:#C2CEDD;
+    --muted2-ice:#9DAABE;
+    --line-ice:rgba(255,255,255,0.16);
+    --display:'Saira Semi Condensed',ui-sans-serif,sans-serif;
+    --ui:'Hanken Grotesk',-apple-system,sans-serif;
   }
   html,body{height:100%}
   body{
@@ -2658,32 +2675,32 @@
   font-weight:700; cursor:pointer; font-family:inherit;
 }
 
-/* ===== Spectator View ===== */
+/* ===== Spectator View =====
+   Phase 1 "Ice" skin: root layout lives here; the full skin (scoped under
+   #spectatorView) is appended at the end of this file. Legacy .spec-* rules
+   below are kept because the landing-page mockup reuses them; the Ice skin
+   overrides them via #spectatorView specificity. */
 .spectator-view{
-  position:relative;
+  position:fixed;
+  inset:0;
   display:flex;
-  flex-direction:column;
-  gap:12px;
-  min-height:100vh;
-  background:
-    radial-gradient(circle at 50% -8%, rgba(193, 214, 248, 0.14), transparent 28%),
-    radial-gradient(circle at 50% 115%, rgba(33, 58, 93, 0.22), transparent 44%),
-    linear-gradient(180deg, #08111c 0%, #060d16 44%, #04080e 100%);
-  color:#fff;
-  padding:max(14px, env(safe-area-inset-top, 14px)) 14px max(18px, env(safe-area-inset-bottom, 18px));
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  background:#05070C;
+  color:var(--ink-ice);
   box-sizing:border-box;
-  font-family:'Avenir Next', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  overflow-x:hidden;
+  font-family:var(--ui);
+  padding:env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
 }
-.spectator-bg-glow{
+/* Desktop letterbox: frost texture over #05070C, not flat black */
+.spectator-view::before{
+  content:'';
   position:absolute;
   inset:0;
   pointer-events:none;
-  background:
-    radial-gradient(circle at 50% 0%, rgba(255,255,255,0.05), transparent 18%),
-    radial-gradient(circle at 50% 18%, rgba(102, 137, 190, 0.08), transparent 34%),
-    linear-gradient(90deg, rgba(255,255,255,0.02) 0%, transparent 16%, transparent 84%, rgba(255,255,255,0.02) 100%);
-  z-index:0;
+  opacity:.5;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E");
 }
 .spectator-header{
   position:relative;
@@ -4126,4 +4143,346 @@ select{
     animation:none;
     background:var(--gray-300);
   }
+}
+
+/* =========================================================================
+   Phase 1 — "Ice" spectator skin (P1.3)
+   Pixel source of truth: design/spectator-ice.html
+   Every rule is scoped under #spectatorView so coach-facing screens (and the
+   landing-page mockup, which reuses .spec-* classes) are untouched.
+   Type sizes are compensated for the 0.79x stage scale at 375px viewports:
+   design 13px -> 16, 12px -> 15, 11px -> 14, 10px -> 12.
+   ========================================================================= */
+
+/* --- Stage: fixed 472x950 phone canvas, scaled as one unit by JS --- */
+#spectatorView .spec-stage{
+  position:relative;
+  width:472px;
+  height:950px;
+  flex:none;
+  overflow:hidden;
+  transform-origin:center center;
+  background:
+    url('../assets/rink-ice.webp') center center / cover no-repeat,
+    #0A0F18;
+}
+
+/* --- Atmosphere overlays --- */
+#spectatorView .spec-frost{
+  position:absolute; inset:0; pointer-events:none;
+  opacity:.62; mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+}
+#spectatorView .spec-scrapes{
+  position:absolute; inset:0; pointer-events:none; opacity:.6;
+  background:repeating-linear-gradient(64deg, transparent 0 26px, rgba(90,125,160,0.05) 26px 27px),
+             repeating-linear-gradient(-58deg, transparent 0 34px, rgba(90,125,160,0.045) 34px 35px),
+             repeating-linear-gradient(72deg, transparent 0 90px, rgba(90,125,160,0.04) 90px 91px);
+}
+#spectatorView .spec-topbloom{
+  position:absolute; top:-60px; left:50%; width:420px; height:300px;
+  transform:translateX(-50%); pointer-events:none;
+  background:radial-gradient(circle, rgba(255,255,255,0.7), transparent 65%);
+  filter:blur(8px);
+}
+
+/* --- Content zone (net-to-net on the rink image) --- */
+#spectatorView .spec-content{
+  position:absolute; left:0; right:0; top:5.6%; bottom:6.4%; z-index:2;
+  padding:0 18px; min-height:0;
+  display:flex; flex-direction:column; justify-content:center; gap:11px;
+}
+
+/* --- Glass card recipe --- */
+#spectatorView .spec-glass{
+  position:relative; overflow:hidden;
+  background:rgba(9,14,24,0.9);
+  border:1px solid var(--line-ice);
+  border-radius:22px;
+  box-shadow:0 24px 54px rgba(6,12,22,.5), 0 2px 8px rgba(6,12,22,.3), inset 0 1px 0 rgba(255,255,255,.16);
+}
+#spectatorView .spec-glass::before{
+  content:''; position:absolute; left:18px; right:18px; top:0; height:1px;
+  border-radius:999px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.45),transparent);
+}
+#spectatorView .spec-glass::after{
+  content:''; position:absolute; top:0; left:-30%; width:60%; height:100%;
+  pointer-events:none;
+  background:linear-gradient(105deg, transparent, rgba(255,255,255,.10) 45%, rgba(255,255,255,.16) 50%, transparent 60%);
+  transform:skewX(-12deg);
+}
+#spectatorView .spec-glass .spec-score-label,
+#spectatorView .spec-glass .spec-score-sub,
+#spectatorView .spec-glass .spec-card-t,
+#spectatorView .spec-glass .spec-card-meta,
+#spectatorView .spec-glass .spec-intensity-text,
+#spectatorView .spec-glass .spec-momentum-axis span,
+#spectatorView .spec-glass .spec-event-row,
+#spectatorView .spec-glass .spec-period,
+#spectatorView .spec-glass .spectator-title{
+  text-shadow:0 1px 3px rgba(0,0,0,.65);
+}
+#spectatorView .spec-glass .spec-score-val{
+  text-shadow:0 2px 12px rgba(0,0,0,.55), 0 1px 3px rgba(0,0,0,.5);
+}
+
+/* --- Hero scoreboard card --- */
+#spectatorView .spec-hero{ background:rgba(9,14,24,0.82); padding-top:12px; }
+#spectatorView .spec-hero-top{
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  padding-bottom:11px; margin-bottom:4px;
+  border-bottom:1px solid rgba(255,255,255,.10);
+}
+#spectatorView .spectator-badge{
+  display:inline-flex; align-items:center; gap:7px;
+  font-family:var(--ui); font-weight:800; font-size:15px; letter-spacing:2.4px;
+  color:#04210f; text-transform:uppercase;
+  background:linear-gradient(90deg,#27D17C,#16A862);
+  padding:7px 14px; border-radius:999px; border:none; margin:0;
+  box-shadow:0 8px 22px rgba(31,184,128,.4);
+  animation:none;
+  font-variant-numeric:tabular-nums;
+}
+#spectatorView .spec-pulse{ width:7px; height:7px; border-radius:50%; background:#04210f; flex:none; }
+@keyframes specIcePulse{
+  0%{ box-shadow:0 0 0 0 rgba(4,33,15,.5); }
+  70%{ box-shadow:0 0 0 7px rgba(4,33,15,0); }
+  100%{ box-shadow:0 0 0 0 rgba(4,33,15,0); }
+}
+@media (prefers-reduced-motion: no-preference){
+  #spectatorView .spec-pulse{ animation:specIcePulse 2.4s ease-out infinite; }
+}
+/* State pills: waiting / stale / final-ended */
+#spectatorView .spectator-badge.spec-badge-waiting{
+  background:linear-gradient(180deg,#3a4654,#262e3a);
+  color:#cdd6e2;
+  box-shadow:0 8px 22px rgba(0,0,0,.35);
+}
+#spectatorView .spectator-badge.spec-badge-stale{
+  background:linear-gradient(90deg,#F4A627,#d98f1c);
+  background:linear-gradient(90deg,var(--warn-ice),#d98f1c);
+  color:#241703;
+  letter-spacing:1.2px;
+  box-shadow:0 8px 22px rgba(244,166,39,.35);
+}
+#spectatorView .spectator-badge.spec-badge-final{
+  background:linear-gradient(180deg,#3a4654,#262e3a) !important;
+  color:#cdd6e2;
+  box-shadow:0 8px 22px rgba(0,0,0,.35);
+  animation:none !important;
+}
+#spectatorView .spectator-title{
+  font-family:var(--display); font-weight:700; font-size:23px;
+  letter-spacing:.6px; color:#fff; text-transform:uppercase;
+  line-height:1.15; padding:0 10px; text-align:center;
+}
+#spectatorView .spectator-subtitle{ display:none; }
+
+#spectatorView .spectator-scoreboard{
+  display:grid; grid-template-columns:1fr auto 1fr; align-items:center;
+  gap:8px; padding:12px 16px 14px;
+  background:none; border:none; border-radius:0; box-shadow:none; width:auto;
+}
+#spectatorView .spec-score-block{
+  display:flex; flex-direction:column; align-items:center; gap:7px;
+  background:none; border:none; box-shadow:none; padding:0; border-radius:0;
+  min-width:0; flex:1; overflow:visible;
+}
+#spectatorView .spec-score-block::before{ display:none; }
+#spectatorView .spec-crest{
+  width:50px; height:54px; border-radius:13px 13px 15px 15px;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--display); font-weight:800; font-size:21px;
+  position:relative; border:1px solid rgba(255,255,255,.16);
+  box-shadow:0 8px 20px rgba(0,0,0,.4);
+}
+#spectatorView .spec-crest::after{
+  content:''; position:absolute; left:9px; right:9px; top:0; height:2px;
+  border-radius:999px; background:rgba(255,255,255,.4);
+}
+#spectatorView .spec-crest.them{ background:linear-gradient(180deg,#3a4654,#262e3a); color:#cdd6e2; }
+#spectatorView .spec-crest.us{
+  background:linear-gradient(180deg,#2a5fd6,#163a86); color:#dce9ff;
+  box-shadow:0 10px 28px rgba(47,111,237,.45);
+}
+#spectatorView .spec-score-label{
+  font-family:var(--ui); font-size:14px; font-weight:800; letter-spacing:1.4px;
+  text-transform:uppercase; color:var(--muted-ice); margin:0;
+  max-width:100%; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+}
+#spectatorView .spec-score-val{
+  font-family:var(--display); font-weight:900; font-size:58px;
+  line-height:.82; letter-spacing:-1px; font-variant-numeric:tabular-nums;
+}
+#spectatorView .spec-score-block.them .spec-score-val{ color:#ff8088; }
+#spectatorView .spec-score-block.us .spec-score-val{ color:#7aacff; }
+#spectatorView .spec-score-block.us .spec-score-val.score-flash-us{
+  color:#7ce0b6; text-shadow:0 0 24px rgba(31,184,128,.45);
+}
+#spectatorView .spec-score-block.them .spec-score-val.score-flash-them{
+  color:#ff9aa1; text-shadow:0 0 24px rgba(219,59,75,.4);
+}
+#spectatorView .spec-score-sub{ font-size:14px; color:var(--muted-ice); font-weight:700; margin-top:2px; }
+#spectatorView .spec-period{
+  font-family:var(--display); font-weight:700; font-size:22px; color:#dbe3f0;
+  padding:9px 13px; border-radius:13px; border:1px solid var(--line-ice);
+  background:rgba(255,255,255,.06); box-shadow:none;
+  font-variant-numeric:tabular-nums; text-align:center; min-width:0;
+}
+
+/* --- Cards (momentum + chance quality, feed) --- */
+#spectatorView .spec-card{ padding:13px 16px; }
+#spectatorView .spec-card-h{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  margin-bottom:9px;
+}
+#spectatorView .spec-card-t{
+  font-family:var(--ui); font-size:14px; font-weight:800; letter-spacing:1.4px;
+  text-transform:uppercase; color:var(--muted-ice);
+}
+#spectatorView .spec-card-meta{
+  font-size:14px; font-weight:800; color:#42d6e6; text-align:right; min-width:0;
+}
+#spectatorView .spec-hr{ height:1px; background:rgba(255,255,255,.10); margin:12px 0 10px; }
+
+#spectatorView .spec-momentum-track{
+  height:16px; border-radius:999px; position:relative; overflow:hidden;
+  border:1px solid rgba(255,255,255,.10);
+  background:linear-gradient(90deg,rgba(219,59,75,.85) 0%,rgba(120,70,80,.5) 38%,rgba(40,55,75,.6) 50%,rgba(60,110,150,.5) 62%,rgba(23,182,200,.9) 100%);
+}
+#spectatorView .spec-momentum-midline{
+  position:absolute; top:0; bottom:0; left:50%; width:2px;
+  background:rgba(255,255,255,.6);
+}
+#spectatorView .spec-momentum-needle{
+  position:absolute; top:-3px; left:50%; width:6px; height:22px;
+  border-radius:999px; background:#36e0f0;
+  box-shadow:0 0 16px rgba(54,224,240,1);
+  transform:translateX(-50%);
+  transition:none;
+}
+@media (prefers-reduced-motion: no-preference){
+  #spectatorView .spec-momentum-needle{ transition:left 1.2s cubic-bezier(.22,1,.36,1); }
+}
+#spectatorView .spec-momentum-axis{
+  display:flex; justify-content:space-between; margin-top:8px;
+  font-size:12px; font-weight:800; letter-spacing:1px; color:var(--muted-ice);
+}
+#spectatorView .spec-qtrack{
+  height:9px; border-radius:999px; background:rgba(255,255,255,.12);
+  position:relative; overflow:hidden; border:1px solid rgba(255,255,255,.10);
+}
+#spectatorView .spec-qmid{
+  position:absolute; left:50%; top:0; bottom:0; width:2px;
+  background:rgba(255,255,255,.4); z-index:1;
+}
+#spectatorView .spec-intensity-fill{
+  position:absolute; top:0; bottom:0; height:auto; width:0; left:50%;
+  border-radius:999px;
+  background:linear-gradient(90deg,#36e0f0,#21d693);
+  box-shadow:0 0 14px rgba(54,224,240,.7);
+  transition:left .35s ease, width .35s ease;
+}
+#spectatorView .spec-intensity-text{
+  margin-top:8px; font-size:15px; color:#8fefd2; font-weight:700; line-height:1.35;
+}
+
+/* --- KPI grid: hidden in this skin (elements stay for spectator.js) --- */
+#spectatorView .spec-kpi-grid{ display:none; }
+
+/* --- Game feed card --- */
+#spectatorView .spec-feed-card{
+  display:flex; flex-direction:column; flex:0 1 auto; min-height:150px;
+}
+#spectatorView .spec-events-head{ margin-bottom:8px; }
+#spectatorView .spectator-events{
+  position:relative; flex:1; min-height:0; max-height:none;
+  overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
+  border:none; border-radius:0; background:none;
+  -webkit-mask-image:linear-gradient(180deg, #000 calc(100% - 26px), transparent);
+  mask-image:linear-gradient(180deg, #000 calc(100% - 26px), transparent);
+}
+#spectatorView .spec-event-row{
+  display:flex; align-items:center; gap:11px; padding:7px 10px;
+  border:none; border-bottom:none; border-left:none; border-radius:11px;
+  font-size:16px; font-weight:600; color:#c4d0e0; margin-bottom:3px;
+}
+#spectatorView .spec-event-row:last-child{ margin-bottom:0; }
+#spectatorView .spec-event-icon,
+#spectatorView .spec-event-icon.dot{
+  width:24px; min-width:24px; height:24px; border-radius:7px;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-size:12px; flex-shrink:0;
+  font-family:var(--display); font-weight:800;
+  background:rgba(255,255,255,.08); color:var(--muted-ice);
+  margin:0; box-shadow:none;
+}
+#spectatorView .spec-event-icon.glyph{ font-size:12px; font-weight:800; }
+#spectatorView .spec-event-icon.dot::before{ content:'\25B8'; } /* ▸ */
+#spectatorView .spec-event-row.ev-save .spec-event-icon.dot::before{ content:'\2713'; } /* ✓ */
+#spectatorView .spec-event-row.ev-goal-for{
+  background:linear-gradient(90deg,rgba(31,184,128,.16),transparent);
+  color:#7ce0b6; font-weight:800;
+}
+#spectatorView .spec-event-row.ev-goal-for .spec-event-icon{
+  background:rgba(31,184,128,.22); color:var(--win);
+}
+#spectatorView .spec-event-row.ev-goal-against{
+  background:linear-gradient(90deg,rgba(219,59,75,.14),transparent);
+  color:#ff9aa1; font-weight:800;
+}
+#spectatorView .spec-event-row.ev-goal-against .spec-event-icon{
+  background:rgba(219,59,75,.22); color:var(--them);
+}
+#spectatorView .spec-event-row.ev-good .spec-event-icon{
+  background:rgba(47,111,237,.2); color:#8fb6ff;
+}
+#spectatorView .spec-event-row.ev-danger .spec-event-icon{
+  background:rgba(219,59,75,.14); color:#ff9aa1;
+}
+#spectatorView .spec-event-row.ev-save .spec-event-icon{
+  background:rgba(23,182,200,.2); color:#3ec6d6;
+}
+#spectatorView .spec-event-text{
+  flex:1; color:inherit; min-width:0;
+  overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+}
+#spectatorView .spec-event-period{
+  font-size:14px; color:var(--muted2-ice); font-weight:600;
+  font-variant-numeric:tabular-nums;
+}
+#spectatorView .spec-event-period::after{ content:' \00b7'; } /* · */
+#spectatorView .spec-event-time{
+  font-size:14px; color:var(--muted2-ice); font-weight:600;
+  font-variant-numeric:tabular-nums;
+}
+#spectatorView .spec-event-placeholder{
+  text-align:center; color:var(--muted2-ice); font-size:15px; padding:24px 0;
+}
+#spectatorView .spec-feed-anchor{
+  text-align:center; color:var(--muted2-ice); font-size:12px;
+  padding:12px 0 6px; border-top:1px solid rgba(255,255,255,.08); margin-top:4px;
+}
+
+/* --- Context card (inserted by JS after the scoreboard, inside the hero) --- */
+#spectatorView .spec-context-card{
+  margin:0 16px 12px; padding:9px 12px; border-radius:11px;
+  background:rgba(23,182,200,.10); border:1px solid rgba(23,182,200,.25);
+  color:#9fe8f0; font-size:14px; font-weight:700; text-align:center;
+  position:relative; z-index:1;
+}
+
+/* --- Footer: old status/meta hidden (info folded into the state pill),
+       Powered-by brand line pinned near the stage bottom --- */
+#spectatorView .spectator-footer{ display:none; }
+#spectatorView .spec-pw{
+  position:absolute; left:0; right:0; bottom:1.5%; z-index:2;
+  text-align:center; font-family:var(--ui);
+  font-size:14px; color:#cdd8e6; font-weight:600; letter-spacing:.4px;
+  text-shadow:0 1px 4px rgba(0,0,0,.7);
+}
+#spectatorView .spec-pw b{
+  color:#42d6e6; /* spec deviation from mockup's illegible #2a7a86 */
+  font-weight:800; letter-spacing:.6px;
 }

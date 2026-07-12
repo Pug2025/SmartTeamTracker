@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
-<link rel="manifest" href="manifest.json?v=6.3.21">
+<link rel="manifest" href="manifest.json?v=6.3.22">
 <link rel="icon" href="favicon.ico" sizes="48x48">
 <link rel="icon" href="icon-192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -18,8 +18,11 @@
 <meta name="twitter:title" content="Smart Team Tracker">
 <meta name="twitter:description" content="Live hockey stat tracking for coaches and parents.">
 <title>Smart Team Tracker — Live Hockey Stats</title>
-<link rel="stylesheet" href="css/styles.css?v=6.3.21">
-<link rel="stylesheet" href="css/auth.css?v=6.3.21">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@700;800;900&family=Hanken+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css?v=6.3.22">
+<link rel="stylesheet" href="css/auth.css?v=6.3.22">
 </head>
 <body>
 
@@ -1521,91 +1524,103 @@
   <button class="btn-welcome" id="btnWelcomeDismiss">Let's Go</button>
 </div></div>
 
-<!-- Spectator View (shown when ?live=CODE is in URL) -->
+<!-- Spectator View (shown when ?live=CODE is in URL) — "Ice" skin, see design/spectator-ice.html -->
 <div id="spectatorView" class="spectator-view" style="display:none;">
-  <div class="spectator-bg-glow" aria-hidden="true"></div>
-  <div class="spectator-header">
-    <div class="spectator-badge">LIVE</div>
-    <div class="spectator-title" id="specTitle">Game</div>
-    <div class="spectator-subtitle" id="specSubtitle">Live now</div>
-  </div>
-  <div class="spectator-scoreboard">
-    <div class="spec-score-block them">
-      <span class="spec-score-label" id="specThemLabel">THEM</span>
-      <span class="spec-score-val" id="specGA">0</span>
-      <span class="spec-score-sub" id="specSA">0 shots</span>
-    </div>
-    <div class="spec-period" id="specPeriod">P1</div>
-    <div class="spec-score-block us">
-      <span class="spec-score-label" id="specUsLabel">US</span>
-      <span class="spec-score-val" id="specGF">0</span>
-      <span class="spec-score-sub" id="specSF">0 shots</span>
-    </div>
-  </div>
+  <div class="spec-stage" id="specStage">
+    <div class="spec-frost" aria-hidden="true"></div>
+    <div class="spec-scrapes" aria-hidden="true"></div>
+    <div class="spec-topbloom" aria-hidden="true"></div>
 
-  <div class="spec-intensity-card">
-    <div class="spec-intensity-head">
-      <span id="specQualityLabel">Chance Quality</span>
-    </div>
-    <div class="spec-intensity-track">
-      <div id="specQualityFill" class="spec-intensity-fill"></div>
-    </div>
-    <div class="spec-intensity-text" id="specQualityText">Still settling in</div>
-  </div>
+    <div class="spec-content">
+      <div class="spec-glass spec-hero">
+        <div class="spec-hero-top">
+          <div class="spectator-badge"><span class="spec-pulse" aria-hidden="true"></span>LIVE</div>
+          <div class="spectator-title" id="specTitle">Game</div>
+          <div class="spectator-subtitle" id="specSubtitle">Live now</div>
+        </div>
+        <div class="spectator-scoreboard">
+          <div class="spec-score-block them">
+            <div class="spec-crest them" id="specCrestThem" aria-hidden="true">TH</div>
+            <span class="spec-score-label" id="specThemLabel">THEM</span>
+            <span class="spec-score-val" id="specGA">0</span>
+            <span class="spec-score-sub" id="specSA">0 shots</span>
+          </div>
+          <div class="spec-period" id="specPeriod">P1</div>
+          <div class="spec-score-block us">
+            <div class="spec-crest us" id="specCrestUs" aria-hidden="true">US</div>
+            <span class="spec-score-label" id="specUsLabel">US</span>
+            <span class="spec-score-val" id="specGF">0</span>
+            <span class="spec-score-sub" id="specSF">0 shots</span>
+          </div>
+        </div>
+      </div>
 
-  <div class="spec-momentum-card">
-    <div class="spec-momentum-head">
-      <span id="specMomentumLabel">Momentum</span>
-    </div>
-    <div class="spec-momentum-track">
-      <div class="spec-momentum-midline" aria-hidden="true"></div>
-      <div class="spec-momentum-needle" id="specMomentumNeedle" aria-hidden="true"></div>
-    </div>
-    <div class="spec-momentum-axis">
-      <span>THEM</span>
-      <span>US</span>
-    </div>
-    <div class="spec-intensity-text spec-momentum-text" id="specMomentumText">Still settling in</div>
-  </div>
+      <div class="spec-glass spec-card spec-pulse-card">
+        <div class="spec-card-h">
+          <span class="spec-card-t" id="specMomentumLabel">Momentum</span>
+          <span class="spec-card-meta" id="specMomentumText">Still settling in</span>
+        </div>
+        <div class="spec-momentum-track">
+          <div class="spec-momentum-midline" aria-hidden="true"></div>
+          <div class="spec-momentum-needle" id="specMomentumNeedle" aria-hidden="true"></div>
+        </div>
+        <div class="spec-momentum-axis">
+          <span>THEM</span>
+          <span>US</span>
+        </div>
+        <div class="spec-hr" aria-hidden="true"></div>
+        <div class="spec-card-h">
+          <span class="spec-card-t" id="specQualityLabel">Chance Quality</span>
+        </div>
+        <div class="spec-qtrack">
+          <div class="spec-qmid" aria-hidden="true"></div>
+          <div id="specQualityFill" class="spec-intensity-fill"></div>
+        </div>
+        <div class="spec-intensity-text" id="specQualityText">Still settling in</div>
+      </div>
 
-  <div class="spec-kpi-grid">
-    <div class="spec-kpi-card">
-      <div class="spec-kpi-label">Shots <span class="spec-kpi-axis">T – U</span></div>
-      <div class="spec-kpi-value" id="specShotLine">0-0</div>
-    </div>
-    <div class="spec-kpi-card">
-      <div class="spec-kpi-label">Scoring Chances <span class="spec-kpi-axis">T – U</span></div>
-      <div class="spec-kpi-value" id="specDangerLine">0-0</div>
-    </div>
-    <div class="spec-kpi-card">
-      <div class="spec-kpi-label">Penalties <span class="spec-kpi-axis">T – U</span></div>
-      <div class="spec-kpi-value" id="specPenaltyLine">0-0</div>
-    </div>
-    <div class="spec-kpi-card">
-      <div class="spec-kpi-label">Saves</div>
-      <div class="spec-kpi-value" id="specSaves">0</div>
-      <div class="spec-kpi-note" id="specSavesPct">SV% —</div>
-    </div>
-  </div>
+      <div class="spec-kpi-grid">
+        <div class="spec-kpi-card">
+          <div class="spec-kpi-label">Shots <span class="spec-kpi-axis">T – U</span></div>
+          <div class="spec-kpi-value" id="specShotLine">0-0</div>
+        </div>
+        <div class="spec-kpi-card">
+          <div class="spec-kpi-label">Scoring Chances <span class="spec-kpi-axis">T – U</span></div>
+          <div class="spec-kpi-value" id="specDangerLine">0-0</div>
+        </div>
+        <div class="spec-kpi-card">
+          <div class="spec-kpi-label">Penalties <span class="spec-kpi-axis">T – U</span></div>
+          <div class="spec-kpi-value" id="specPenaltyLine">0-0</div>
+        </div>
+        <div class="spec-kpi-card">
+          <div class="spec-kpi-label">Saves</div>
+          <div class="spec-kpi-value" id="specSaves">0</div>
+          <div class="spec-kpi-note" id="specSavesPct">SV% —</div>
+        </div>
+      </div>
 
-  <div class="spectator-events-wrap">
-    <div class="spec-events-head">
-      <span>Game Feed</span>
-    </div>
-    <div class="spectator-events" id="specEvents">
-      <div class="spec-event-placeholder">Waiting for game data...</div>
-    </div>
-  </div>
+      <div class="spec-glass spec-card spec-feed-card spectator-events-wrap">
+        <div class="spec-card-h spec-events-head">
+          <span class="spec-card-t">Game Feed</span>
+        </div>
+        <div class="spectator-events" id="specEvents">
+          <div class="spec-event-placeholder">Waiting for game data...</div>
+        </div>
+      </div>
 
-  <div class="spectator-footer">
-    <div id="specStatus" class="spec-status">Connecting...</div>
-    <div class="spec-meta" id="specMetaLine">Live updates</div>
+      <div class="spectator-footer">
+        <div id="specStatus" class="spec-status">Connecting...</div>
+        <div class="spec-meta" id="specMetaLine">Live updates</div>
+      </div>
+    </div>
+
+    <div class="spec-pw">Powered by <b>SMART TEAM TRACKER</b></div>
   </div>
 </div>
 
-<script src="js/spectator.js?v=6.3.21"></script>
-<script type="module" src="js/auth.js?v=6.3.21"></script>
-<script src="js/teams.js?v=6.3.21"></script>
-<script src="js/app.js?v=6.3.21"></script>
+<script src="js/spectator.js?v=6.3.22"></script>
+<script type="module" src="js/auth.js?v=6.3.22"></script>
+<script src="js/teams.js?v=6.3.22"></script>
+<script src="js/app.js?v=6.3.22"></script>
 </body>
 </html>

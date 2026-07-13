@@ -118,6 +118,7 @@
   body{
     margin:0;
     font-family:var(--ui);
+    line-height:1.22; /* metric compensation: Hanken Grotesk's normal line box is taller than -apple-system's; 1.22 restores pre-migration text-block heights (P2.2 geometry identity) */
     background:var(--surface-0);
     color:var(--ink);
     padding-bottom:80px; /* Space for FAB */
@@ -155,6 +156,7 @@
   .p-opt, .hat-trick-title, .hat-trick-player,
   .landing-headline, .landing-bottom-headline, .landing-section-label, .auth-logo{
     font-family:var(--display);
+    line-height:1.2; /* metric compensation: Saira's normal line box is ~1.5; 1.2 matches the old SF box */
   }
   /* Tabular numerals on every numeric class */
   .score-val, .score-sub, .sum-score-num, .scoreRing .val,

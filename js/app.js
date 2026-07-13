@@ -1765,7 +1765,10 @@ function computePlusMinus(){
   }
 
   for(const ev of state.events){
-    if(ev.type==='for_goal'){
+    // Hockey convention: power-play goals for do NOT count toward +/-.
+    // Minus side is intentionally unchanged — the app keeps defensive
+    // accountability for all goals against.
+    if(ev.type==='for_goal' && ev.strength!=='PP'){
       const s=new Set();
       if(ev.player) s.add(ev.player);
       if(ev.assist) s.add(ev.assist);

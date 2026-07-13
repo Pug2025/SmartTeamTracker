@@ -25,6 +25,7 @@ const ASSETS_TO_CACHE = [
   "/assets/rink-ice.webp",
   "/assets/brand/lockup-dark-640.webp",
   "/assets/brand/ice-texture-dark-1920.webp",
+  "/assets/brand/ice-texture-band-1920.webp",
   // Ice skin webfonts (system fallbacks keep the page usable offline/blocked)
   "https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@700;800;900&display=swap",
   "https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;700;800&display=swap",

@@ -29,7 +29,9 @@
 <!-- Landing Page (shown to unauthenticated visitors) -->
 <div id="landingPage" class="landing-page" style="display:none;">
 
-  <!-- Hero -->
+  <!-- Hero (P2.5: wrapper is unstyled below 900px so mobile is unchanged;
+       at >=900px it becomes a 2-col grid — copy/CTA left, mockup right) -->
+  <div class="landing-hero-wrap">
   <div class="landing-hero">
     <img class="landing-logo-img" src="assets/brand/lockup-dark-640.webp" alt="Smart Team Tracker" width="640" height="141" decoding="async">
     <h1 class="landing-headline">Know how your team<br>really played.</h1>
@@ -184,6 +186,7 @@
       </div>
     </div>
   </div>
+  </div><!-- /landing-hero-wrap -->
 
   <!-- Section: Live Spectator View -->
   <div class="landing-section">

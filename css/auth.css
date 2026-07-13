@@ -3,7 +3,10 @@
   position: fixed;
   inset: 0;
   z-index: 99999;
-  background: var(--surface-0);
+  /* P2.5: whisper ice texture behind the auth card (pre-darkened asset). */
+  background:
+    url('../assets/brand/ice-texture-dark-1920.webp') center / cover no-repeat,
+    var(--surface-0);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -205,7 +208,13 @@
   position: fixed;
   inset: 0;
   z-index: 99998;
-  background: var(--surface-0);
+  /* P2.5: subtle band-texture backdrop behind the landing sections. The
+     landing page is the scroll container, so its background stays put while
+     content scrolls — no background-attachment:fixed (broken on iOS). */
+  background:
+    linear-gradient(180deg, rgba(5,7,12,0.60), rgba(5,7,12,0.85)),
+    url('../assets/brand/ice-texture-band-1920.webp') center / cover no-repeat,
+    var(--surface-0);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -541,4 +550,44 @@
 .landing-page,
 .auth-screen {
   font-family: var(--ui);
+}
+
+/* ===== P2.5: desktop landing hero — 2 columns at >=900px =====
+   Copy/CTA left, the existing summary-card phone mockup right.
+   .landing-hero-wrap is an unstyled wrapper below 900px, so the mobile
+   layout is byte-identical. Presentation only; no new content. */
+@media (min-width: 900px) {
+  .landing-hero-wrap {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 400px;
+    gap: 56px;
+    align-items: start;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 72px 32px 56px;
+  }
+  .landing-hero-wrap .landing-hero {
+    text-align: left;
+    padding: 48px 0 0;
+    margin: 0;
+    max-width: none;
+    position: sticky;
+    top: 48px;
+  }
+  .landing-hero-wrap .landing-logo-img {
+    margin: 0 0 24px;
+  }
+  .landing-hero-wrap .landing-headline {
+    font-size: 44px;
+    letter-spacing: -2px;
+  }
+  .landing-hero-wrap .landing-section {
+    padding: 0;
+    max-width: none;
+  }
+  /* The left-column copy carries the message at desktop; the mockup's own
+     centered caption would duplicate it. */
+  .landing-hero-wrap .landing-section-label {
+    display: none;
+  }
 }

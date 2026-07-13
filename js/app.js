@@ -2689,11 +2689,12 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
     `<div class="comp-annotation">${K.scoreBig} big save${K.scoreBig !== 1 ? 's' : ''}</div>` +
     (K.softPenalty > 0 ? `<div class="comp-annotation-warn">${K.softPenalty} soft goal${K.softPenalty !== 1 ? 's' : ''} allowed</div>` : '');
 
-  // Summary confidence note — only shown for very low shot counts
+  // Summary confidence note — shown whenever dampening is active (< 20 shots,
+  // i.e. confidence < 1), so a pulled-toward-average score is never silent.
   const confSum = $('goalieConfidenceSum');
   if(confSum){
-    if(K.shots < 10){
-      confSum.textContent = `Based on ${K.shots} shot${K.shots !== 1 ? 's' : ''}`;
+    if(K.shots < 20){
+      confSum.textContent = `Only ${K.shots} shot${K.shots !== 1 ? 's' : ''} — score pulled toward average until 20+.`;
     } else {
       confSum.textContent = '';
     }
@@ -3826,8 +3827,8 @@ return;
     const band = sc >= 80 ? 'Excellent' : sc >= 63 ? 'Solid' : sc >= 45 ? 'Below Average' : 'Poor';
     let html = `<div class="ring-band">${sc}/100 &mdash; ${band}</div>`;
     html += `<div class="ring-basis">Based on ${K.shots} shot${K.shots !== 1 ? 's' : ''}</div>`;
-    if(K.shots < 10){
-      html += `<div class="ring-confidence-note">Score stabilizes as shot count increases.</div>`;
+    if(K.shots < 20){
+      html += `<div class="ring-confidence-note">Only ${K.shots} shot${K.shots !== 1 ? 's' : ''} — score pulled toward average until 20+.</div>`;
     }
     tip.innerHTML = html;
     tip.classList.add('active');

@@ -1937,8 +1937,10 @@ function computeGoalieScore() {
 
       // PP goals against: goalie faces a man-advantage not their fault.
       // Partially discount unless already classified as hard (0.5).
+      // Soft goals keep their progressive scale (x0.75 PP discount, floored)
+      // so a 3rd PK softie still weighs more than earlier ones.
       if (ev.strength === 'PP' && wGoal > 0.5) {
-        wGoal = isSoft ? 1.5 : 0.7;
+        wGoal = isSoft ? Math.max(0.7, wGoal * 0.75) : 0.7;
       }
     }
 
@@ -1954,14 +1956,19 @@ function computeGoalieScore() {
   const expectedGoalsAllowed = weightedShots * (1 - baseSvPct);
   const GSAx = expectedGoalsAllowed - weightedGoals; // positive is good
 
-  // 5) Final goalie score: sigmoid with spread 3.0
-  //    Big save bonus (0.6/save) and rebound control (×0.25) add meaningful signal
-  const goalieInput = GSAx + bigSaveBonus + (reboundScore * 0.25);
-  const rawScore = getSigmoidScore(goalieInput, 0, 3.0);
+  // 5) Final goalie score: sigmoid with spread 3.0 on the upside; the
+  //    downside uses a tighter spread so genuinely bad nights read as bad
+  //    even after the low-volume dampening below pulls them toward average.
+  //    Big save bonus (0.6/save) and rebound control (×0.25) add meaningful signal.
+  //    Shutout bonus: a clean sheet on a real workload (20+ shots) is the
+  //    pinnacle stat line — push it into A+ territory.
+  let goalieInput = GSAx + bigSaveBonus + (reboundScore * 0.25);
+  if (ga === 0 && shots >= 20) goalieInput += 2.5;
+  const rawScore = getSigmoidScore(goalieInput, 0, goalieInput < 0 ? 1.2 : 3.0);
 
   // 6) Volume-based confidence dampening: low shot counts regress toward baseline.
   //    Prevents misleading extremes on 5-15 shot games.
-  //    At 20+ shots: full confidence. At 5 shots: 33% confidence.
+  //    At 20+ shots: full confidence. At 5 shots: ~17% ((5-2)/18).
   const BASELINE = 63;
   const confidence = Math.min(1.0, (shots - 2) / 18);
   const totalScore = Math.round(BASELINE + confidence * (rawScore - BASELINE));

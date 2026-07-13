@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.3.24';
+const APP_VERSION = '6.3.25';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -5707,6 +5707,10 @@ function renderHistoricSummary(game){
   currentDetailGameId = game.id || null;
   $('gameDetailTitle').textContent = `${opp} — ${date}`;
   $('gameDetailDelete').style.display = currentDetailGameId ? 'inline-block' : 'none';
+  // P2.4: Delete Game lives in a collapsed overflow row; re-collapse per game.
+  $('gameDetailOverflowRow').style.display = currentDetailGameId ? 'block' : 'none';
+  $('gameDetailOverflowMenu').hidden = true;
+  $('gameDetailMore').setAttribute('aria-expanded', 'false');
 
   const GF = Number(d.GF || 0);
   const GA = Number(d.GA || 0);
@@ -5914,6 +5918,13 @@ function renderHistoricSummary(game){
 $('gameDetailClose').addEventListener('click', ()=>{ $('gameDetailModal').style.display='none'; });
 $('gameDetailPrev').addEventListener('click', ()=> navigateGameDetail(-1));
 $('gameDetailNext').addEventListener('click', ()=> navigateGameDetail(1));
+
+/* P2.4: "⋯ More" overflow toggle reveals the demoted Delete Game link. */
+$('gameDetailMore').addEventListener('click', ()=>{
+  const menu = $('gameDetailOverflowMenu');
+  menu.hidden = !menu.hidden;
+  $('gameDetailMore').setAttribute('aria-expanded', String(!menu.hidden));
+});
 
 $('gameDetailDelete').addEventListener('click', async ()=>{
   if(!currentDetailGameId) return;

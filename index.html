@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
-<link rel="manifest" href="manifest.json?v=6.3.24">
+<link rel="manifest" href="manifest.json?v=6.3.25">
 <link rel="icon" href="favicon.ico" sizes="48x48">
 <link rel="icon" href="icon-192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -21,8 +21,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@700;800;900&family=Hanken+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=6.3.24">
-<link rel="stylesheet" href="css/auth.css?v=6.3.24">
+<link rel="stylesheet" href="css/styles.css?v=6.3.25">
+<link rel="stylesheet" href="css/auth.css?v=6.3.25">
 </head>
 <body>
 
@@ -1211,8 +1211,13 @@
     <button class="btn-std btn-close-sm" id="gameDetailClose">Close</button>
   </div>
   <div id="gameDetailBody"></div>
-  <div class="mt-2xl text-center">
-    <button class="btn-std btn-accent-them" id="gameDetailDelete">Delete Game</button>
+  <!-- P2.4: Delete Game demoted out of the final position — quiet overflow row,
+       not the emotional close of the screen. Handler + confirm unchanged. -->
+  <div class="detail-overflow-row" id="gameDetailOverflowRow">
+    <button class="detail-overflow-toggle" id="gameDetailMore" type="button" aria-expanded="false" aria-controls="gameDetailOverflowMenu">&#8943; More</button>
+    <div class="detail-overflow-menu" id="gameDetailOverflowMenu" hidden>
+      <button class="detail-quiet-delete" id="gameDetailDelete" type="button">Delete Game</button>
+    </div>
   </div>
 </div></div>
 
@@ -1618,9 +1623,9 @@
   </div>
 </div>
 
-<script src="js/spectator.js?v=6.3.24"></script>
-<script type="module" src="js/auth.js?v=6.3.24"></script>
-<script src="js/teams.js?v=6.3.24"></script>
-<script src="js/app.js?v=6.3.24"></script>
+<script src="js/spectator.js?v=6.3.25"></script>
+<script type="module" src="js/auth.js?v=6.3.25"></script>
+<script src="js/teams.js?v=6.3.25"></script>
+<script src="js/app.js?v=6.3.25"></script>
 </body>
 </html>

@@ -3,16 +3,16 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
-<link rel="manifest" href="manifest.json?v=6.3.26">
+<link rel="manifest" href="manifest.json?v=6.3.27">
 <link rel="icon" href="favicon.ico" sizes="48x48">
 <link rel="icon" href="icon-192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="description" content="Smart Team Tracker — live hockey stat tracking for coaches and parents. Track shots, goals, saves, and get objective performance scores after every game.">
+<meta name="description" content="Smart Team Tracker — live hockey stat tracking for coaches and parents. Track shots, goals, saves, and get consistent, context-aware performance scores after every game.">
 <meta name="theme-color" content="#05070C">
 <meta property="og:title" content="Smart Team Tracker">
-<meta property="og:description" content="Live hockey stat tracking for coaches and parents. Track shots, goals, saves, and get objective goalie and team scores after every game.">
+<meta property="og:description" content="Live hockey stat tracking for coaches and parents. Track shots, goals, saves, and get consistent, context-aware goalie and team scores after every game.">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Smart Team Tracker">
@@ -21,8 +21,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@700;800;900&family=Hanken+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=6.3.26">
-<link rel="stylesheet" href="css/auth.css?v=6.3.26">
+<link rel="stylesheet" href="css/styles.css?v=6.3.27">
+<link rel="stylesheet" href="css/auth.css?v=6.3.27">
 </head>
 <body>
 
@@ -35,7 +35,7 @@
   <div class="landing-hero">
     <img class="landing-logo-img" src="assets/brand/lockup-dark-640.webp" alt="Smart Team Tracker" width="640" height="141" decoding="async">
     <h1 class="landing-headline">Know how your team<br>really played.</h1>
-    <p class="landing-sub">Live stat tracking that gives your team and goalie an objective performance score after every game. Built for coaches and hockey parents.</p>
+    <p class="landing-sub">Live stat tracking that gives your team and goalie a consistent, context-aware performance score after every game. Built for coaches and hockey parents.</p>
     <button class="landing-cta" id="landingGetStarted">Get Started Free</button>
     <div class="landing-note">Free to use. No credit card required.</div>
   </div>
@@ -168,8 +168,8 @@
         <div style="font-size:11px; color:var(--muted2-ice); font-weight:700; margin-bottom:8px; color:var(--us);">Offensive</div>
         <div class="dashGrid">
           <div class="dashTile"><div class="k">Breakaways</div><div class="v">1</div></div>
-          <div class="dashTile"><div class="k">OMR</div><div class="v">3</div></div>
-          <div class="dashTile"><div class="k">Forced TO</div><div class="v">4</div></div>
+          <div class="dashTile"><div class="k">Odd-Man Rush</div><div class="v">3</div></div>
+          <div class="dashTile"><div class="k">Forced Turnover</div><div class="v">4</div></div>
           <div class="dashTile"><div class="k">HD Chances</div><div class="v">11</div></div>
           <div class="dashTile"><div class="k">Penalties Drawn</div><div class="v">2</div></div>
         </div>
@@ -178,8 +178,8 @@
         <div style="font-size:11px; color:var(--muted2-ice); font-weight:700; margin-bottom:8px; color:var(--them);">Defensive</div>
         <div class="dashGrid">
           <div class="dashTile"><div class="k">Breakaways Ag</div><div class="v">0</div></div>
-          <div class="dashTile"><div class="k">D-Zone TO</div><div class="v">1</div></div>
-          <div class="dashTile"><div class="k">OMR Ag</div><div class="v">1</div></div>
+          <div class="dashTile"><div class="k">DZ Turnover</div><div class="v">1</div></div>
+          <div class="dashTile"><div class="k">Odd-Man Rush Ag</div><div class="v">1</div></div>
           <div class="dashTile"><div class="k">HD Chances Ag</div><div class="v">3</div></div>
           <div class="dashTile"><div class="k">Penalties Taken</div><div class="v">1</div></div>
         </div>
@@ -452,7 +452,7 @@
       <div class="landing-feature">
         <div class="landing-feature-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:middle;"><line x1="6" y1="20" x2="6" y2="14"/><line x1="12" y1="20" x2="12" y2="8"/><line x1="18" y1="20" x2="18" y2="4"/></svg></div>
         <div>
-          <div class="landing-feature-title">Objective Performance Scores</div>
+          <div class="landing-feature-title">Context-Aware Performance Scores</div>
           <div class="landing-feature-desc">Goalie Score and Team Score rated 0&ndash;100 with full breakdowns. Know how your goalie or team actually played, not just whether they won.</div>
         </div>
       </div>
@@ -877,8 +877,8 @@
       <div class="dash-section-label dash-label-us">Offensive</div>
       <div class="dashGrid">
         <div class="dashTile" data-explain="Your player had a clear path to the net with no defender between them and the goalie."><div class="k">Breakaways</div><div class="v" id="baForVal">0</div></div>
-        <div class="dashTile" data-explain="Odd-man rushes — your team outnumbered the defense on an attack (2-on-1, 3-on-2, etc.)."><div class="k">OMR</div><div class="v" id="omrForVal">0</div></div>
-        <div class="dashTile" data-explain="Turnovers caused by your team's pressure, stick checks, or positioning."><div class="k">Forced TO</div><div class="v" id="ftVal">0</div></div>
+        <div class="dashTile" data-explain="Odd-man rushes — your team outnumbered the defense on an attack (2-on-1, 3-on-2, etc.)."><div class="k">Odd-Man Rush</div><div class="v" id="omrForVal">0</div></div>
+        <div class="dashTile" data-explain="Turnovers caused by your team's pressure, stick checks, or positioning."><div class="k">Forced Turnover</div><div class="v" id="ftVal">0</div></div>
         <div class="dashTile" data-explain="Scoring chances from the slot or close range — these convert to goals at a much higher rate."><div class="k">HD Chances</div><div class="v" id="hdForVal">0</div><div class="s" id="hdForSub"></div></div>
         <div class="dashTile" data-explain="Penalties the opponent committed against your team, giving you a power play."><div class="k">Penalties Drawn</div><div class="v" id="penForVal">0</div></div>
       </div>
@@ -887,8 +887,8 @@
       <div class="dash-section-label dash-label-them">Defensive</div>
       <div class="dashGrid">
         <div class="dashTile" data-explain="Opponent had a clear breakaway on your goalie — indicates a defensive breakdown."><div class="k">Breakaways Ag</div><div class="v" id="baAgVal">0</div></div>
-        <div class="dashTile" data-explain="Turnovers in your own zone — these often lead to high-danger chances against."><div class="k">D-Zone TO</div><div class="v" id="dzVal">0</div></div>
-        <div class="dashTile" data-explain="Odd-man rushes against — the opponent outnumbered your defense on a rush."><div class="k">OMR Ag</div><div class="v" id="omrAgVal">0</div></div>
+        <div class="dashTile" data-explain="Turnovers in your own zone — these often lead to high-danger chances against."><div class="k">DZ Turnover</div><div class="v" id="dzVal">0</div></div>
+        <div class="dashTile" data-explain="Odd-man rushes against — the opponent outnumbered your defense on a rush."><div class="k">Odd-Man Rush Ag</div><div class="v" id="omrAgVal">0</div></div>
         <div class="dashTile" data-explain="High-danger chances the opponent generated from the slot or close range."><div class="k">HD Chances Ag</div><div class="v" id="hdAgVal">0</div><div class="s" id="hdAgSub"></div></div>
         <div class="dashTile" data-explain="Penalties your team committed, giving the opponent a power play."><div class="k">Penalties Taken</div><div class="v" id="penAgVal">0</div></div>
       </div>
@@ -1526,7 +1526,7 @@
 <!-- Welcome Modal (first launch only) — outside appShell so it can show on landing page -->
 <div class="modal" id="welcomeModal"><div class="box">
   <div class="welcome-title">Welcome to Smart Team Tracker</div>
-  <div class="welcome-sub">Track every shot, goal, and scoring chance right from the bench &mdash; and get an objective performance score for your team and goalie after every game.</div>
+  <div class="welcome-sub">Track every shot, goal, and scoring chance right from the bench &mdash; and get a consistent, context-aware performance score for your team and goalie after every game.</div>
   <ul class="welcome-bullets">
     <li><span class="wb-icon wb-icon-them"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><circle cx="12" cy="12" r="6"/></svg></span><strong>Left column (red) &mdash; what their team does.</strong> Log their shots, goals, breakaways, turnovers, and penalties.</li>
     <li><span class="wb-icon wb-icon-us"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><circle cx="12" cy="12" r="6"/></svg></span><strong>Right column (blue) &mdash; what your team does.</strong> Log your shots, goals, big saves, forced turnovers, and penalties.</li>
@@ -1630,9 +1630,9 @@
   </div>
 </div>
 
-<script src="js/spectator.js?v=6.3.26"></script>
-<script type="module" src="js/auth.js?v=6.3.26"></script>
-<script src="js/teams.js?v=6.3.26"></script>
-<script src="js/app.js?v=6.3.26"></script>
+<script src="js/spectator.js?v=6.3.27"></script>
+<script type="module" src="js/auth.js?v=6.3.27"></script>
+<script src="js/teams.js?v=6.3.27"></script>
+<script src="js/app.js?v=6.3.27"></script>
 </body>
 </html>

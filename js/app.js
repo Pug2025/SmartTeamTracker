@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.3.26';
+const APP_VERSION = '6.3.27';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -1394,7 +1394,7 @@ const EVENT_LABELS = {
   for_shot:'Shot For',
   for_goal:'Goal For',
   breakaway_against:'Breakaway Against',
-  dz_turnover:'D-Zone Turnover',
+  dz_turnover:'DZ Turnover',
   breakaway_for:'Breakaway For',
   odd_man_rush_for:'Odd-Man Rush For',
   odd_man_rush_against:'Odd-Man Rush Against',
@@ -1408,7 +1408,7 @@ function formatGoalCauseBadge(cause){
   if(!cause || cause === 'other') return '';
   const map = {
     BA:'Breakaway',
-    DZ:'D-Zone Turnover',
+    DZ:'DZ Turnover',
     BR:'Rebound',
     OMRA:'Odd-Man Rush'
   };
@@ -2001,7 +2001,9 @@ function computeTeamScore() {
   const totalShots = SF + SA;
 
   if (totalShots < 5) {
-    return { total: 50, scoreSS:0, scoreFin:0, scoreImp:0, scoreSQ:0, scoreStab:0, SS:0, Fin:0, scoreChance:0, scoreST:0, scoreDepth:0, penDef:0, scoreDiscipline:0 };
+    // No-data baseline 63 matches the goalie model's, so both rings idle at
+    // the same neutral orange instead of the team ring starting red.
+    return { total: 63, scoreSS:0, scoreFin:0, scoreImp:0, scoreSQ:0, scoreStab:0, SS:0, Fin:0, scoreChance:0, scoreST:0, scoreDepth:0, penDef:0, scoreDiscipline:0 };
   }
 
   const sq = computeShotQuality();
@@ -2732,33 +2734,50 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
   $('sumGoalieGrid').innerHTML =
     tile('Big Saves', state.countsA.bigSaves) +
     tile('Smothers', state.countsA.smothers) +
-    tile('Good Reb', goodReb) +
-    tile('Bad Reb', state.countsA.badRebounds) +
+    tile('Good Rebounds', goodReb) +
+    tile('Bad Rebounds', state.countsA.badRebounds) +
     tile('Soft Goals', state.countsA.softGoals) +
-    tile('Missed Ch', (state.team.missedChancesAgainst||0), 'Against');
+    tile('Missed Chances', (state.team.missedChancesAgainst||0), 'Against');
 
   // === Per-Goalie Breakdown (only when 2+ goalies have logged events) ===
   const goalieBreakdown = computeGoalieBreakdown();
   if(goalieBreakdown.length >= 2){
     $('sumPerGoalieWrap').style.display = '';
-    $('sumPerGoalieBody').innerHTML = buildGoalieBreakdownTable(goalieBreakdown);
+    let perGoalieHTML = buildGoalieBreakdownTable(goalieBreakdown);
+    // Goalie change note (STATS_UX 3E): derive the switch period(s) from the
+    // goalie tags on the event log — the first event tagged with a different
+    // goalie marks the change.
+    const changePeriods = [];
+    let prevGoalie = null;
+    for(const ev of state.events){
+      if(!ev || ev.goalie == null) continue;
+      if(prevGoalie != null && String(ev.goalie) !== String(prevGoalie)){
+        changePeriods.push(sanitizePeriod(ev.period));
+      }
+      prevGoalie = ev.goalie;
+    }
+    if(changePeriods.length){
+      const pName = p => p === 4 ? 'OT' : 'P' + p;
+      perGoalieHTML += `<div class="small" style="color:var(--muted2-ice);">Goalie change${changePeriods.length > 1 ? 's' : ''}: ${changePeriods.map(pName).join(', ')}</div>`;
+    }
+    $('sumPerGoalieBody').innerHTML = perGoalieHTML;
   } else {
     $('sumPerGoalieWrap').style.display = 'none';
   }
 
-  // === Offensive ===
+  // === Offensive === (full-form label convention — matches Penalties Drawn)
   $('sumOffenseGrid').innerHTML =
     tile('Breakaways', state.team.breakawaysFor) +
     tile('Odd-Man Rush', state.team.oddManRushFor) +
-    tile('Forced TO', state.team.forcedTurnovers||0) +
+    tile('Forced Turnover', state.team.forcedTurnovers||0) +
     tile('Penalties Drawn', state.team.penaltiesFor||0) +
-    tile('Missed Ch', state.team.missedChancesFor||0, 'For');
+    tile('Missed Chances', state.team.missedChancesFor||0, 'For');
 
-  // === Defensive ===
+  // === Defensive === (full-form label convention — matches the Offensive grid)
   $('sumDefenseGrid').innerHTML =
     tile('Breakaways Ag', state.team.breakawaysAgainst) +
-    tile('D-Zone TO', state.team.dzTurnovers) +
-    tile('OMR Ag', state.team.oddManRushAgainst||0) +
+    tile('DZ Turnover', state.team.dzTurnovers) +
+    tile('Odd-Man Rush Ag', state.team.oddManRushAgainst||0) +
     tile('Penalties Taken', state.team.penaltiesAgainst||0);
 
   // === Goal Breakdowns ===
@@ -2773,7 +2792,7 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
     gbHTML += `<div class="card breakdown-card">
       <div class="small breakdown-card-title breakdown-card-title-them">Goals Against (${totalGA})</div>
       ${gaStats.BA ? `<div class="small">Breakaway: ${gaStats.BA}</div>` : ''}
-      ${gaStats.DZ ? `<div class="small">D-Zone TO: ${gaStats.DZ}</div>` : ''}
+      ${gaStats.DZ ? `<div class="small">DZ Turnover: ${gaStats.DZ}</div>` : ''}
       ${gaStats.BR ? `<div class="small">Bad Rebound: ${gaStats.BR}</div>` : ''}
       ${(gaStats.OMRA||0) ? `<div class="small">Odd-Man Rush: ${gaStats.OMRA}</div>` : ''}
       ${gaStats.Other ? `<div class="small">Other: ${gaStats.Other}</div>` : ''}
@@ -2786,7 +2805,7 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
       <div class="small breakdown-card-title breakdown-card-title-us">Goals For (${totalGF})</div>
       ${gfCtx.BA ? `<div class="small">Breakaway: ${gfCtx.BA}</div>` : ''}
       ${gfCtx.OMR ? `<div class="small">Odd-Man Rush: ${gfCtx.OMR}</div>` : ''}
-      ${(gfCtx.FT||0) ? `<div class="small">Forced TO: ${gfCtx.FT}</div>` : ''}
+      ${(gfCtx.FT||0) ? `<div class="small">Forced Turnover: ${gfCtx.FT}</div>` : ''}
       ${gfCtx.Other ? `<div class="small">Other: ${gfCtx.Other}</div>` : ''}
     </div>`;
   } else {
@@ -2838,8 +2857,8 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
     {label:'BA Ag', fn:p=>per[p].BA},
     {label:'DZ TO', fn:p=>per[p].DZ},
     {label:'OMR Ag', fn:p=>per[p].OMRA||0},
-    {label:'Pen For', fn:p=>per[p].PF||0},
-    {label:'Pen Ag', fn:p=>per[p].PA||0},
+    {label:'Pen Drawn', fn:p=>per[p].PF||0},
+    {label:'Pen Taken', fn:p=>per[p].PA||0},
   ];
   let pHTML = `<table><tr><th></th>`;
   pLabels.forEach(l=>{ pHTML += `<th>${l}</th>`; });
@@ -5826,9 +5845,9 @@ function renderHistoricSummary(game){
       <div class="dashGrid">
         ${tile('Big Saves', d.BigSaves ?? '—')}
         ${tile('Smothers', d.Smothers ?? '—')}
-        ${tile('Bad Reb', d.BadRebounds ?? '—')}
+        ${tile('Bad Rebounds', d.BadRebounds ?? '—')}
         ${tile('Soft Goals', d.SoftGoals ?? '—')}
-        ${tile('Missed Ch', d.MissedChancesAgainst ?? '—', 'Against')}
+        ${tile('Missed Chances', d.MissedChancesAgainst ?? '—', 'Against')}
         ${tile('Shooting %', shoot, 'GF / SF')}
       </div>
     </div>`;
@@ -5854,8 +5873,8 @@ function renderHistoricSummary(game){
       <div class="sum-section-label dash-label-them">Defensive</div>
       <div class="dashGrid">
         ${tile('Breakaways Ag', d.BreakawaysAgainst ?? '—')}
-        ${tile('D-Zone TO', d.DZTurnovers ?? '—')}
-        ${tile('OMR Ag', d.OddManRushAgainst ?? '—')}
+        ${tile('DZ Turnover', d.DZTurnovers ?? '—')}
+        ${tile('Odd-Man Rush Ag', d.OddManRushAgainst ?? '—')}
         ${tile('Penalties Taken', d.PenaltiesAgainst ?? '—')}
       </div>
     </div>`;
@@ -5866,9 +5885,9 @@ function renderHistoricSummary(game){
       <div class="dashGrid">
         ${tile('Breakaways', d.BreakawaysFor ?? '—')}
         ${tile('Odd-Man Rush', d.OddManRushFor ?? '—')}
-        ${tile('Forced TO', d.ForcedTurnovers ?? '—')}
+        ${tile('Forced Turnover', d.ForcedTurnovers ?? '—')}
         ${tile('Penalties Drawn', d.PenaltiesFor ?? '—')}
-        ${tile('Missed Ch', d.MissedChancesFor ?? '—', 'For')}
+        ${tile('Missed Chances', d.MissedChancesFor ?? '—', 'For')}
       </div>
     </div>`;
 
@@ -5904,7 +5923,7 @@ function renderHistoricSummary(game){
           <div class="card breakdown-card">
             <div class="small breakdown-card-title breakdown-card-title-them">Goals Against (${totalGA})</div>
             ${d.GA_BA ? `<div class="small">Breakaway: ${d.GA_BA}</div>` : ''}
-            ${d.GA_DZ ? `<div class="small">D-Zone TO: ${d.GA_DZ}</div>` : ''}
+            ${d.GA_DZ ? `<div class="small">DZ Turnover: ${d.GA_DZ}</div>` : ''}
             ${d.GA_BR ? `<div class="small">Bad Rebound: ${d.GA_BR}</div>` : ''}
             ${d.GA_Other ? `<div class="small">Other: ${d.GA_Other}</div>` : ''}
           </div>

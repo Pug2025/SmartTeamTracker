@@ -1255,7 +1255,7 @@ function showHatTrickCelebration(player, goalCount){
   overlay.className = 'hat-trick-overlay';
   overlay.innerHTML =
     '<div class="hat-trick-card">' +
-      '<div class="hat-trick-hat">\uD83C\uDFA9</div>' +
+      '<div class="hat-trick-hat"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg></div>' +
       '<div class="hat-trick-title">Hat Trick!</div>' +
       '<div class="hat-trick-player">#' + escapeHTML(player) + '</div>' +
       (goalCount > 3 ? '<div class="hat-trick-count">' + goalCount + ' goals this game</div>' : '') +
@@ -5544,7 +5544,7 @@ function renderHistoryFlat(games){
     // prev/next nav walks the whole history, not just the visible subset.
     const fullIdx = fullList.indexOf(g);
     return `<div class="history-row" data-idx="${fullIdx}" data-id="${g.id}">
-      <button class="history-delete-action" data-id="${g.id}" type="button" aria-label="Delete game">&#128465;</button>
+      <button class="history-delete-action" data-id="${g.id}" type="button" aria-label="Delete game"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
       <div class="history-item">
         <div class="history-left">
           <span class="history-opp">vs ${opp}</span>
@@ -5595,7 +5595,7 @@ function renderHistoryByOpponent(games){
       const scoreClass = gf > ga ? 'w' : gf < ga ? 'l' : 't';
       const fullIdx = historyViewState.games.indexOf(g);
       return `<div class="history-row" data-idx="${fullIdx}" data-id="${g.id}">
-        <button class="history-delete-action" data-id="${g.id}" type="button" aria-label="Delete game">&#128465;</button>
+        <button class="history-delete-action" data-id="${g.id}" type="button" aria-label="Delete game"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
         <div class="history-item">
           <div class="history-left">
             <span class="history-meta">${date} &bull; ${level} &bull; Goalie: ${gs} &middot; Team: ${ts}</span>

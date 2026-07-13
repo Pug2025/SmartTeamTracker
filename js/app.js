@@ -2536,9 +2536,12 @@ function buildGoalieBreakdownTable(goalieStats){
  *  - Their goal during SH → goal/soft_goal + strength='SH' → counts as PP
  *    goal against us (we failed to kill)
  *
- * Opportunities come straight from team-level penalty counts:
- *  - PP opps = penalties drawn by us
- *  - PK opps = penalties taken by us
+ * Opportunities come from team-level penalty counts, floored at the logged
+ * PP/PK goals — a tagged PP goal proves at least that many opportunities
+ * existed even when the penalty itself wasn't logged (prevents >100% PP%
+ * and negative kill rates):
+ *  - PP opps = max(penalties drawn by us, PP goals for)
+ *  - PK opps = max(penalties taken by us, PP goals against)
  *
  * Returns { ppGF, ppGA, ppOpps, pkOpps }.
  */
@@ -2552,8 +2555,8 @@ function computeSpecialTeams(){
   return {
     ppGF,
     ppGA,
-    ppOpps: state.team.penaltiesFor || 0,
-    pkOpps: state.team.penaltiesAgainst || 0
+    ppOpps: Math.max(state.team.penaltiesFor || 0, ppGF),
+    pkOpps: Math.max(state.team.penaltiesAgainst || 0, ppGA)
   };
 }
 
@@ -2563,6 +2566,10 @@ function computeSpecialTeams(){
  * the wrapper visibility based on whether this returned content.
  */
 function buildSpecialTeamsGrid({ ppGF, ppGA, ppOpps, pkOpps }){
+  // Floor opps at the logged PP/PK goals — covers older saved games whose
+  // stored opps predate the max() rule in computeSpecialTeams.
+  ppOpps = Math.max(ppOpps || 0, ppGF || 0);
+  pkOpps = Math.max(pkOpps || 0, ppGA || 0);
   if(!ppOpps && !pkOpps) return '';
   const ppPct = ppOpps ? Math.round(100 * ppGF / ppOpps) + '%' : '—';
   const ppSub = ppOpps ? `${ppGF} of ${ppOpps}` : 'No PP';
@@ -5879,6 +5886,7 @@ function renderHistoricSummary(game){
         <div class="sum-section">
           <div class="sum-section-label">Special Teams</div>
           <div class="dashGrid">${_stGrid}</div>
+          <div class="small" style="color:var(--muted2-ice);">based on penalties logged (approx.)</div>
         </div>`;
     }
   }
@@ -6543,8 +6551,10 @@ function renderSeasonDashboard(games){
     totalSA += sa;
     totalPPGF   += Number(d.PP_GF)   || 0;
     totalPPGA   += Number(d.PP_GA)   || 0;
-    totalPPOpps += Number(d.PP_Opps) || 0;
-    totalPKOpps += Number(d.PK_Opps) || 0;
+    // Per-game floor at logged PP/PK goals (matches computeSpecialTeams;
+    // covers older saved games whose stored opps predate the rule).
+    totalPPOpps += Math.max(Number(d.PP_Opps) || 0, Number(d.PP_GF) || 0);
+    totalPKOpps += Math.max(Number(d.PK_Opps) || 0, Number(d.PP_GA) || 0);
     if(d.GoalieScore != null){ totalGK += d.GoalieScore; gkCount++; gkTrend.push(d.GoalieScore); }
     if(d.TeamScore != null){ totalTM += d.TeamScore; tmCount++; tmTrend.push(d.TeamScore); }
     gfTrend.push(gf);
@@ -6628,6 +6638,9 @@ function renderSeasonDashboard(games){
     ${hasSpecialTeams ? `<div class="dashTile"><div class="k">PP%</div><div class="v">${ppPctSeason}</div><div class="s">${ppPctSub}</div></div>` : ''}
     ${hasSpecialTeams ? `<div class="dashTile"><div class="k">PK%</div><div class="v">${pkPctSeason}</div><div class="s">${pkPctSub}</div></div>` : ''}
   </div>`;
+  if(hasSpecialTeams){
+    html += `<div class="small" style="color:var(--muted2-ice);">PP% / PK% based on penalties logged (approx.)</div>`;
+  }
 
   // === Per-Goalie Season Totals ===
   // Aggregate each tagged goalie's stats across every game that carries the

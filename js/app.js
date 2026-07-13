@@ -2198,7 +2198,7 @@ function updateMeta(){
     $('xgaVal').textContent = sq.xGA.toFixed(1);
     const diff = sq.xGDiff;
     $('xgDiffVal').textContent = (diff > 0 ? '+' : '') + diff.toFixed(1);
-    $('xgDiffVal').style.color = diff > 0 ? 'var(--good)' : diff < 0 ? 'var(--accent-them)' : 'var(--ink)';
+    $('xgDiffVal').style.color = diff > 0 ? 'var(--win)' : diff < 0 ? 'var(--them)' : 'var(--ink-ice)';
     $('xgfSub').textContent = `${sq.hdFor} HD / ${sq.regFor} reg`;
     $('xgaSub').textContent = `${sq.hdAg} HD / ${sq.regAg} reg`;
     $('xgDiffSub').textContent = diff > 0 ? 'Outplaying' : diff < 0 ? 'Under pressure' : 'Even';
@@ -2241,13 +2241,13 @@ function updateMeta(){
     }
     if(pct >= 58) {
       qText.textContent = 'We\'re getting the better chances';
-      qText.style.color = 'var(--good)';
+      qText.style.color = 'var(--win)';
     } else if(pct <= 42) {
       qText.textContent = 'They\'re getting the better chances';
-      qText.style.color = 'var(--accent-them)';
+      qText.style.color = 'var(--them)';
     } else {
       qText.textContent = 'Chances are balanced';
-      qText.style.color = 'var(--muted)';
+      qText.style.color = 'var(--muted2-ice)';
     }
   } else {
     qWrap.style.display = totalShots > 0 ? 'block' : 'none';
@@ -2255,7 +2255,7 @@ function updateMeta(){
       qFill.style.left = '50%';
       qFill.style.width = '0%';
       qText.textContent = 'Not enough data yet';
-      qText.style.color = 'var(--muted)';
+      qText.style.color = 'var(--muted2-ice)';
     }
   }
 
@@ -2396,7 +2396,7 @@ function tile(k, v, s){
 }
 
 function compBar(label, score, color){
-  const c = color || 'var(--accent-us)';
+  const c = color || 'var(--us)';
   const pct = Math.max(0, Math.min(100, score));
   return `<div class="comp-row">
     <div class="comp-label">${label}</div>
@@ -2629,7 +2629,7 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
 
   // === Team Score Component Bars ===
   // Component bars use pastel variants + different thresholds (sub-scores have wider distributions)
-  const teamColor = function(s){ return s >= 60 ? 'var(--comp-good)' : s >= 40 ? 'var(--comp-warn)' : 'var(--comp-poor)'; };
+  const teamColor = function(s){ return s >= 60 ? 'var(--win)' : s >= 40 ? 'var(--warn-ice)' : 'var(--them)'; };
   $('teamCompBars').innerHTML =
     compBar('Result 25%', T.scoreFin, teamColor(T.scoreFin)) +
     compBar('Possession 20%', T.scoreSS, teamColor(T.scoreSS)) +
@@ -2642,7 +2642,7 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
 
   // === Goalie Score Component Bars ===
   // Build meaningful bars from goalie data
-  const gkColor = function(s){ return s >= 60 ? 'var(--comp-good)' : s >= 40 ? 'var(--comp-warn)' : 'var(--comp-poor)'; };
+  const gkColor = function(s){ return s >= 60 ? 'var(--win)' : s >= 40 ? 'var(--warn-ice)' : 'var(--them)'; };
 
   // Save Quality (GSAx): normalize around 0 to a 0-100 bar. 0 = 50, positive is better.
   const gsaxNorm = Math.max(0, Math.min(100, 50 + (K.ctxAdj * 15)));
@@ -2738,7 +2738,7 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
       ${gaStats.Other ? `<div class="small">Other: ${gaStats.Other}</div>` : ''}
     </div>`;
   } else {
-    gbHTML += `<div class="card breakdown-card"><div class="small" style="color:var(--muted);">No goals against</div></div>`;
+    gbHTML += `<div class="card breakdown-card"><div class="small" style="color:var(--muted2-ice);">No goals against</div></div>`;
   }
   if(totalGF > 0){
     gbHTML += `<div class="card breakdown-card">
@@ -2749,7 +2749,7 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
       ${gfCtx.Other ? `<div class="small">Other: ${gfCtx.Other}</div>` : ''}
     </div>`;
   } else {
-    gbHTML += `<div class="card breakdown-card"><div class="small" style="color:var(--muted);">No goals for</div></div>`;
+    gbHTML += `<div class="card breakdown-card"><div class="small" style="color:var(--muted2-ice);">No goals for</div></div>`;
   }
   gbHTML += '</div>';
   $('sumGoalBreakdowns').innerHTML = gbHTML;
@@ -5299,7 +5299,7 @@ async function loadSeasonPanel(){
     renderSeasonDashboard(games);
   }catch(e){
     console.error(e);
-    $('seasonBody').innerHTML = '<div class="text-center" style="padding:20px; color:var(--accent-them);">Failed to load. Check your connection.</div>';
+    $('seasonBody').innerHTML = '<div class="text-center" style="padding:20px; color:var(--them);">Failed to load. Check your connection.</div>';
   }
 }
 function suggestSeasonName(dateStr){
@@ -5337,7 +5337,7 @@ async function loadPlayerStatsPanel(){
     $('btnPlayerStatsReset').classList.add('hidden');
     $('playerDetailModal').style.display = 'none';
     currentPlayerDetailKey = null;
-    $('playerStatsBody').innerHTML = '<div class="text-center" style="padding:20px; color:var(--accent-them);">Failed to load. Check your connection.</div>';
+    $('playerStatsBody').innerHTML = '<div class="text-center" style="padding:20px; color:var(--them);">Failed to load. Check your connection.</div>';
   }
 }
 async function refreshPlayerStatsPanelIfOpen(){
@@ -5361,7 +5361,7 @@ async function loadHistoryPanel(){
     renderHistoryView();
   }catch(e){
     console.error(e);
-    $('historyList').innerHTML = '<div class="text-center" style="padding:20px; color:var(--accent-them);">Failed to load games. Check your connection.</div>';
+    $('historyList').innerHTML = '<div class="text-center" style="padding:20px; color:var(--them);">Failed to load games. Check your connection.</div>';
   }
 }
 function setHistoryFilterActive(filter){
@@ -6364,7 +6364,7 @@ function renderPlayerDetail(playerKey){
     <div class="player-detail-grid">
       <div class="player-detail-card"><div class="k">Last 5</div><div class="v">${escapeHTML(lastFiveLabel)}</div></div>
       <div class="player-detail-card"><div class="k">Trend</div><div class="v">${escapeHTML(player.trendLabel)}</div></div>
-      <div class="player-detail-card"><div class="k">Best Game</div><div class="v">${bestGame ? escapeHTML(`${bestGame.points} PTS`) : '—'}</div><div class="small" style="margin-top:6px; color:var(--muted);">${escapeHTML(bestGameLabel)}</div></div>
+      <div class="player-detail-card"><div class="k">Best Game</div><div class="v">${bestGame ? escapeHTML(`${bestGame.points} PTS`) : '—'}</div><div class="small" style="margin-top:6px; color:var(--muted2-ice);">${escapeHTML(bestGameLabel)}</div></div>
     </div>
   </div>`;
   html += `<div class="player-detail-section">
@@ -6593,7 +6593,7 @@ function renderSeasonDashboard(games){
     <div class="dashTile"><div class="k">SV%</div><div class="v">${svPct}</div><div class="s">${totalSA-totalGA}/${totalSA}</div></div>
     <div class="dashTile"><div class="k">Shooting%</div><div class="v">${shotPct}</div><div class="s">${totalGF}/${totalSF}</div></div>
     <div class="dashTile"><div class="k">Shot Share</div><div class="v">${shotShare}%</div><div class="s">SF/(SF+SA)</div></div>
-    <div class="dashTile"><div class="k">Goal Diff</div><div class="v" style="color:${totalGF-totalGA>=0?'var(--good)':'var(--accent-them)'}">${totalGF-totalGA>=0?'+':''}${totalGF-totalGA}</div></div>
+    <div class="dashTile"><div class="k">Goal Diff</div><div class="v" style="color:${totalGF-totalGA>=0?'var(--win)':'var(--them)'}">${totalGF-totalGA>=0?'+':''}${totalGF-totalGA}</div></div>
     ${hasSpecialTeams ? `<div class="dashTile"><div class="k">PP%</div><div class="v">${ppPctSeason}</div><div class="s">${ppPctSub}</div></div>` : ''}
     ${hasSpecialTeams ? `<div class="dashTile"><div class="k">PK%</div><div class="v">${pkPctSeason}</div><div class="s">${pkPctSub}</div></div>` : ''}
   </div>`;

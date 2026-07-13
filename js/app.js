@@ -2232,12 +2232,12 @@ function updateMeta(){
       qFill.style.left = '50%';
       qFill.style.width = (pct - 50) + '%';
       const intensity = Math.min(1, (pct - 50) / 30);
-      qFill.style.background = `rgba(50, 215, 75, ${0.4 + intensity * 0.5})`;
+      qFill.style.background = `rgba(var(--win-rgb), ${0.4 + intensity * 0.5})`;
     } else {
       qFill.style.left = pct + '%';
       qFill.style.width = (50 - pct) + '%';
       const intensity = Math.min(1, (50 - pct) / 30);
-      qFill.style.background = `rgba(255, 69, 58, ${0.4 + intensity * 0.5})`;
+      qFill.style.background = `rgba(var(--them-rgb), ${0.4 + intensity * 0.5})`;
     }
     if(pct >= 58) {
       qText.textContent = 'We\'re getting the better chances';
@@ -5610,7 +5610,7 @@ function renderHistoryByOpponent(games){
         <span class="history-opp-stats">
           <span class="history-opp-record">${recordText}</span>
           <span class="history-opp-goals">${goalsText}</span>
-          <span class="history-opp-chevron">&#9656;</span>
+          <span class="history-opp-chevron"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></span>
         </span>
       </button>
       <div class="history-opp-body">${innerRows}</div>
@@ -6541,7 +6541,7 @@ function renderSeasonDashboard(games){
     if(!prev) return '';
     const diff = recent - prev;
     if(Math.abs(diff) < 2) return '<span class="trend-flat">—</span>';
-    return diff > 0 ? '<span class="trend-up">&#9650;</span>' : '<span class="trend-down">&#9660;</span>';
+    return diff > 0 ? '<span class="trend-up"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5l8 13H4z"/></svg></span>' : '<span class="trend-down"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19L4 6h16z"/></svg></span>';
   }
 
   // Build sparkline SVG

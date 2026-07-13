@@ -170,7 +170,7 @@ async function handlePasswordReset() {
     if (el) {
       el.textContent = 'Check your email for a password reset link.';
       el.style.display = 'block';
-      el.style.color = '#4caf50';
+      el.style.color = 'var(--win)';
       setTimeout(() => { el.style.color = ''; }, 5000);
     }
   } catch (err) {

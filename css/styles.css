@@ -40,6 +40,8 @@
     --scrim:rgba(0,0,0,0.75);            /* modal backdrop */
 
     /* Semantic tints */
+    --win-rgb:31,184,128;      /* rgb triplets for JS-side rgba(var(--x-rgb), a) */
+    --them-rgb:219,59,75;
     --win-tint:rgba(31,184,128,.14);
     --warn-tint:rgba(244,166,39,.14);
     --them-tint:rgba(219,59,75,.12);

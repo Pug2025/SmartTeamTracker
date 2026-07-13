@@ -3,7 +3,7 @@
   position: fixed;
   inset: 0;
   z-index: 99999;
-  background: #000;
+  background: var(--surface-0);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -17,7 +17,7 @@
 }
 
 .auth-logo {
-  font-size: 28px;
+  font-size: var(--fs-24);
   font-weight: 900;
   letter-spacing: -1px;
   color: #fff;
@@ -32,8 +32,8 @@
 }
 
 .auth-sub {
-  font-size: 13px;
-  color: #888;
+  font-size: var(--fs-13);
+  color: var(--muted2-ice);
   margin-bottom: 24px;
 }
 
@@ -45,10 +45,10 @@
   gap: 10px;
   padding: 14px;
   background: #fff;
-  color: #222;
+  color: var(--surface-2);
   border: none;
-  border-radius: 12px;
-  font-size: 15px;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-15);
   font-weight: 700;
   cursor: pointer;
   transition: transform 0.08s, opacity 0.1s;
@@ -70,11 +70,11 @@
   content: '';
   flex: 1;
   height: 1px;
-  background: #333;
+  background: var(--surface-3);
 }
 .auth-divider span {
-  font-size: 12px;
-  color: #666;
+  font-size: var(--fs-12);
+  color: var(--muted2-ice);
   text-transform: uppercase;
   letter-spacing: 1px;
 }
@@ -82,26 +82,26 @@
 .auth-input {
   width: 100%;
   box-sizing: border-box;
-  background: #111;
-  border: 1px solid #333;
+  background: var(--surface-1);
+  border: 1px solid var(--surface-3);
   color: #fff;
   padding: 14px;
-  border-radius: 12px;
-  font-size: 16px;
+  border-radius: var(--radius-md);
+  font-size: 16px; /* exception: <16px inputs trigger iOS zoom — not on the token scale */
   outline: none;
   margin-bottom: 10px;
   font-family: inherit;
 }
 .auth-input:focus {
-  border-color: #4da3ff;
+  border-color: var(--ice);
 }
 
 .auth-error {
-  font-size: 13px;
-  color: #ff453a;
-  background: rgba(255, 69, 58, 0.1);
-  border: 1px solid rgba(255, 69, 58, 0.3);
-  border-radius: 8px;
+  font-size: var(--fs-13);
+  color: var(--them);
+  background: var(--them-tint);
+  border: 1px solid var(--them-line);
+  border-radius: var(--radius-sm);
   padding: 10px;
   margin-bottom: 10px;
   text-align: left;
@@ -110,11 +110,11 @@
 .auth-submit-btn {
   width: 100%;
   padding: 14px;
-  background: #4da3ff;
+  background: var(--ice);
   color: #000;
   border: none;
-  border-radius: 12px;
-  font-size: 16px;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-15);
   font-weight: 800;
   cursor: pointer;
   transition: transform 0.08s, opacity 0.1s;
@@ -131,14 +131,14 @@
   width: 100%;
   background: none;
   border: none;
-  color: #888;
-  font-size: 12px;
+  color: var(--muted2-ice);
+  font-size: var(--fs-12);
   padding: 8px;
   cursor: pointer;
   font-family: inherit;
 }
 .auth-reset-btn:hover {
-  color: #4da3ff;
+  color: var(--ice);
 }
 
 .auth-toggle {
@@ -146,8 +146,8 @@
   width: 100%;
   background: none;
   border: none;
-  color: #4da3ff;
-  font-size: 13px;
+  color: var(--ice);
+  font-size: var(--fs-13);
   padding: 12px;
   cursor: pointer;
   font-family: inherit;
@@ -155,7 +155,7 @@
 
 .auth-guest-divider {
   height: 1px;
-  background: #222;
+  background: var(--surface-2);
   margin: 12px 0;
 }
 
@@ -163,10 +163,10 @@
   width: 100%;
   padding: 12px;
   background: transparent;
-  color: #888;
-  border: 1px solid #333;
-  border-radius: 12px;
-  font-size: 14px;
+  color: var(--muted2-ice);
+  border: 1px solid var(--surface-3);
+  border-radius: var(--radius-md);
+  font-size: var(--fs-13);
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
@@ -178,8 +178,8 @@
 }
 
 .auth-guest-note {
-  font-size: 11px;
-  color: #555;
+  font-size: var(--fs-11);
+  color: var(--muted2-ice);
   margin-top: 8px;
 }
 
@@ -189,15 +189,15 @@
   margin-top: 16px;
   background: none;
   border: none;
-  color: #666;
-  font-size: 12px;
+  color: var(--muted2-ice);
+  font-size: var(--fs-12);
   cursor: pointer;
   font-family: inherit;
   padding: 8px;
   width: 100%;
 }
 .auth-back-link:hover {
-  color: #4da3ff;
+  color: var(--ice);
 }
 
 /* ===== Landing Page ===== */
@@ -205,7 +205,7 @@
   position: fixed;
   inset: 0;
   z-index: 99998;
-  background: #000;
+  background: var(--surface-0);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -218,10 +218,10 @@
 }
 
 .landing-logo {
-  font-size: 16px;
+  font-size: var(--fs-15);
   font-weight: 800;
   letter-spacing: 0.5px;
-  color: #4da3ff;
+  color: var(--ice);
   text-transform: uppercase;
   margin-bottom: 16px;
 }
@@ -234,7 +234,7 @@
 }
 
 .landing-headline {
-  font-size: 32px;
+  font-size: var(--fs-32);
   font-weight: 900;
   letter-spacing: -1.5px;
   line-height: 1.15;
@@ -243,20 +243,20 @@
 }
 
 .landing-sub {
-  font-size: 15px;
+  font-size: var(--fs-15);
   line-height: 1.5;
-  color: #999;
+  color: var(--muted2-ice);
   margin: 0 0 28px;
 }
 
 .landing-cta {
   display: inline-block;
   padding: 16px 40px;
-  background: #4da3ff;
+  background: var(--ice);
   color: #000;
   border: none;
-  border-radius: 14px;
-  font-size: 17px;
+  border-radius: var(--radius-lg);
+  font-size: var(--fs-17);
   font-weight: 800;
   cursor: pointer;
   font-family: inherit;
@@ -269,8 +269,8 @@
 }
 
 .landing-note {
-  font-size: 12px;
-  color: #666;
+  font-size: var(--fs-12);
+  color: var(--muted2-ice);
   margin-top: 10px;
 }
 
@@ -282,9 +282,9 @@
 }
 
 .landing-section-label {
-  font-size: 16px;
+  font-size: var(--fs-15);
   font-weight: 800;
-  color: #eee;
+  color: var(--ink-ice);
   text-align: center;
   margin-bottom: 16px;
   line-height: 1.35;
@@ -292,11 +292,11 @@
 
 /* Mockup container — looks like the app */
 .landing-mockup {
-  background: #111111;
-  border: 1px solid #333;
-  border-radius: 20px;
+  background: var(--surface-1);
+  border: 1px solid var(--surface-3);
+  border-radius: var(--radius-xl);
   padding: 16px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  box-shadow: var(--shadow-3);
 }
 
 .landing-mockup,
@@ -307,8 +307,8 @@
 }
 
 .landing-mockup-spectator {
-  background: linear-gradient(180deg, #0b111c, #060a12);
-  border-color: rgba(137,156,188,0.16);
+  background: linear-gradient(180deg, var(--surface-1), var(--surface-0));
+  border-color: var(--line-ice);
 }
 
 /* Component bar mockups */
@@ -323,8 +323,8 @@
   gap: 8px;
 }
 .landing-comp-label {
-  font-size: 11px;
-  color: #9aa6b2;
+  font-size: var(--fs-11);
+  color: var(--muted2-ice);
   width: 90px;
   flex-shrink: 0;
   text-align: right;
@@ -333,19 +333,19 @@
 .landing-comp-track {
   flex: 1;
   height: 6px;
-  background: #1a1a1a;
-  border-radius: 3px;
+  background: var(--surface-2);
+  border-radius: var(--radius-full);
   overflow: hidden;
 }
 .landing-comp-fill {
   height: 100%;
-  border-radius: 3px;
+  border-radius: var(--radius-full);
   transition: width 0.5s;
 }
 .landing-comp-val {
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 800;
-  color: #ccc;
+  color: var(--muted-ice);
   width: 28px;
   text-align: right;
 }
@@ -361,26 +361,26 @@
   align-items: center;
   gap: 8px;
   padding: 6px 8px;
-  border-radius: 8px;
-  font-size: 12px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-12);
   font-weight: 600;
-  color: #c8d2e0;
+  color: var(--muted-ice);
 }
 .landing-feed-row.ev-goal-for {
-  background: rgba(50, 215, 75, 0.08);
-  color: #6fda8e;
+  background: var(--win-tint);
+  color: var(--win);
   font-weight: 800;
 }
 .landing-feed-row.ev-goal-against {
-  background: rgba(255, 69, 58, 0.08);
-  color: #ff7b75;
+  background: var(--them-tint);
+  color: var(--them);
   font-weight: 800;
 }
 .landing-feed-row.ev-good {
-  color: #8fb8d0;
+  color: var(--muted2-ice);
 }
 .landing-feed-row.ev-danger {
-  color: #d4a08c;
+  color: var(--them);
 }
 .landing-feed-icon {
   width: 16px;
@@ -396,20 +396,20 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: #556677;
+  background: var(--muted2-ice);
 }
 .landing-feed-meta {
   margin-left: auto;
   font-size: 10px;
-  color: #556677;
+  color: var(--muted2-ice);
   font-weight: 600;
 }
 
 /* Tracking caption */
 .landing-tracking-caption {
   text-align: center;
-  font-size: 12px;
-  color: #888;
+  font-size: var(--fs-12);
+  color: var(--muted2-ice);
   margin-top: 12px;
   line-height: 1.4;
 }
@@ -418,23 +418,23 @@
 .landing-season-record {
   text-align: center;
   padding-bottom: 10px;
-  border-bottom: 1px solid #2a2a2a;
+  border-bottom: 1px solid var(--surface-3);
 }
 .landing-season-main {
-  font-size: 24px;
+  font-size: var(--fs-24);
   font-weight: 900;
   letter-spacing: -0.5px;
   color: #fff;
 }
 .landing-season-sub {
-  font-size: 12px;
-  color: #888;
+  font-size: var(--fs-12);
+  color: var(--muted2-ice);
   margin-top: 2px;
 }
 .landing-season-form {
   margin-top: 6px;
-  font-size: 12px;
-  color: #888;
+  font-size: var(--fs-12);
+  color: var(--muted2-ice);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -446,11 +446,11 @@
   justify-content: center;
   width: 22px;
   height: 22px;
-  border-radius: 999px;
-  font-size: 11px;
+  border-radius: var(--radius-full);
+  font-size: var(--fs-11);
   font-weight: 800;
-  color: #9df0b0;
-  background: rgba(50,215,75,0.12);
+  color: var(--win);
+  background: var(--win-tint);
 }
 .landing-form-l {
   display: inline-flex;
@@ -458,11 +458,11 @@
   justify-content: center;
   width: 22px;
   height: 22px;
-  border-radius: 999px;
-  font-size: 11px;
+  border-radius: var(--radius-full);
+  font-size: var(--fs-11);
   font-weight: 800;
-  color: #ffb0aa;
-  background: rgba(255,69,58,0.12);
+  color: var(--them);
+  background: var(--them-tint);
 }
 
 /* Sparkline */
@@ -479,7 +479,7 @@
 }
 .landing-spark-label {
   font-size: 10px;
-  color: #667;
+  color: var(--muted2-ice);
   margin-bottom: 2px;
 }
 
@@ -495,21 +495,21 @@
   align-items: flex-start;
 }
 .landing-feature-icon {
-  font-size: 24px;
+  font-size: var(--fs-24);
   flex-shrink: 0;
   width: 36px;
   text-align: center;
   line-height: 1.3;
 }
 .landing-feature-title {
-  font-size: 14px;
+  font-size: var(--fs-13);
   font-weight: 800;
-  color: #eee;
+  color: var(--ink-ice);
   margin-bottom: 3px;
 }
 .landing-feature-desc {
-  font-size: 13px;
-  color: #888;
+  font-size: var(--fs-13);
+  color: var(--muted2-ice);
   line-height: 1.45;
 }
 
@@ -521,7 +521,7 @@
   margin: 0 auto;
 }
 .landing-bottom-headline {
-  font-size: 22px;
+  font-size: var(--fs-20);
   font-weight: 900;
   color: #fff;
   margin-bottom: 20px;
@@ -532,6 +532,13 @@
 .landing-footer {
   text-align: center;
   padding: 20px 24px 40px;
-  font-size: 12px;
-  color: #444;
+  font-size: var(--fs-12);
+  color: var(--surface-3);
+}
+
+
+/* ===== Ice typography (P2.2) ===== */
+.landing-page,
+.auth-screen {
+  font-family: var(--ui);
 }

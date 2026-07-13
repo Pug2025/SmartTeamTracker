@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.3.23';
+const APP_VERSION = '6.3.24';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -2131,13 +2131,13 @@ function setRing(valEl, arcEl, sc){
   // Show placeholder when score is null/undefined
   if(sc === null || sc === undefined || sc === '—'){
     valEl.textContent = '—';
-    arcEl.style.stroke = '#333';
+    arcEl.style.stroke = 'var(--surface-3)';
     arcEl.style.strokeDashoffset = '220'; // empty ring
     return;
   }
 
   valEl.textContent = sc;
-  const c = sc>=80 ? '#32d74b' : sc>=63 ? '#ff9f0a' : '#ff453a';
+  const c = sc>=80 ? 'var(--win)' : sc>=63 ? 'var(--warn-ice)' : 'var(--them)';
   arcEl.style.stroke = c;
   arcEl.style.strokeDashoffset = String(220*(1-sc/100));
 }
@@ -2264,8 +2264,8 @@ function updateMeta(){
     // start-of-game display
     $('goalieScoreNum').textContent = '—';
     $('teamScoreNum').textContent = '—';
-    $('gsArc').style.stroke = '#333';
-    $('tsArc').style.stroke = '#333';
+    $('gsArc').style.stroke = 'var(--surface-3)';
+    $('tsArc').style.stroke = 'var(--surface-3)';
     $('gsArc').style.strokeDashoffset = '220';
     $('tsArc').style.strokeDashoffset = '220';
     $('goalieConfidence').textContent = '';
@@ -6099,7 +6099,7 @@ function averagePlayerLogs(logs, field){
   if(!(logs || []).length) return 0;
   return sumPlayerLogs(logs, field) / logs.length;
 }
-function buildPlayerSparkline(values, color = '#4da3ff'){
+function buildPlayerSparkline(values, color = 'var(--ice)'){
   const series = (values || []).map((value) => Number(value || 0));
   if(!series.length){
     return '';
@@ -6117,7 +6117,7 @@ function buildPlayerSparkline(values, color = '#4da3ff'){
   }).join(' ');
   const baselineY = height - (((0 - min) / range) * height);
   return `<svg class="player-sparkline" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true">
-    <line x1="0" y1="${baselineY.toFixed(2)}" x2="${width}" y2="${baselineY.toFixed(2)}" stroke="rgba(255,255,255,0.08)" stroke-width="1" />
+    <line x1="0" y1="${baselineY.toFixed(2)}" x2="${width}" y2="${baselineY.toFixed(2)}" stroke="var(--line-soft)" stroke-width="1" />
     <polyline points="${points}" fill="none" stroke="${color}" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" />
   </svg>`;
 }
@@ -6320,7 +6320,7 @@ function renderPlayerSeasonRow(player, rank){
         <div class="v">${escapeHTML(String(value))}</div>
       </div>
     `).join('')}</div>
-    <div class="player-season-row-spark">${buildPlayerSparkline(player.pointsSeries.slice(-8), '#4da3ff')}</div>
+    <div class="player-season-row-spark">${buildPlayerSparkline(player.pointsSeries.slice(-8), 'var(--ice)')}</div>
   </button>`;
 }
 function renderPlayerDetail(playerKey){
@@ -6361,15 +6361,15 @@ function renderPlayerDetail(playerKey){
     <div class="player-detail-chart-grid">
       <div class="player-detail-chart">
         <div class="player-detail-chart-label">Points By Game</div>
-        ${buildPlayerSparkline(player.pointsSeries, '#4da3ff')}
+        ${buildPlayerSparkline(player.pointsSeries, 'var(--ice)')}
       </div>
       <div class="player-detail-chart">
         <div class="player-detail-chart-label">Shots By Game</div>
-        ${buildPlayerSparkline(player.shotsSeries, '#6ec7ff')}
+        ${buildPlayerSparkline(player.shotsSeries, 'var(--ice)')}
       </div>
       <div class="player-detail-chart">
         <div class="player-detail-chart-label">+/- By Game</div>
-        ${buildPlayerSparkline(player.pmSeries, '#4caf50')}
+        ${buildPlayerSparkline(player.pmSeries, 'var(--win)')}
       </div>
     </div>
   </div>`;
@@ -6642,11 +6642,11 @@ function renderSeasonDashboard(games){
   // Sparklines
   if(gkTrend.length >= 3){
     html += `<div class="season-spark-section">
-      <div class="season-spark-label">Goalie Score Trend</div>${sparkline(gkTrend,'#4da3ff',30)}
-      <div class="season-spark-label" style="margin-top:8px;">Team Score Trend</div>${sparkline(tmTrend,'#4caf50',30)}
-      <div class="season-spark-label" style="margin-top:8px;">Shot Share Trend</div>${sparkline(ssTrend,'#9aa9b8',24)}
+      <div class="season-spark-label">Goalie Score Trend</div>${sparkline(gkTrend,'var(--ice)',30)}
+      <div class="season-spark-label" style="margin-top:8px;">Team Score Trend</div>${sparkline(tmTrend,'var(--win)',30)}
+      <div class="season-spark-label" style="margin-top:8px;">Shot Share Trend</div>${sparkline(ssTrend,'var(--muted2-ice)',24)}
       <div class="season-spark-label" style="margin-top:8px;">Goals (green=for, red=against)</div>
-      <div class="spark-overlay">${sparkline(gfTrend,'#4caf50',24)}${sparkline(gaTrend,'#ff453a',24)}</div>
+      <div class="spark-overlay">${sparkline(gfTrend,'var(--win)',24)}${sparkline(gaTrend,'var(--them)',24)}</div>
     </div>`;
   }
 

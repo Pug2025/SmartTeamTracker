@@ -205,6 +205,16 @@
     font-weight:800;
     letter-spacing:-0.5px;
   }
+  /* P2.7: brand lockup replaces the plain-text wordmark in the app header.
+     Sized by height so the setup/in-game h1 font-size rules don't matter. */
+  .top-row h1 .header-lockup{
+    display:block;
+    height:34px;
+    width:auto;
+  }
+  body.in-game .top-row h1 .header-lockup{
+    height:25px;
+  }
   .top-title-group{
     display:flex;
     align-items:flex-start;
@@ -2772,7 +2782,7 @@
   inset:0;
   pointer-events:none;
   background:
-    linear-gradient(180deg, rgba(5,7,12,0.55), rgba(5,7,12,0.72)),
+    linear-gradient(180deg, rgba(5,7,12,0.18), rgba(5,7,12,0.38)),
     url('../assets/brand/ice-texture-band-1920.webp') center / cover no-repeat;
 }
 .spectator-badge{ /* landing mockup */

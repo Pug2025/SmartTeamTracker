@@ -60,7 +60,17 @@
       const vv = window.visualViewport;
       const vw = (vv && vv.width) || document.documentElement.clientWidth;
       const vh = (vv && vv.height) || document.documentElement.clientHeight;
-      stage.style.transform = `scale(${Math.min(vw / 472, vh / 950)})`;
+      const wScale = vw / 472;
+      const hScale = vh / 950;
+      // Portrait phones: prefer filling the WIDTH. The real-device URL bar
+      // shrinks vh, which used to make hScale win and letterbox the sides
+      // with vertical bars. The rink art has ~5.6% net-to-net margins top and
+      // bottom, so we allow the stage to overflow vertically by up to 10%
+      // (cropped equally top/bottom, still inside those margins) before
+      // giving up width. Landscape/desktop keeps the strict fit.
+      const portrait = vh > vw;
+      const scale = portrait ? Math.min(wScale, hScale * 1.10) : Math.min(wScale, hScale);
+      stage.style.transform = `scale(${scale})`;
     }
     window.addEventListener('resize', fitStage);
     if (window.visualViewport) {

@@ -212,7 +212,7 @@
      landing page is the scroll container, so its background stays put while
      content scrolls — no background-attachment:fixed (broken on iOS). */
   background:
-    linear-gradient(180deg, rgba(5,7,12,0.60), rgba(5,7,12,0.85)),
+    linear-gradient(180deg, rgba(5,7,12,0.30), rgba(5,7,12,0.60)),
     url('../assets/brand/ice-texture-band-1920.webp') center / cover no-repeat,
     var(--surface-0);
   overflow-y: auto;

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
-<link rel="manifest" href="manifest.json?v=6.3.25">
+<link rel="manifest" href="manifest.json?v=6.3.26">
 <link rel="icon" href="favicon.ico" sizes="48x48">
 <link rel="icon" href="icon-192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -21,8 +21,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@700;800;900&family=Hanken+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=6.3.25">
-<link rel="stylesheet" href="css/auth.css?v=6.3.25">
+<link rel="stylesheet" href="css/styles.css?v=6.3.26">
+<link rel="stylesheet" href="css/auth.css?v=6.3.26">
 </head>
 <body>
 
@@ -546,7 +546,7 @@
     <div class="top-title-group">
       <div class="top-title-stack">
         <div class="top-title-line">
-          <h1>Smart Team Tracker</h1>
+          <h1><img class="header-lockup" src="assets/brand/lockup-dark-640.webp" alt="Smart Team Tracker" decoding="async"></h1>
           <span id="cloudStatus" class="status-dot warn" role="img" aria-label="Connection status: Checking" title="Checking"></span>
         </div>
       </div>
@@ -1303,7 +1303,7 @@
       <h4>Primary Buttons</h4>
       <ul>
         <li><strong>Shot Against</strong> &mdash; Any opponent shot that hits the net. Shots off the post or wide do <em>not</em> count. After logging it, a quick prompt asks whether it was a <em>high-danger</em> chance (close range or from the slot area). If you don&rsquo;t respond within 2 seconds it defaults to a regular-danger shot.</li>
-        <li><strong>Goal Against</strong> &mdash; The opponent scored. This automatically counts as a shot, so do not log a separate Shot Against. You&rsquo;ll be asked how the goal happened (Screen, Deflection/Tip, Cross-Crease Pass, Net-Front Scramble, Clean Look, or Other) and the game situation (Even Strength, Power Play, or Short Handed). If plus/minus tracking is on, you&rsquo;ll also select the five skaters who were on the ice.<br><em>Tip:</em> If a breakaway, defensive-zone turnover, or odd-man rush led to the goal, log that event first &mdash; the goal will be linked to it automatically.</li>
+        <li><strong>Goal Against</strong> &mdash; The opponent scored. This automatically counts as a shot, so do not log a separate Shot Against. You&rsquo;ll be asked how the goal happened (Screen, Deflection/Tip, Cross-Crease Pass, Net-Front Scramble, Clean Look, or Other) and the game situation (Even Strength, Power Play, or Short Handed). If plus/minus tracking is on, you&rsquo;ll also select the five skaters who were on the ice.<br><em>Tip:</em> If a breakaway, defensive-zone turnover, or odd-man rush led to the goal, log that event first &mdash; the goal will be linked to it automatically.<br><em>Mis-tap?</em> Tap <strong>Cancel Goal</strong> on the context prompt to remove it entirely.</li>
       </ul>
       <h4>Goalie Events</h4>
       <ul>
@@ -1328,7 +1328,7 @@
       <h4>Primary Buttons</h4>
       <ul>
         <li><strong>Shot For</strong> &mdash; Your team put a shot on net. Posts and wide shots do not count. You&rsquo;ll select the shooter from your roster (or tap Unknown), then be asked whether it was a high-danger chance.</li>
-        <li><strong>Goal For</strong> &mdash; Your team scored. You&rsquo;ll select the goal scorer, optionally an assist, and the game situation. If plus/minus tracking is on, you&rsquo;ll also select the five skaters on the ice. The goal automatically counts as a shot.</li>
+        <li><strong>Goal For</strong> &mdash; Your team scored. The goal is counted the moment you tap the button, so nothing is lost if you get interrupted mid-question. You&rsquo;ll then select the goal scorer, an assist (or <strong>No Assist</strong>), and the game situation; if plus/minus tracking is on, you&rsquo;ll also select the five skaters on the ice. The goal automatically counts as a shot. Mis-tapped? Use the undo button.</li>
       </ul>
       <h4>Goalie Positives</h4>
       <ul>
@@ -1420,6 +1420,7 @@
         <li><strong>Auto-add</strong> &mdash; If you type a new number directly as a shooter, scorer, or assist during the game, it is automatically added to the roster for future use.</li>
         <li><strong>Plus/minus tracking</strong> &mdash; When the <strong>Track +/-</strong> toggle is turned on in setup, you&rsquo;ll be asked to select the five skaters on the ice after each goal (for and against). Plus/minus tracks which players are on the ice for goals, helping you evaluate line effectiveness.</li>
         <li><strong>Player stats</strong> &mdash; Tap <strong>Player Stats</strong> on the setup screen to see each player&rsquo;s cumulative goals, assists, and plus/minus across all games in the current season. Tap any player to see their game-by-game breakdown.</li>
+        <li><strong>Goalies</strong> &mdash; Add goalies to a team in <strong>Manage Teams</strong> (one per line, jersey number or name). With one goalie they&rsquo;re selected automatically at game start; with two or more you&rsquo;ll be asked <em>Who&rsquo;s in net?</em> and can change mid-game with the <strong>Switch</strong> button beside the goalie chip. Every save and goal against is attributed to whoever is in net, and per-goalie stats (SV%, high-danger SV%, rebound control, soft-goal rate) appear in the post-game summary and the season dashboard&rsquo;s By Goalie section.</li>
       </ul>
     </div>
 
@@ -1427,7 +1428,7 @@
 
     <div class="help-section">
       <h3>Game Summary &amp; Exporting</h3>
-      <p>Tap <strong>End Game &amp; Score</strong> to finish tracking and see a full post-game report. The summary includes:</p>
+      <p>Tap <strong>End Game &amp; Score</strong> and confirm to finish tracking and see a full post-game report. The summary includes:</p>
       <ul>
         <li>Final score with win/loss/tie result</li>
         <li>Goalie Score and Team Score with component breakdowns (tap &ldquo;How is this scored?&rdquo; for details)</li>
@@ -1452,10 +1453,11 @@
       <h3>Live Spectating</h3>
       <p>During a game, tap the <strong>Share Live</strong> button in the header to create a view-only link. Anyone with the link &mdash; parents, assistant coaches, or your own second device &mdash; can follow the game in real time. The spectator view shows:</p>
       <ul>
-        <li>Live score and period</li>
+        <li>Team names and crests with the live score and period</li>
         <li>Shot totals for both teams</li>
         <li>Chance quality indicator and momentum</li>
         <li>A scrolling event feed</li>
+        <li>A status badge &mdash; if updates pause for 30+ seconds the LIVE badge turns amber and shows when the last update arrived; when you end the game it switches to <strong>FINAL</strong></li>
       </ul>
       <p>Use <strong>Copy Link</strong> to share the URL and <strong>Stop</strong> to end the live session. Spectators cannot edit or affect your tracking &mdash; it is strictly read-only.</p>
     </div>
@@ -1465,8 +1467,9 @@
     <div class="help-section">
       <h3>Season History &amp; Opponents</h3>
       <ul>
-        <li><strong>Past Games</strong> &mdash; Tap <strong>Past Games</strong> on the setup screen to browse your game history. Tap any game for a full detail view. Swipe left on a game to delete it.</li>
-        <li><strong>Season Stats</strong> &mdash; Tap <strong>Season Stats</strong> to see your active team&rsquo;s overall record, trends, and recent results. Use <strong>Reset Season</strong> to clear all saved games for the current team (e.g. at the start of a new season).</li>
+        <li><strong>Past Games</strong> &mdash; Tap <strong>Past Games</strong> on the setup screen to browse your game history. Filter the list with <strong>All &middot; Wins &middot; Losses &middot; By Opponent</strong> (By Opponent groups games with your head-to-head record). Tap any game for a full detail view and use the arrows to step between games; delete a game from the <strong>&#8943; More</strong> menu in the detail view, or swipe left on it in the list.</li>
+        <li><strong>Season Stats</strong> &mdash; Tap <strong>Season Stats</strong> to see your active team&rsquo;s overall record, trends, special teams, By Goalie stats, and recent results.</li>
+        <li><strong>Ending a season</strong> &mdash; In <strong>Manage Teams</strong>, each team has an <strong>End Season</strong> button that archives the current season&rsquo;s games under a name like 2025&ndash;26. Archived seasons stay browsable through the season selector that appears on Past Games, Season Stats, and Player Stats. <strong>Reset Season</strong> (in the stats panels) deletes the <em>current</em> season&rsquo;s games only &mdash; past seasons are never touched.</li>
         <li><strong>Saved opponents</strong> &mdash; Opponent names are remembered automatically. The next time you play the same team, you&rsquo;ll see your head-to-head record and recent scores. To remove an opponent, clear their name from the suggestions &mdash; this also removes their associated history.</li>
         <li><strong>Manage Teams</strong> &mdash; Tap <strong>Manage Teams</strong> in setup to add, edit, or delete teams. Each team stores its own name, competition level, and roster. You can switch between multiple teams without losing any data.</li>
       </ul>
@@ -1626,9 +1629,9 @@
   </div>
 </div>
 
-<script src="js/spectator.js?v=6.3.25"></script>
-<script type="module" src="js/auth.js?v=6.3.25"></script>
-<script src="js/teams.js?v=6.3.25"></script>
-<script src="js/app.js?v=6.3.25"></script>
+<script src="js/spectator.js?v=6.3.26"></script>
+<script type="module" src="js/auth.js?v=6.3.26"></script>
+<script src="js/teams.js?v=6.3.26"></script>
+<script src="js/app.js?v=6.3.26"></script>
 </body>
 </html>

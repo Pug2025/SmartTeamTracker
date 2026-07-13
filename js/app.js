@@ -1796,10 +1796,26 @@ const LEVEL_PROFILES = {
 };
 
 /* ===== SHOT QUALITY / xG MODEL ===== */
+/*
+ * xG rates are derived per level from LEVEL_PROFILES so the xGA tile and the
+ * goalie model agree on what an average goalie at this level allows:
+ *   normal = (1 − baseSV) × 0.9   — slightly under the level's average shot,
+ *                                   since HD shots carry the danger premium
+ *   hd     = min(2.5 × normal, 0.45)
+ *   missed = normal × (0.12 / 0.07) — keeps the legacy missed-chance credit
+ *                                     at its original ratio to a normal shot
+ * Getters read state.level at call time; consumers keep the same
+ * XG_RATES.normal / .hd / .missed API. Old saved games are unaffected:
+ * scores and stats are computed once at save time and stored.
+ */
+const XG_MISSED_TO_NORMAL = 0.12 / 0.07;
 const XG_RATES = {
-  hd: 0.18,       // high danger shot: ~18% chance of goal
-  normal: 0.07,   // regular shot: ~7% chance
-  missed: 0.12    // missed chance: would have been ~12% (between normal and HD)
+  get normal(){
+    const prof = LEVEL_PROFILES[normalizeLevelKey(state.level)] || LEVEL_PROFILES.Other;
+    return (1 - prof.goalieBaseSV) * 0.9;
+  },
+  get hd(){ return Math.min(2.5 * this.normal, 0.45); },
+  get missed(){ return this.normal * XG_MISSED_TO_NORMAL; }
 };
 
 function computeShotQuality() {
@@ -1819,7 +1835,11 @@ function computeShotQuality() {
     }
   }
 
-  // Missed chances add to expected goals (they were quality chances not taken)
+  // Missed chances add to expected goals (they were quality chances not taken).
+  // NOTE (documented choice): missed chances contribute xG here but do NOT add
+  // to the shot denominators used by the team quality ratio (xG per shot in
+  // computeTeamScore) — generating a grade-A chance should raise the quality
+  // signal even when no shot on goal was recorded.
   xGF += mcFor * XG_RATES.missed;
   xGA += mcAg * XG_RATES.missed;
 
@@ -1997,7 +2017,10 @@ function computeTeamScore() {
   const xGPerShotFor = SF > 0 ? sq.xGF / SF : 0;
   const xGPerShotAg  = SA > 0 ? sq.xGA / SA : 0;
   const qualityDiff = xGPerShotFor - xGPerShotAg;
-  const scoreShotQuality = getSigmoidScore(qualityDiff, 0, 0.04);
+  // Spread scales with the level's xG rates (0.04 was tuned for the legacy
+  // 0.07 normal-shot rate) so the component's sensitivity is level-invariant.
+  const qualitySpread = 0.04 * (XG_RATES.normal / 0.07);
+  const scoreShotQuality = getSigmoidScore(qualityDiff, 0, qualitySpread);
 
   // 4) EXECUTION / RESULT (Weighted goal differential) — 25% weight
   //    PP goals for discounted (0.85x), SH goals for bonused (1.5x).

@@ -20,7 +20,7 @@
 | 1 | Ice spectator reskin (payload prep + skin) | ✅ DONE 2026-07-12 (6 commits, verified, 2 loop rounds) | ~2 days |
 | 2 | Ice token system app-wide (quiet variant) | ✅ DONE 2026-07-13 (9 commits, verified; Stage A 1 fix round, Stage B 0) | ~3–4 days |
 | 3 | Brand asset integration | GPT 5.6 assets in `outputs/brand/` | ~1 day |
-| 4 | Scoring/domain credibility | none (parallel with 2–3 OK) | ~2 days |
+| 4 | Scoring/domain credibility | ✅ DONE 2026-07-13 (6 commits, verified independently; 0 fix rounds) | ~2 days |
 | 5 | Rink-side UX polish | Phase 2 (uses new tokens) | ~2 days |
 | 6 | Parent-side premium infrastructure | Phases 0–5 + pricing sign-off | own workstream |
 

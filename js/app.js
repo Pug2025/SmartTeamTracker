@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.3.27';
+const APP_VERSION = '6.3.28';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -4711,10 +4711,97 @@ try{
   if(history.state && history.state.sttLayers) history.replaceState(null, '');
 }catch(_){}
 
-/* P5.8 wires real focus management onto these hooks; P5.6 keeps them as
-   no-op seams so the layer stack lands independently. */
-function uiLayerFocusOnOpen(el){}
-function uiLayerFocusOnClose(el){}
+/* ===== P5.8: dialog semantics =====
+   role="dialog" + aria-modal + labelled-by on every modal box, focus moves
+   into the dialog on open and returns to the opener on close, Escape closes
+   the topmost layer (same stack as P5.6), and Tab is kept inside the top
+   dialog. Retrofitted onto the existing display toggles — no HTML
+   restructuring. */
+(function initDialogSemantics(){
+  const pairs = [];
+  document.querySelectorAll('.modal').forEach(m => {
+    const box = m.querySelector(':scope > .box');
+    if(box) pairs.push([m, box]);
+  });
+  const confirmOverlay = $('confirmOverlay');
+  const confirmBox = confirmOverlay ? confirmOverlay.querySelector(':scope > div') : null;
+  if(confirmBox) pairs.push([confirmOverlay, confirmBox]);
+  let seq = 0;
+  for(const [m, box] of pairs){
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-modal', 'true');
+    const title = box.querySelector('.modal-title, .modal-title-lg, .confirm-msg, .team-form-title, .small, h2, h3');
+    if(title){
+      if(!title.id) title.id = 'dlgTitle_' + (m.id || 'anon' + (++seq));
+      box.setAttribute('aria-labelledby', title.id);
+    } else {
+      box.setAttribute('aria-label', 'Dialog');
+    }
+  }
+})();
+
+/* Track the last focused element outside any dialog so close can restore it. */
+let uiLayerLastOuterFocus = null;
+document.addEventListener('focusin', (e) => {
+  const t = e.target;
+  if(!(t instanceof HTMLElement)) return;
+  if(t.closest('.modal, .confirm-overlay')) return;
+  uiLayerLastOuterFocus = t;
+});
+
+const UI_FOCUSABLE_SEL = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+function uiLayerIsDialog(el){
+  return el.classList.contains('modal') || el.id === 'confirmOverlay';
+}
+function uiLayerBox(el){
+  return el.querySelector('[role="dialog"]') || el;
+}
+function uiLayerFocusOnOpen(el){
+  if(!uiLayerIsDialog(el)){ el._sttOpener = null; return; }
+  el._sttOpener = uiLayerLastOuterFocus;
+  const box = uiLayerBox(el);
+  // A flow may have already placed focus inside (e.g. team form) — keep it.
+  if(document.activeElement && box.contains(document.activeElement)) return;
+  let target = box.querySelector(UI_FOCUSABLE_SEL);
+  // Never auto-focus a text field: that pops the mobile keyboard over a
+  // rink-side picker. Fall back to the box itself.
+  if(!target || target.matches('input, select, textarea')) target = box;
+  if(target === box && !box.hasAttribute('tabindex')) box.setAttribute('tabindex', '-1');
+  try{ target.focus({ preventScroll: true }); }catch(_){}
+}
+function uiLayerFocusOnClose(el){
+  const opener = el._sttOpener || null;
+  el._sttOpener = null;
+  if(uiLayerStack.length) return; // a lower layer is still open — leave focus alone
+  if(opener && document.contains(opener)){
+    try{ opener.focus({ preventScroll: true }); }catch(_){}
+  }
+}
+
+/* Escape closes the topmost layer; Tab cycles inside the top dialog. */
+document.addEventListener('keydown', (e) => {
+  if(e.key === 'Escape'){
+    if(uiLayerStack.length){
+      e.preventDefault();
+      closeTopUiLayer();
+    }
+    return;
+  }
+  if(e.key !== 'Tab' || !uiLayerStack.length) return;
+  const top = uiLayerStack[uiLayerStack.length - 1];
+  if(!uiLayerIsDialog(top)) return;
+  const box = uiLayerBox(top);
+  const focusables = [...box.querySelectorAll(UI_FOCUSABLE_SEL)]
+    .filter(x => !x.disabled && x.offsetParent !== null);
+  if(!focusables.length){ e.preventDefault(); return; }
+  const first = focusables[0], last = focusables[focusables.length - 1];
+  const active = document.activeElement;
+  if(e.shiftKey && (active === first || !box.contains(active))){
+    e.preventDefault(); last.focus();
+  } else if(!e.shiftKey && (active === last || !box.contains(active))){
+    e.preventDefault(); first.focus();
+  }
+});
 
 /* Inputs */
 function syncOpponentSetupField(rawValue, { canonicalizeSaved = false } = {}){

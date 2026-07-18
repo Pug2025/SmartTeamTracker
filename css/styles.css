@@ -1103,6 +1103,12 @@
     transform:scale(0.98);
     background:var(--us-tint);
   }
+  /* P5.5: pill reflects its open panel */
+  .btn-tertiary-link.active{
+    border-color:var(--ice);
+    color:var(--ice);
+    background:var(--ice-tint);
+  }
   .btn-edit-setup{
     /* legacy — now handled by .toolbar-btn */
   }

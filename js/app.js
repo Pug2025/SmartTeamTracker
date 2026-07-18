@@ -5341,6 +5341,54 @@ async function resetSeasonStats(){
     showStatusToast('Failed to reset season stats', 'error', 3500);
   }
 }
+/* ===== P5.5: setup data pills <-> panels =====
+   Accordion behavior (one panel open at a time), pill active state
+   (aria-expanded + .active), scroll the panel into view on open, and
+   scroll back to the pills row on close when it has left the viewport. */
+const SETUP_PANEL_PILLS = [
+  { panelId:'historyPanel', pillId:'btnHistory' },
+  { panelId:'seasonPanel', pillId:'btnSeason' },
+  { panelId:'playerStatsPanel', pillId:'btnPlayerStats' }
+];
+function syncSetupPanelPills(){
+  for(const {panelId, pillId} of SETUP_PANEL_PILLS){
+    const open = $(panelId) && $(panelId).style.display === 'block';
+    const pill = $(pillId);
+    if(!pill) continue;
+    pill.classList.toggle('active', !!open);
+    pill.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+}
+function closeOtherSetupPanels(keepPanelId){
+  for(const {panelId} of SETUP_PANEL_PILLS){
+    if(panelId === keepPanelId) continue;
+    const panel = $(panelId);
+    if(panel && panel.style.display === 'block') panel.style.display = 'none';
+  }
+  syncSetupPanelPills();
+}
+function scrollSetupPanelIntoView(panelId){
+  const panel = $(panelId);
+  if(!panel) return;
+  requestAnimationFrame(()=>{
+    panel.scrollIntoView({ behavior:'smooth', block:'start' });
+  });
+}
+function closeSetupPanel(panelId){
+  const panel = $(panelId);
+  if(!panel) return;
+  panel.style.display = 'none';
+  syncSetupPanelPills();
+  // If closing the panel leaves the pills row off-screen, bring it back so
+  // the coach lands where the navigation lives, not in dead space.
+  const pills = document.querySelector('.setup-tertiary');
+  if(pills){
+    const r = pills.getBoundingClientRect();
+    const inView = r.top >= 0 && r.bottom <= (window.innerHeight || document.documentElement.clientHeight);
+    if(!inView) pills.scrollIntoView({ behavior:'smooth', block:'center' });
+  }
+}
+
 const seasonSelectors = { dashboard: 'current', history: 'current', playerStats: 'current' };
 async function fetchSeasonsList(){
   const { userId, teamId } = getGameQueryScope();
@@ -5371,7 +5419,9 @@ function populateSeasonSelect(selectEl, listing, currentValue){
   return selectEl.value;
 }
 async function loadSeasonPanel(){
+  closeOtherSetupPanels('seasonPanel');
   $('seasonPanel').style.display = 'block';
+  syncSetupPanelPills();
   $('seasonBody').innerHTML = SKELETON_HTML;
   try{
     const listing = await fetchSeasonsList();
@@ -5419,7 +5469,9 @@ async function refreshHistoryPanelIfOpen(){
   await loadHistoryPanel();
 }
 async function loadPlayerStatsPanel(){
+  closeOtherSetupPanels('playerStatsPanel');
   $('playerStatsPanel').style.display = 'block';
+  syncSetupPanelPills();
   $('playerStatsBody').innerHTML = SKELETON_HTML;
   try{
     const games = await fetchScopedGames(100);
@@ -5440,7 +5492,9 @@ async function refreshPlayerStatsPanelIfOpen(){
 const historyViewState = { filter: 'all', games: [] };
 async function loadHistoryPanel(){
   resetHistorySwipeState();
+  closeOtherSetupPanels('historyPanel');
   $('historyPanel').style.display = 'block';
+  syncSetupPanelPills();
   $('historyList').innerHTML = SKELETON_HTML;
   historyViewState.filter = 'all';
   setHistoryFilterActive('all');
@@ -5496,6 +5550,7 @@ $('btnHistory').addEventListener('click', async ()=>{
     return;
   }
   await loadHistoryPanel();
+  scrollSetupPanelIntoView('historyPanel');
 });
 $('historyFilterBar').addEventListener('click', (e) => {
   const tab = e.target.closest('.history-filter-tab');
@@ -5508,7 +5563,7 @@ $('historyFilterBar').addEventListener('click', (e) => {
 });
 $('btnHistoryClose').addEventListener('click', ()=>{
   resetHistorySwipeState();
-  $('historyPanel').style.display='none';
+  closeSetupPanel('historyPanel');
 });
 
 const HISTORY_SWIPE_WIDTH = 82;
@@ -6051,8 +6106,9 @@ $('btnSeason').addEventListener('click', async ()=>{
     return;
   }
   await loadSeasonPanel();
+  scrollSetupPanelIntoView('seasonPanel');
 });
-$('btnSeasonClose').addEventListener('click', ()=>{ $('seasonPanel').style.display='none'; });
+$('btnSeasonClose').addEventListener('click', ()=>{ closeSetupPanel('seasonPanel'); });
 $('btnSeasonReset').addEventListener('click', resetSeasonStats);
 $('seasonSelect').addEventListener('change', async (e) => {
   seasonSelectors.dashboard = e.target.value || 'current';
@@ -6149,10 +6205,11 @@ $('btnPlayerStats').addEventListener('click', async ()=>{
     return;
   }
   await loadPlayerStatsPanel();
+  scrollSetupPanelIntoView('playerStatsPanel');
 });
 $('btnPlayerStatsReset').addEventListener('click', resetSeasonStats);
 $('btnPlayerStatsClose').addEventListener('click', ()=>{
-  $('playerStatsPanel').style.display='none';
+  closeSetupPanel('playerStatsPanel');
   $('playerDetailModal').style.display='none';
   currentPlayerDetailKey = null;
 });

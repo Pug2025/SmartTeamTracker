@@ -429,8 +429,10 @@ function setInGameHeader(inGame){
   const rosterBtn = $('btnRoster');
   if(rosterBtn) rosterBtn.style.display = inGame ? '' : 'none';
 
+  // P5.2: the Chance Quality slot occupies its final height from game start
+  // (placeholder state) so the button grid never shifts when data arrives.
+  $('qualityBarWrap').style.display = inGame ? 'block' : 'none';
   if(!inGame){
-    $('qualityBarWrap').style.display = 'none';
     hideLiveShareBanner();
   }
 
@@ -2256,11 +2258,11 @@ function updateMeta(){
   const qualF = sq.xGF + goalBoostF;
   const qualA = sq.xGA + goalBoostA;
   const totalShots = (state.countsF.shots || 0) + (state.countsA.shots || 0);
-  const qWrap = $('qualityBarWrap');
+  // P5.2: slot visibility is owned by setInGameHeader (reserved from game
+  // start) — this block only updates the fill/text within the fixed slot.
   const qFill = $('qualityFill');
   const qText = $('qualityText');
   if(totalShots >= 5 && (qualF + qualA) > 0){
-    qWrap.style.display = 'block';
     const pct = Math.round(100 * qualF / (qualF + qualA));
     // Fill from center: if pct > 50, fill right from 50%; if < 50, fill left toward 0
     if(pct >= 50){
@@ -2285,13 +2287,10 @@ function updateMeta(){
       qText.style.color = 'var(--muted2-ice)';
     }
   } else {
-    qWrap.style.display = totalShots > 0 ? 'block' : 'none';
-    if(totalShots > 0){
-      qFill.style.left = '50%';
-      qFill.style.width = '0%';
-      qText.textContent = 'Not enough data yet';
-      qText.style.color = 'var(--muted2-ice)';
-    }
+    qFill.style.left = '50%';
+    qFill.style.width = '0%';
+    qText.textContent = 'Not enough data yet';
+    qText.style.color = 'var(--muted2-ice)';
   }
 
   // rings

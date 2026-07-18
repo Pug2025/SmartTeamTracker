@@ -452,6 +452,8 @@
     margin-top:3px;
     font-weight:600;
     transition:color 0.3s;
+    /* P5.2: keep the slot height stable even before the first text render */
+    min-height:13px;
   }
 
   .score-block{

@@ -580,17 +580,14 @@ function updateGoalieChip(){
 }
 
 /**
- * Mid-game switch flow: confirm, then show picker (excluding current),
- * then update active goalie. Subsequent events tag the new goalie.
+ * Mid-game switch flow (GOALIE_PLAN locked copy): picker FIRST, then the
+ * "Are you sure you want to switch the goalie?" confirm — shown after the
+ * picker selection, before the active goalie actually changes. Subsequent
+ * events tag the new goalie.
  */
 async function switchGoalieFlow(){
   const goalies = (state.goalies || []).filter(g => g && String(g).trim());
   if(goalies.length < 2) return;
-
-  const ok = typeof window.showAppConfirm === 'function'
-    ? await window.showAppConfirm('Are you sure you want to switch the goalie?')
-    : window.confirm('Are you sure you want to switch the goalie?');
-  if(!ok) return;
 
   const current = state.activeGoalie;
   const options = goalies.filter(g => String(g) !== String(current));
@@ -605,13 +602,20 @@ async function switchGoalieFlow(){
   grid.onclick = (e) => {
     const btn = e.target.closest('.pickerBtn');
     if(!btn) return;
-    state.activeGoalie = btn.dataset.goalie;
-    save();
+    const picked = btn.dataset.goalie;
     $('goalieSwitchModal').style.display = 'none';
     grid.onclick = null;
-    updateGoalieChip();
-    const lbl = isNumStr(String(state.activeGoalie)) ? '#' + state.activeGoalie : state.activeGoalie;
-    showStatusToast('Goalie switched to ' + lbl, 'success');
+    const confirmSwitch = typeof window.showAppConfirm === 'function'
+      ? window.showAppConfirm('Are you sure you want to switch the goalie?')
+      : Promise.resolve(window.confirm('Are you sure you want to switch the goalie?'));
+    confirmSwitch.then(ok => {
+      if(!ok) return;
+      state.activeGoalie = picked;
+      save();
+      updateGoalieChip();
+      const lbl = isNumStr(String(picked)) ? '#' + picked : picked;
+      showStatusToast('Goalie switched to ' + lbl, 'success');
+    });
   };
 
   $('goalieSwitchModal').style.display = 'flex';
@@ -1454,7 +1458,7 @@ function continueAfterGATag(ev, onIceOptional = false){
       exclude:[]
     });
   } else {
-    openStrengthPicker(ev, 'Our Team\'s Situation (required)');
+    openStrengthPicker(ev, 'Our Team\'s Situation (optional)');
   }
 }
 function openGAContext(ev){
@@ -1712,7 +1716,7 @@ $('onIceUse').addEventListener('click', ()=>{
   renderAll();
 
   // Strength required after any goal for/against (and soft goal)
-  if(ev.type==='goal'||ev.type==='soft_goal'||ev.type==='for_goal') openStrengthPicker(ev, 'Our Team\'s Situation (required)');
+  if(ev.type==='goal'||ev.type==='soft_goal'||ev.type==='for_goal') openStrengthPicker(ev, 'Our Team\'s Situation (optional)');
 });
 $('onIceCancel').addEventListener('click', ()=>{
   const ev = multiPick.eventRef;
@@ -1720,7 +1724,7 @@ $('onIceCancel').addEventListener('click', ()=>{
   multiPick.eventRef=null;
 
   if(ev && (ev.type==='goal'||ev.type==='soft_goal'||ev.type==='for_goal')){
-    openStrengthPicker(ev, 'Our Team\'s Situation (required)');
+    openStrengthPicker(ev, 'Our Team\'s Situation (optional)');
   }
 });
 
@@ -2408,7 +2412,7 @@ $('log').addEventListener('click', async e=>{
 
     // Strength tag badge → open strength picker
     if(badge.classList.contains('badge-str')){
-      openStrengthPicker(ev, 'Our Team\'s Situation (required)');
+      openStrengthPicker(ev, 'Our Team\'s Situation (optional)');
       return;
     }
 
@@ -3508,7 +3512,7 @@ if(prefs.trackPlusMinus){
   const max = Math.max(0, 5 - exclude.length);
   openMultiPicker({ title:`Other ${max} On Ice (optional)`, max, event: ev, field: 'forOnIce', exclude });
 } else {
-  openStrengthPicker(ev, 'Our Team\'s Situation (required)');
+  openStrengthPicker(ev, 'Our Team\'s Situation (optional)');
 }
 
 pickerFlow.mode=null;
@@ -3783,9 +3787,14 @@ return;
       $('acctSignOut').style.display = 'none';
       $('acctDeleteAccount').style.display = 'none';
     }
-    // Sync status
-    const statusEl = $('cloudStatus');
-    $('acctSyncStatus').textContent = statusEl ? statusEl.title : '—';
+    // Sync status. P5.7d: guests have no cloud account — 'Synced' would be a
+    // lie; their games live locally with an anonymous backup only.
+    if(user){
+      const statusEl = $('cloudStatus');
+      $('acctSyncStatus').textContent = statusEl ? statusEl.title : '—';
+    } else {
+      $('acctSyncStatus').textContent = 'Local + anonymous backup';
+    }
     const q = getOfflineQueue();
     $('acctQueueCount').textContent = q.length + ' game' + (q.length !== 1 ? 's' : '');
     // Plan

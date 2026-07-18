@@ -2,3 +2,4 @@
 .env.local
 .dev-data.json
 *.log
+__pycache__/

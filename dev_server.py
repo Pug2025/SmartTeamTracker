@@ -19,8 +19,10 @@ from __future__ import annotations
 
 import argparse
 import html
+import io
 import json
 import os
+import re
 import threading
 from datetime import datetime, timezone
 from functools import partial
@@ -93,25 +95,59 @@ def truncate_text(value: Any, max_chars: int) -> str:
     return f"{text[: max(0, max_chars - 3)].strip()}..."
 
 
+def sanitize_for_font(value: Any) -> str:
+    text = re.sub(r"[^A-Z0-9 .:&'/|-]", " ", str(value or "").upper())
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def clamp_label(value: str, max_chars: int) -> str:
+    if len(value) <= max_chars:
+        return value
+    return f"{value[: max(0, max_chars - 3)].strip()}..."
+
+
+def crest_initials(name: Any, fallback: str) -> str:
+    words = [w for w in re.sub(r"[^A-Z0-9 ]", " ", str(name or "").upper()).split() if w]
+    if not words:
+        return fallback
+    if len(words) == 1:
+        return words[0][:2]
+    return f"{words[0][0]}{words[1][0]}"
+
+
 def build_share_model(snapshot: dict[str, Any] | None, code: str) -> dict[str, Any]:
     state = snapshot.get("state") if isinstance(snapshot, dict) and isinstance(snapshot.get("state"), dict) else {}
     opponent_raw = state.get("opponent") if isinstance(state.get("opponent"), str) else ""
+    team_raw = state.get("teamName") if isinstance(state.get("teamName"), str) else ""
     opponent = title_case(opponent_raw)
     goals_for = safe_int(state.get("goalsFor"))
     goals_against = safe_int(state.get("goalsAgainst"))
     period = period_label(state.get("period"))
+    ended = bool(state.get("ended") or state.get("final"))
+    status = ("final" if ended else "live") if snapshot else "waiting"
     updated_at = snapshot.get("updated_at") if isinstance(snapshot, dict) else None
     version = str(updated_at or utc_now_iso()).replace(":", "").replace("-", "")
+    if status == "final":
+        description = f"Final score • {period}"
+    elif status == "waiting":
+        description = "Live spectator view"
+    else:
+        description = f"Live spectator view • {period}"
     return {
         "code": code,
         "opponent": opponent,
-        "opponent_upper": str(opponent_raw or "Opponent").upper(),
         "goals_for": goals_for,
         "goals_against": goals_against,
         "period": period,
+        "status": status,
+        "period_text": "VS" if status == "waiting" else period,
+        "opponent_label": clamp_label(sanitize_for_font(opponent_raw) or "OPPONENT", 18),
+        "team_label": clamp_label(sanitize_for_font(team_raw) or "US", 18),
+        "opponent_initials": crest_initials(opponent_raw, "OP"),
+        "team_initials": crest_initials(team_raw, "US"),
         "version": version,
         "title": f"{truncate_text(opponent, 24)} • {goals_against}-{goals_for}",
-        "description": f"Live spectator view • {period}",
+        "description": description,
     }
 
 
@@ -140,7 +176,7 @@ def render_share_html(model: dict[str, Any], base_url: str) -> str:
 <meta property="og:url" content="{html.escape(f'{base_url}/api/spectator-share?live={code}')}" />
 <meta property="og:image" content="{html.escape(image_url)}" />
 <meta property="og:image:secure_url" content="{html.escape(image_url)}" />
-<meta property="og:image:type" content="image/svg+xml" />
+<meta property="og:image:type" content="image/png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta property="og:image:alt" content="{html.escape(f'{model.get("opponent") or "Opponent"} live spectator preview')}" />
@@ -174,43 +210,117 @@ def render_share_html(model: dict[str, Any], base_url: str) -> str:
 </html>"""
 
 
-def render_preview_svg(model: dict[str, Any]) -> str:
-    period = html.escape(str(model.get("period") or "LIVE"))
-    goals_against = html.escape(str(model.get("goals_against", 0)))
-    goals_for = html.escape(str(model.get("goals_for", 0)))
-    title = html.escape(str(model.get("title") or "Live Spectator View"))
-    description = html.escape(str(model.get("description") or "Open the live spectator view."))
-    return f"""<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="{title}">
-  <defs>
-    <linearGradient id="bg" x1="0" x2="0" y1="0" y2="1">
-      <stop offset="0%" stop-color="#060b12" />
-      <stop offset="100%" stop-color="#02050a" />
-    </linearGradient>
-    <radialGradient id="glow" cx="50%" cy="0%" r="70%">
-      <stop offset="0%" stop-color="#17345a" stop-opacity="0.28" />
-      <stop offset="100%" stop-color="#17345a" stop-opacity="0" />
-    </radialGradient>
-  </defs>
-  <rect width="1200" height="630" fill="url(#bg)" />
-  <rect width="1200" height="630" fill="url(#glow)" />
-  <rect x="58" y="40" width="1084" height="548" rx="30" fill="#0a111b" stroke="#213450" stroke-width="2" />
-  <circle cx="106" cy="106" r="10" fill="#79d79a" />
-  <rect x="92" y="166" width="1016" height="300" rx="24" fill="#070c13" stroke="#223651" stroke-width="2" />
-  <rect x="118" y="194" width="300" height="244" rx="18" fill="#1c1d21" />
-  <rect x="448" y="224" width="304" height="92" rx="16" fill="#122030" />
-  <rect x="782" y="194" width="300" height="244" rx="18" fill="#111925" />
+# P3.4a — Ice-themed preview PNG, mirroring renderPreviewPng() in
+# api/spectator-share-lib.js. Composites the sprites baked by
+# outputs/brand/share-template/bake_share_assets.py (api/_share-assets/).
+# Falls back to the static baked preview if Pillow is unavailable.
 
-  <rect x="132" y="194" width="272" height="4" rx="2" fill="#b19a8d" opacity="0.65" />
-  <rect x="796" y="194" width="272" height="4" rx="2" fill="#a7bbcd" opacity="0.72" />
+_SHARE_ASSETS: dict[str, Any] | None = None
 
-  <text x="268" y="236" text-anchor="middle" fill="#c1b2a9" font-size="28" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-weight="800" letter-spacing="2">OPP</text>
-  <text x="932" y="236" text-anchor="middle" fill="#bfd0df" font-size="28" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-weight="800" letter-spacing="2">US</text>
-  <text x="268" y="384" text-anchor="middle" fill="#f4f6fb" font-size="140" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-weight="800">{goals_against}</text>
-  <text x="932" y="384" text-anchor="middle" fill="#f4f6fb" font-size="140" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-weight="800">{goals_for}</text>
-  <text x="600" y="286" text-anchor="middle" fill="#d7dfed" font-size="48" font-family="Avenir Next, Helvetica, Arial, sans-serif" font-weight="800">{period}</text>
-  <title>{title}</title>
-  <desc>{description}</desc>
-</svg>"""
+_TINT_SCORE_THEM = (255, 128, 136)
+_TINT_SCORE_US = (122, 172, 255)
+_TINT_LABEL = (194, 206, 221)
+_TINT_PERIOD = (219, 227, 240)
+_TINT_CREST_THEM = (205, 214, 226)
+_TINT_CREST_US = (220, 233, 255)
+
+
+def _load_share_assets() -> dict[str, Any]:
+    global _SHARE_ASSETS
+    if _SHARE_ASSETS is None:
+        from PIL import Image
+
+        base = ROOT_DIR / "api" / "_share-assets"
+        manifest = json.loads((base / "manifest.json").read_text(encoding="utf-8"))
+
+        def load(name: str):
+            return Image.open(base / name).convert("RGBA")
+
+        _SHARE_ASSETS = {
+            "manifest": manifest,
+            "template": load(manifest["template"]["file"]),
+            "pills": {k: (load(v["file"]), v) for k, v in manifest["pills"].items()},
+            "sheets": {k: (load(v["file"]), v) for k, v in manifest["sheets"].items()},
+        }
+    return _SHARE_ASSETS
+
+
+def _tint_sprite(img: Any, rgb: tuple[int, int, int]) -> Any:
+    from PIL import Image
+
+    r, g, b, a = img.split()
+    r = r.point(lambda v: v * rgb[0] // 255)
+    g = g.point(lambda v: v * rgb[1] // 255)
+    b = b.point(lambda v: v * rgb[2] // 255)
+    return Image.merge("RGBA", (r, g, b, a))
+
+
+def _draw_sheet_text(canvas: Any, sheet: Any, meta: dict[str, Any], text: str,
+                     center_x: float, cap_cy: float, rgb: tuple[int, int, int],
+                     tracking: float = 0) -> None:
+    chars = list(str(text or "").upper())
+    if not chars:
+        return
+    cap_h = meta["capBottom"] - meta["capTop"]
+    fallback_adv = cap_h * 0.55
+    total = 0.0
+    for i, ch in enumerate(chars):
+        glyph = meta["chars"].get(ch)
+        total += glyph["adv"] if glyph else fallback_adv
+        if i < len(chars) - 1:
+            total += tracking
+    pen = center_x - total / 2
+    top = round(cap_cy - (meta["capTop"] + meta["capBottom"]) / 2)
+    for ch in chars:
+        glyph = meta["chars"].get(ch)
+        if not glyph:
+            pen += fallback_adv + tracking
+            continue
+        cell = sheet.crop((glyph["x"], 0, glyph["x"] + glyph["w"], sheet.size[1]))
+        canvas.alpha_composite(_tint_sprite(cell, rgb), (round(pen + glyph["dx"]), top))
+        pen += glyph["adv"] + tracking
+
+
+def render_preview_png(model: dict[str, Any]) -> bytes:
+    try:
+        assets = _load_share_assets()
+    except Exception:
+        return (ROOT_DIR / "assets" / "share" / "preview-static-1200x630.png").read_bytes()
+
+    layout = assets["manifest"]["layout"]
+    canvas = assets["template"].copy()
+
+    status = model.get("status") or "waiting"
+    pill_key = "live" if status == "live" else ("final" if status == "final" else "soon")
+    pill_img, pill_meta = assets["pills"][pill_key]
+    canvas.alpha_composite(
+        pill_img,
+        (layout["pill"]["x"] - pill_meta["margin"], layout["pill"]["y"] - pill_meta["margin"]),
+    )
+
+    lg_img, lg_meta = assets["sheets"]["lg"]
+    sm_img, sm_meta = assets["sheets"]["sm"]
+    score_img, score_meta = assets["sheets"]["score"]
+    crest_cy = layout["crest"]["top"] + layout["crest"]["h"] / 2
+
+    _draw_sheet_text(canvas, lg_img, lg_meta, model.get("opponent_initials") or "OP",
+                     layout["them"]["cx"], crest_cy, _TINT_CREST_THEM, 2)
+    _draw_sheet_text(canvas, lg_img, lg_meta, model.get("team_initials") or "US",
+                     layout["us"]["cx"], crest_cy, _TINT_CREST_US, 2)
+    _draw_sheet_text(canvas, sm_img, sm_meta, model.get("opponent_label") or "OPPONENT",
+                     layout["them"]["cx"], layout["labelCapCy"], _TINT_LABEL, 3)
+    _draw_sheet_text(canvas, sm_img, sm_meta, model.get("team_label") or "US",
+                     layout["us"]["cx"], layout["labelCapCy"], _TINT_LABEL, 3)
+    _draw_sheet_text(canvas, score_img, score_meta, str(model.get("goals_against", 0)),
+                     layout["them"]["cx"], layout["scoreCapCy"], _TINT_SCORE_THEM, 4)
+    _draw_sheet_text(canvas, score_img, score_meta, str(model.get("goals_for", 0)),
+                     layout["us"]["cx"], layout["scoreCapCy"], _TINT_SCORE_US, 4)
+    _draw_sheet_text(canvas, lg_img, lg_meta, model.get("period_text") or "VS",
+                     layout["period"]["cx"], layout["period"]["cy"], _TINT_PERIOD, 2)
+
+    buffer = io.BytesIO()
+    canvas.save(buffer, "PNG", optimize=True)
+    return buffer.getvalue()
 
 
 class Backend:
@@ -1080,11 +1190,11 @@ class AppHandler(SimpleHTTPRequestHandler):
             status, body = self.backend.get_live_game(code) if code else (200, {"game": None})
             snapshot = body.get("game") if status == 200 and isinstance(body, dict) else None
             model = build_share_model(snapshot, code)
-            image = render_preview_svg(model).encode("utf-8")
+            image = render_preview_png(model)
             self._send_body(
                 200 if snapshot or not code else 404,
                 image,
-                "image/svg+xml; charset=utf-8",
+                "image/png",
                 cache_control="no-store, max-age=0",
             )
             return

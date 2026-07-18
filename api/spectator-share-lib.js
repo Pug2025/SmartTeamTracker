@@ -1,51 +1,28 @@
-import { deflateSync } from "node:zlib";
+// Shared helpers for the spectator share surfaces:
+// - buildShareModel(): normalizes a live_games snapshot for og/html/preview
+// - renderShareHtml(): the dynamic share page (og:image -> /api/spectator-preview)
+// - renderPreviewPng(): the Ice-themed 1200x630 og-image (P3.4a)
+//
+// renderPreviewPng() is zero-dependency pixel-buffer compositing: it alpha-
+// composites sprites baked by outputs/brand/share-template/bake_share_assets.py
+// (template, status pills, Saira/Hanken glyph sheets in api/_share-assets/)
+// and encodes the result with its own PNG encoder. The bundled minimal PNG
+// decoder only supports what the bake script emits: 8-bit RGBA, non-interlaced.
 
-const FONT = {
-  "A": ["01110","10001","10001","11111","10001","10001","10001"],
-  "B": ["11110","10001","10001","11110","10001","10001","11110"],
-  "C": ["01111","10000","10000","10000","10000","10000","01111"],
-  "D": ["11110","10001","10001","10001","10001","10001","11110"],
-  "E": ["11111","10000","10000","11110","10000","10000","11111"],
-  "F": ["11111","10000","10000","11110","10000","10000","10000"],
-  "G": ["01111","10000","10000","10111","10001","10001","01111"],
-  "H": ["10001","10001","10001","11111","10001","10001","10001"],
-  "I": ["11111","00100","00100","00100","00100","00100","11111"],
-  "J": ["00111","00010","00010","00010","00010","10010","01100"],
-  "K": ["10001","10010","10100","11000","10100","10010","10001"],
-  "L": ["10000","10000","10000","10000","10000","10000","11111"],
-  "M": ["10001","11011","10101","10101","10001","10001","10001"],
-  "N": ["10001","11001","10101","10011","10001","10001","10001"],
-  "O": ["01110","10001","10001","10001","10001","10001","01110"],
-  "P": ["11110","10001","10001","11110","10000","10000","10000"],
-  "Q": ["01110","10001","10001","10001","10101","10010","01101"],
-  "R": ["11110","10001","10001","11110","10100","10010","10001"],
-  "S": ["01111","10000","10000","01110","00001","00001","11110"],
-  "T": ["11111","00100","00100","00100","00100","00100","00100"],
-  "U": ["10001","10001","10001","10001","10001","10001","01110"],
-  "V": ["10001","10001","10001","10001","10001","01010","00100"],
-  "W": ["10001","10001","10001","10101","10101","10101","01010"],
-  "X": ["10001","10001","01010","00100","01010","10001","10001"],
-  "Y": ["10001","10001","01010","00100","00100","00100","00100"],
-  "Z": ["11111","00001","00010","00100","01000","10000","11111"],
-  "0": ["01110","10001","10011","10101","11001","10001","01110"],
-  "1": ["00100","01100","00100","00100","00100","00100","01110"],
-  "2": ["01110","10001","00001","00010","00100","01000","11111"],
-  "3": ["11110","00001","00001","01110","00001","00001","11110"],
-  "4": ["00010","00110","01010","10010","11111","00010","00010"],
-  "5": ["11111","10000","10000","11110","00001","00001","11110"],
-  "6": ["01110","10000","10000","11110","10001","10001","01110"],
-  "7": ["11111","00001","00010","00100","01000","01000","01000"],
-  "8": ["01110","10001","10001","01110","10001","10001","01110"],
-  "9": ["01110","10001","10001","01111","00001","00001","01110"],
-  " ": ["00000","00000","00000","00000","00000","00000","00000"],
-  "-": ["00000","00000","00000","11111","00000","00000","00000"],
-  ".": ["00000","00000","00000","00000","00000","01100","01100"],
-  "'": ["00100","00100","00000","00000","00000","00000","00000"],
-  "&": ["01100","10010","10100","01000","10101","10010","01101"],
-  "/": ["00001","00010","00100","01000","10000","00000","00000"],
-  ":": ["00000","01100","01100","00000","01100","01100","00000"],
-  "|": ["00100","00100","00100","00100","00100","00100","00100"]
-};
+import { deflateSync, inflateSync } from "node:zlib";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const ASSET_DIR = fileURLToPath(new URL("./_share-assets/", import.meta.url));
+
+// Ice palette tints (design/spectator-ice.html); applied to white sprite art.
+const TINT_SCORE_THEM = [255, 128, 136]; // .score.them
+const TINT_SCORE_US = [122, 172, 255];   // .score.us
+const TINT_LABEL = [194, 206, 221];      // --muted
+const TINT_PERIOD = [219, 227, 240];     // .period text
+const TINT_CREST_THEM = [205, 214, 226]; // .crest.them text
+const TINT_CREST_US = [220, 233, 255];   // .crest.us text
 
 const CRC_TABLE = new Uint32Array(256).map((_, index) => {
   let c = index;
@@ -87,10 +64,13 @@ export function getBaseUrl(req) {
 export function buildShareModel(snapshot, code) {
   const state = snapshot && snapshot.state && typeof snapshot.state === "object" ? snapshot.state : {};
   const opponentRaw = typeof state.opponent === "string" && state.opponent.trim() ? state.opponent.trim() : "Opponent";
+  const teamRaw = typeof state.teamName === "string" ? state.teamName.trim() : "";
   const opponent = titleCase(opponentRaw);
   const goalsFor = safeNum(state.goalsFor);
   const goalsAgainst = safeNum(state.goalsAgainst);
   const period = periodLabel(state.period);
+  const ended = !!(state.ended || state.final);
+  const status = snapshot ? (ended ? "final" : "live") : "waiting";
   const updatedAt = snapshot && snapshot.updated_at ? snapshot.updated_at : null;
   const version = updatedAt ? Date.parse(updatedAt) || Date.now() : Date.now();
   const titleOpponent = truncateText(opponent, 24);
@@ -98,14 +78,23 @@ export function buildShareModel(snapshot, code) {
   return {
     code,
     opponent,
-    opponentUpper: clampLabel(sanitizeForFont(opponentRaw).toUpperCase() || "OPPONENT", 22),
     goalsFor,
     goalsAgainst,
     period,
+    status,
+    periodText: status === "waiting" ? "VS" : period,
+    opponentLabel: clampLabel(sanitizeForFont(opponentRaw).toUpperCase() || "OPPONENT", 18),
+    teamLabel: clampLabel(sanitizeForFont(teamRaw).toUpperCase() || "US", 18),
+    opponentInitials: crestInitials(opponentRaw, "OP"),
+    teamInitials: crestInitials(teamRaw, "US"),
     updatedAt,
     version,
     title: `${titleOpponent} • ${goalsAgainst}-${goalsFor}`,
-    description: `Live spectator view • ${period}`
+    description: status === "final"
+      ? `Final score • ${period}`
+      : status === "waiting"
+        ? "Live spectator view"
+        : `Live spectator view • ${period}`
   };
 }
 
@@ -166,39 +155,174 @@ export function renderShareHtml({ model, baseUrl }) {
 }
 
 export function renderPreviewPng(model) {
-  const width = 1200;
-  const height = 630;
-  const aa = 3;
-  const hiWidth = width * aa;
-  const hiHeight = height * aa;
-  const pixels = Buffer.alloc(hiWidth * hiHeight * 4);
-  const s = (value) => Math.round(value * aa);
+  const assets = loadShareAssets();
+  const layout = assets.manifest.layout;
+  const width = assets.manifest.template.w;
+  const height = assets.manifest.template.h;
+  const out = Buffer.from(assets.template.data);
 
-  fillVerticalGradient(pixels, hiWidth, hiHeight, [6, 11, 18, 255], [2, 5, 10, 255]);
-  fillCircle(pixels, hiWidth, hiHeight, s(600), s(24), s(260), [17, 34, 58, 48]);
-  fillRoundedRect(pixels, hiWidth, hiHeight, s(58), s(40), s(1084), s(548), s(28), [33, 52, 79, 255]);
-  fillRoundedRect(pixels, hiWidth, hiHeight, s(60), s(42), s(1080), s(544), s(26), [10, 17, 27, 255]);
+  const pillKey = model.status === "live" ? "live" : model.status === "final" ? "final" : "soon";
+  const pill = assets.pills[pillKey];
+  blitSprite(out, width, height, pill.image, layout.pill.x - pill.margin, layout.pill.y - pill.margin);
 
-  fillCircle(pixels, hiWidth, hiHeight, s(108), s(106), s(8), [121, 215, 155, 255]);
+  const crestCy = layout.crest.top + (layout.crest.h / 2);
+  drawSheetText(out, width, height, assets.sheets.lg, model.opponentInitials, layout.them.cx, crestCy, TINT_CREST_THEM, 2);
+  drawSheetText(out, width, height, assets.sheets.lg, model.teamInitials, layout.us.cx, crestCy, TINT_CREST_US, 2);
+  drawSheetText(out, width, height, assets.sheets.sm, model.opponentLabel, layout.them.cx, layout.labelCapCy, TINT_LABEL, 3);
+  drawSheetText(out, width, height, assets.sheets.sm, model.teamLabel, layout.us.cx, layout.labelCapCy, TINT_LABEL, 3);
+  drawSheetText(out, width, height, assets.sheets.score, String(model.goalsAgainst), layout.them.cx, layout.scoreCapCy, TINT_SCORE_THEM, 4);
+  drawSheetText(out, width, height, assets.sheets.score, String(model.goalsFor), layout.us.cx, layout.scoreCapCy, TINT_SCORE_US, 4);
+  drawSheetText(out, width, height, assets.sheets.lg, model.periodText, layout.period.cx, layout.period.cy, TINT_PERIOD, 2);
 
-  fillRoundedRect(pixels, hiWidth, hiHeight, s(92), s(166), s(1016), s(300), s(24), [34, 52, 78, 255]);
-  fillRoundedRect(pixels, hiWidth, hiHeight, s(94), s(168), s(1012), s(296), s(22), [7, 12, 20, 255]);
-
-  fillRoundedRect(pixels, hiWidth, hiHeight, s(118), s(194), s(300), s(244), s(18), [28, 29, 33, 255]);
-  fillRoundedRect(pixels, hiWidth, hiHeight, s(448), s(224), s(304), s(92), s(16), [18, 28, 42, 255]);
-  fillRoundedRect(pixels, hiWidth, hiHeight, s(782), s(194), s(300), s(244), s(18), [16, 25, 38, 255]);
-
-  fillRoundedRect(pixels, hiWidth, hiHeight, s(132), s(194), s(272), s(4), s(2), [177, 154, 141, 255]);
-  fillRoundedRect(pixels, hiWidth, hiHeight, s(796), s(194), s(272), s(4), s(2), [167, 187, 205, 255]);
-
-  drawScoreGlyphTextCentered(pixels, hiWidth, hiHeight, "OPP", s(268), s(216), s(30), [193, 177, 168, 255], s(8));
-  drawScoreGlyphTextCentered(pixels, hiWidth, hiHeight, "US", s(932), s(216), s(30), [184, 201, 220, 255], s(8));
-  drawScoreGlyphTextCentered(pixels, hiWidth, hiHeight, String(model.goalsAgainst), s(268), s(274), s(88), [244, 246, 251, 255], s(18));
-  drawScoreGlyphTextCentered(pixels, hiWidth, hiHeight, String(model.goalsFor), s(932), s(274), s(88), [244, 246, 251, 255], s(18));
-  drawScoreGlyphTextCentered(pixels, hiWidth, hiHeight, model.period, s(600), s(246), s(40), [214, 223, 237, 255], s(10));
-
-  return encodePng(width, height, downsampleRgba(pixels, hiWidth, hiHeight, aa));
+  return encodePng(width, height, out);
 }
+
+// ---------------------------------------------------------------------------
+// Baked-sprite loading + compositing
+
+let assetCache = null;
+
+function loadShareAssets() {
+  if (assetCache) return assetCache;
+  const manifest = JSON.parse(readFileSync(join(ASSET_DIR, "manifest.json"), "utf8"));
+  const load = (file) => decodePng(readFileSync(join(ASSET_DIR, file)));
+  const pills = {};
+  for (const [key, meta] of Object.entries(manifest.pills)) {
+    pills[key] = { ...meta, image: load(meta.file) };
+  }
+  const sheets = {};
+  for (const [key, meta] of Object.entries(manifest.sheets)) {
+    sheets[key] = { ...meta, image: load(meta.file) };
+  }
+  assetCache = { manifest, template: load(manifest.template.file), pills, sheets };
+  return assetCache;
+}
+
+// Minimal PNG decoder for the baked assets only: 8-bit RGBA, non-interlaced,
+// standard filters 0-4. Anything else throws.
+function decodePng(buffer) {
+  const signature = [137, 80, 78, 71, 13, 10, 26, 10];
+  for (let i = 0; i < 8; i += 1) {
+    if (buffer[i] !== signature[i]) throw new Error("share-assets: not a PNG");
+  }
+
+  let width = 0;
+  let height = 0;
+  const idat = [];
+  let offset = 8;
+  while (offset + 8 <= buffer.length) {
+    const length = buffer.readUInt32BE(offset);
+    const type = buffer.toString("ascii", offset + 4, offset + 8);
+    const dataStart = offset + 8;
+    if (type === "IHDR") {
+      width = buffer.readUInt32BE(dataStart);
+      height = buffer.readUInt32BE(dataStart + 4);
+      const bitDepth = buffer[dataStart + 8];
+      const colorType = buffer[dataStart + 9];
+      const interlace = buffer[dataStart + 12];
+      if (bitDepth !== 8 || colorType !== 6 || interlace !== 0) {
+        throw new Error("share-assets: unsupported PNG format (need 8-bit RGBA, non-interlaced)");
+      }
+    } else if (type === "IDAT") {
+      idat.push(buffer.subarray(dataStart, dataStart + length));
+    } else if (type === "IEND") {
+      break;
+    }
+    offset = dataStart + length + 4;
+  }
+
+  const raw = inflateSync(Buffer.concat(idat));
+  const stride = width * 4;
+  const data = Buffer.alloc(width * height * 4);
+  for (let y = 0; y < height; y += 1) {
+    const filter = raw[y * (stride + 1)];
+    const rowStart = y * (stride + 1) + 1;
+    const outStart = y * stride;
+    const prevStart = outStart - stride;
+    for (let x = 0; x < stride; x += 1) {
+      const value = raw[rowStart + x];
+      const left = x >= 4 ? data[outStart + x - 4] : 0;
+      const up = y > 0 ? data[prevStart + x] : 0;
+      const upLeft = (y > 0 && x >= 4) ? data[prevStart + x - 4] : 0;
+      let reconstructed;
+      if (filter === 0) reconstructed = value;
+      else if (filter === 1) reconstructed = value + left;
+      else if (filter === 2) reconstructed = value + up;
+      else if (filter === 3) reconstructed = value + ((left + up) >> 1);
+      else if (filter === 4) reconstructed = value + paeth(left, up, upLeft);
+      else throw new Error(`share-assets: unsupported PNG filter ${filter}`);
+      data[outStart + x] = reconstructed & 0xff;
+    }
+  }
+  return { width, height, data };
+}
+
+function paeth(a, b, c) {
+  const p = a + b - c;
+  const pa = Math.abs(p - a);
+  const pb = Math.abs(p - b);
+  const pc = Math.abs(p - c);
+  if (pa <= pb && pa <= pc) return a;
+  if (pb <= pc) return b;
+  return c;
+}
+
+// Source-over blit of an RGBA sprite region onto the opaque canvas.
+// tint multiplies the sprite's RGB channels (used to color white glyph art).
+function blitSprite(dst, dstWidth, dstHeight, sprite, dx, dy, srcX = 0, srcW = sprite.width, tint = null) {
+  const [tr, tg, tb] = tint || [255, 255, 255];
+  for (let y = 0; y < sprite.height; y += 1) {
+    const py = dy + y;
+    if (py < 0 || py >= dstHeight) continue;
+    for (let x = 0; x < srcW; x += 1) {
+      const px = dx + x;
+      if (px < 0 || px >= dstWidth) continue;
+      const s = (y * sprite.width + (srcX + x)) * 4;
+      const alpha = sprite.data[s + 3];
+      if (!alpha) continue;
+      const d = (py * dstWidth + px) * 4;
+      const a = alpha / 255;
+      const inv = 1 - a;
+      const sr = (sprite.data[s] * tr) / 255;
+      const sg = (sprite.data[s + 1] * tg) / 255;
+      const sb = (sprite.data[s + 2] * tb) / 255;
+      dst[d] = Math.round((sr * a) + (dst[d] * inv));
+      dst[d + 1] = Math.round((sg * a) + (dst[d + 1] * inv));
+      dst[d + 2] = Math.round((sb * a) + (dst[d + 2] * inv));
+      dst[d + 3] = 255;
+    }
+  }
+}
+
+// Draw text from a baked glyph sheet, horizontally centered on centerX with the
+// capital height centered on capCy. Unknown glyphs (incl. spaces) advance only.
+function drawSheetText(dst, dstWidth, dstHeight, sheet, text, centerX, capCy, tint, tracking = 0) {
+  const chars = [...String(text || "").toUpperCase()];
+  if (!chars.length) return;
+  const capHeight = sheet.capBottom - sheet.capTop;
+  const fallbackAdv = capHeight * 0.55;
+  let total = 0;
+  chars.forEach((ch, index) => {
+    const glyph = sheet.chars[ch];
+    total += glyph ? glyph.adv : fallbackAdv;
+    if (index < chars.length - 1) total += tracking;
+  });
+
+  let pen = centerX - (total / 2);
+  const top = Math.round(capCy - ((sheet.capTop + sheet.capBottom) / 2));
+  for (const ch of chars) {
+    const glyph = sheet.chars[ch];
+    if (!glyph) {
+      pen += fallbackAdv + tracking;
+      continue;
+    }
+    blitSprite(dst, dstWidth, dstHeight, sheet.image, Math.round(pen + glyph.dx), top, glyph.x, glyph.w, tint);
+    pen += glyph.adv + tracking;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Model helpers
 
 function safeNum(value) {
   const n = Number(value);
@@ -240,206 +364,69 @@ function truncateText(value, maxChars) {
   return `${text.slice(0, Math.max(0, maxChars - 3)).trim()}...`;
 }
 
-function pickScale(text, maxWidth, preferred, min, spacing = 2) {
-  for (let scale = preferred; scale >= min; scale -= 1) {
-    if (measureText(text, scale, spacing) <= maxWidth) return scale;
-  }
-  return min;
+function crestInitials(name, fallback) {
+  const words = String(name || "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9 ]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+  if (!words.length) return fallback;
+  if (words.length === 1) return words[0].slice(0, 2);
+  return `${words[0][0]}${words[1][0]}`;
 }
 
-function measureText(text, scale, spacing) {
-  if (!text) return 0;
-  return text.length * ((5 * scale) + spacing) - spacing;
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
-function drawCenteredText(pixels, width, height, text, centerX, y, scale, color, spacing) {
-  const x = Math.round(centerX - (measureText(text, scale, spacing) / 2));
-  drawText(pixels, width, height, text, x, y, scale, color, spacing);
-}
-
-function drawText(pixels, width, height, text, x, y, scale, color, spacing = 1) {
-  let cursor = x;
-  for (const rawChar of String(text || "").toUpperCase()) {
-    const glyph = FONT[rawChar] || FONT[" "];
-    for (let row = 0; row < glyph.length; row += 1) {
-      for (let col = 0; col < glyph[row].length; col += 1) {
-        if (glyph[row][col] !== "1") continue;
-        fillRect(pixels, width, height, cursor + (col * scale), y + (row * scale), scale, scale, color);
-      }
-    }
-    cursor += (5 * scale) + spacing;
-  }
-}
-
-function fillVerticalGradient(pixels, width, height, topColor, bottomColor) {
-  for (let y = 0; y < height; y += 1) {
-    const t = y / Math.max(1, height - 1);
-    fillRect(pixels, width, height, 0, y, width, 1, [
-      lerp(topColor[0], bottomColor[0], t),
-      lerp(topColor[1], bottomColor[1], t),
-      lerp(topColor[2], bottomColor[2], t),
-      255
-    ]);
-  }
-}
-
-function fillRect(pixels, width, height, x, y, rectWidth, rectHeight, color) {
-  const startX = Math.max(0, Math.floor(x));
-  const startY = Math.max(0, Math.floor(y));
-  const endX = Math.min(width, Math.ceil(x + rectWidth));
-  const endY = Math.min(height, Math.ceil(y + rectHeight));
-  for (let py = startY; py < endY; py += 1) {
-    for (let px = startX; px < endX; px += 1) {
-      const idx = (py * width + px) * 4;
-      pixels[idx] = color[0];
-      pixels[idx + 1] = color[1];
-      pixels[idx + 2] = color[2];
-      pixels[idx + 3] = color[3];
-    }
-  }
-}
-
-function strokeRect(pixels, width, height, x, y, rectWidth, rectHeight, color, thickness = 1) {
-  fillRect(pixels, width, height, x, y, rectWidth, thickness, color);
-  fillRect(pixels, width, height, x, y + rectHeight - thickness, rectWidth, thickness, color);
-  fillRect(pixels, width, height, x, y, thickness, rectHeight, color);
-  fillRect(pixels, width, height, x + rectWidth - thickness, y, thickness, rectHeight, color);
-}
-
-function fillRoundedRect(pixels, width, height, x, y, rectWidth, rectHeight, radius, color) {
-  const r = Math.max(0, Math.min(radius, rectWidth / 2, rectHeight / 2));
-  if (r <= 0) {
-    fillRect(pixels, width, height, x, y, rectWidth, rectHeight, color);
-    return;
-  }
-  fillRect(pixels, width, height, x + r, y, rectWidth - (2 * r), rectHeight, color);
-  fillRect(pixels, width, height, x, y + r, rectWidth, rectHeight - (2 * r), color);
-  fillCircle(pixels, width, height, x + r, y + r, r, color);
-  fillCircle(pixels, width, height, x + rectWidth - r, y + r, r, color);
-  fillCircle(pixels, width, height, x + r, y + rectHeight - r, r, color);
-  fillCircle(pixels, width, height, x + rectWidth - r, y + rectHeight - r, r, color);
-}
-
-function fillCircle(pixels, width, height, centerX, centerY, radius, color) {
-  const rSquared = radius * radius;
-  const startX = Math.max(0, Math.floor(centerX - radius));
-  const endX = Math.min(width, Math.ceil(centerX + radius));
-  const startY = Math.max(0, Math.floor(centerY - radius));
-  const endY = Math.min(height, Math.ceil(centerY + radius));
-  for (let py = startY; py < endY; py += 1) {
-    for (let px = startX; px < endX; px += 1) {
-      const dx = px - centerX;
-      const dy = py - centerY;
-      if ((dx * dx) + (dy * dy) > rSquared) continue;
-      const idx = (py * width + px) * 4;
-      blendPixel(pixels, idx, color);
-    }
-  }
-}
-
-function drawScoreGlyphTextCentered(pixels, width, height, text, centerX, y, size, color, gap) {
-  const glyphHeight = Math.round(size * 1.16);
-  const totalWidth = measureScoreGlyphText(text, size, gap);
-  const x = Math.round(centerX - (totalWidth / 2));
-  drawScoreGlyphText(pixels, width, height, text, x, y, size, color, gap, glyphHeight);
-}
-
-function drawScoreGlyphText(pixels, width, height, text, x, y, size, color, gap, glyphHeight = Math.round(size * 1.16)) {
-  let cursor = x;
-  for (const rawChar of String(text || "").toUpperCase()) {
-    const glyph = SCORE_GLYPHS[rawChar];
-    if (!glyph) {
-      cursor += Math.round(size * 0.56) + gap;
-      continue;
-    }
-    drawScoreGlyph(pixels, width, height, glyph, cursor, y, size, glyphHeight, color);
-    cursor += glyphAdvance(glyph, size) + gap;
-  }
-}
-
-function drawScoreGlyph(pixels, width, height, glyph, x, y, size, glyphHeight, color) {
-  const thickness = Math.max(4, Math.round(size * 0.18));
-  const verticalHeight = Math.max(thickness, Math.round((glyphHeight - (3 * thickness)) / 2));
-  const left = x;
-  const top = y;
-  const rightX = left + size - thickness;
-  const upperY = top + thickness;
-  const middleY = top + thickness + verticalHeight;
-  const lowerY = middleY + thickness;
-  const bottomY = top + glyphHeight - thickness;
-  const centerX = left + Math.round((size - thickness) / 2);
-  const radius = Math.max(2, Math.round(thickness / 2));
-
-  const segments = {
-    a: [left + thickness, top, size - (2 * thickness), thickness],
-    d: [left + thickness, bottomY, size - (2 * thickness), thickness],
-    g: [left + thickness, middleY, size - (2 * thickness), thickness],
-    f: [left, upperY, thickness, verticalHeight],
-    b: [rightX, upperY, thickness, verticalHeight],
-    e: [left, lowerY, thickness, verticalHeight],
-    c: [rightX, lowerY, thickness, verticalHeight],
-    i: [centerX, upperY, thickness, glyphHeight - (2 * thickness)],
-  };
-
-  for (const key of glyph) {
-    const segment = segments[key];
-    if (!segment) continue;
-    fillRoundedRect(pixels, width, height, segment[0], segment[1], segment[2], segment[3], radius, color);
-  }
-}
-
-function measureScoreGlyphText(text, size, gap) {
-  let total = 0;
-  const chars = String(text || "").toUpperCase().split("");
-  chars.forEach((char, index) => {
-    total += glyphAdvance(SCORE_GLYPHS[char], size);
-    if (index < chars.length - 1) total += gap;
-  });
-  return total;
-}
-
-function glyphAdvance(glyph, size) {
-  if (!glyph) return Math.round(size * 0.56);
-  return glyph.includes("narrow") ? Math.round(size * 0.72) : size;
-}
-
-function downsampleRgba(source, srcWidth, srcHeight, factor) {
-  const width = Math.floor(srcWidth / factor);
-  const height = Math.floor(srcHeight / factor);
-  const out = Buffer.alloc(width * height * 4);
-  for (let y = 0; y < height; y += 1) {
-    for (let x = 0; x < width; x += 1) {
-      let r = 0;
-      let g = 0;
-      let b = 0;
-      let a = 0;
-      for (let oy = 0; oy < factor; oy += 1) {
-        for (let ox = 0; ox < factor; ox += 1) {
-          const srcIndex = (((y * factor) + oy) * srcWidth + ((x * factor) + ox)) * 4;
-          r += source[srcIndex];
-          g += source[srcIndex + 1];
-          b += source[srcIndex + 2];
-          a += source[srcIndex + 3];
-        }
-      }
-      const samples = factor * factor;
-      const dstIndex = (y * width + x) * 4;
-      out[dstIndex] = Math.round(r / samples);
-      out[dstIndex + 1] = Math.round(g / samples);
-      out[dstIndex + 2] = Math.round(b / samples);
-      out[dstIndex + 3] = Math.round(a / samples);
-    }
-  }
-  return out;
-}
+// ---------------------------------------------------------------------------
+// PNG encoding (filtered scanlines keep the photographic template small)
 
 function encodePng(width, height, rgba) {
   const stride = width * 4;
   const raw = Buffer.alloc((stride + 1) * height);
+  const candidate = Buffer.alloc(stride);
+  const best = Buffer.alloc(stride);
+
   for (let y = 0; y < height; y += 1) {
-    const rowStart = y * (stride + 1);
-    raw[rowStart] = 0;
-    rgba.copy(raw, rowStart + 1, y * stride, (y + 1) * stride);
+    const rowStart = y * stride;
+    const prevStart = rowStart - stride;
+    let bestFilter = 0;
+    let bestScore = Infinity;
+
+    for (const filter of [0, 1, 2, 3, 4]) {
+      let score = 0;
+      for (let x = 0; x < stride; x += 1) {
+        const value = rgba[rowStart + x];
+        const left = x >= 4 ? rgba[rowStart + x - 4] : 0;
+        const up = y > 0 ? rgba[prevStart + x] : 0;
+        const upLeft = (y > 0 && x >= 4) ? rgba[prevStart + x - 4] : 0;
+        let filtered;
+        if (filter === 0) filtered = value;
+        else if (filter === 1) filtered = value - left;
+        else if (filter === 2) filtered = value - up;
+        else if (filter === 3) filtered = value - ((left + up) >> 1);
+        else filtered = value - paeth(left, up, upLeft);
+        filtered &= 0xff;
+        candidate[x] = filtered;
+        score += filtered < 128 ? filtered : 256 - filtered;
+        if (score >= bestScore) break;
+      }
+      if (score < bestScore) {
+        bestScore = score;
+        bestFilter = filter;
+        candidate.copy(best);
+      }
+    }
+
+    const outStart = y * (stride + 1);
+    raw[outStart] = bestFilter;
+    best.copy(raw, outStart + 1);
   }
 
   const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
@@ -452,7 +439,7 @@ function encodePng(width, height, rgba) {
   ihdr[11] = 0;
   ihdr[12] = 0;
 
-  const compressed = deflateSync(raw);
+  const compressed = deflateSync(raw, { level: 9 });
   return Buffer.concat([
     signature,
     pngChunk("IHDR", ihdr),
@@ -477,51 +464,3 @@ function crc32(buffer) {
   }
   return (crc ^ 0xffffffff) >>> 0;
 }
-
-function lerp(a, b, t) {
-  return Math.round(a + ((b - a) * t));
-}
-
-function blendPixel(pixels, idx, color) {
-  const alpha = (color[3] ?? 255) / 255;
-  if (alpha >= 1) {
-    pixels[idx] = color[0];
-    pixels[idx + 1] = color[1];
-    pixels[idx + 2] = color[2];
-    pixels[idx + 3] = 255;
-    return;
-  }
-
-  const inv = 1 - alpha;
-  pixels[idx] = Math.round((color[0] * alpha) + (pixels[idx] * inv));
-  pixels[idx + 1] = Math.round((color[1] * alpha) + (pixels[idx + 1] * inv));
-  pixels[idx + 2] = Math.round((color[2] * alpha) + (pixels[idx + 2] * inv));
-  pixels[idx + 3] = 255;
-}
-
-function escapeHtml(value) {
-  return String(value || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-const SCORE_GLYPHS = {
-  "0": ["a", "b", "c", "d", "e", "f"],
-  "1": ["b", "c", "narrow"],
-  "2": ["a", "b", "g", "e", "d"],
-  "3": ["a", "b", "g", "c", "d"],
-  "4": ["f", "g", "b", "c"],
-  "5": ["a", "f", "g", "c", "d"],
-  "6": ["a", "f", "g", "e", "c", "d"],
-  "7": ["a", "b", "c"],
-  "8": ["a", "b", "c", "d", "e", "f", "g"],
-  "9": ["a", "b", "c", "d", "f", "g"],
-  "O": ["a", "b", "c", "d", "e", "f"],
-  "P": ["a", "b", "e", "f", "g"],
-  "U": ["b", "c", "d", "e", "f"],
-  "S": ["a", "f", "g", "c", "d"],
-  "T": ["a", "i"],
-};

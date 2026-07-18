@@ -4445,10 +4445,16 @@ $('btnMissedChanceAg').onclick=function(){ flashBtn(this); addEvent('missed_chan
 $('periodChips').addEventListener('click',e=>{
   const c=e.target.closest('.p-opt');
   if(!c)return;
-  state.period=sanitizePeriod(c.dataset.p);
+  const next = sanitizePeriod(c.dataset.p);
+  if(next === sanitizePeriod(state.period)) return;
+  state.period=next;
   save();
   validateState('period chip change');
   highlightPeriod();
+  // P5.1: direct chip taps get the same intent feedback as Next Period —
+  // a period change mid-game is a real state change, make it felt.
+  vibrate(HAPTIC.period);
+  flashBtn(c);
 });
 
 $('btnNextPeriod').onclick=()=>{

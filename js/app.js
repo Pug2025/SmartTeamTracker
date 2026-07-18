@@ -1275,7 +1275,12 @@ function undo(){
   const ev = state.events.pop();
   if(!ev) return;
   revert(ev);
+  save();
   validateState('undo');
+  // P5.3: name what was undone and offer Restore — a gloved quick-tap needs
+  // visible confirmation that the right event went away.
+  lastRemoved = ev;
+  showToast(`Undid: ${labelFor(ev)}`);
   renderAll();
   vibrate(HAPTIC.undo);
 }

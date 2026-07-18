@@ -742,7 +742,6 @@
       <div class="setup-panel-head">
         <h3 class="modal-title">Season Dashboard</h3>
         <div class="setup-panel-actions">
-          <button class="btn-std btn-danger-ghost setup-panel-btn hidden" id="btnSeasonReset" type="button">Reset Season</button>
           <button class="btn-std setup-panel-btn" id="btnSeasonClose" type="button">Close</button>
         </div>
       </div>
@@ -751,17 +750,20 @@
         <select class="season-select" id="seasonSelect"></select>
       </div>
       <div id="seasonBody"><div class="skeleton-loader"><div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line"></div></div></div>
+      <!-- P5.7e: destructive reset lives quietly in the footer, away from Close -->
+      <div class="panel-footer-quiet"><button class="panel-quiet-reset hidden" id="btnSeasonReset" type="button">Reset Season&hellip;</button></div>
     </div>
 
     <div id="playerStatsPanel" class="card panel-card">
       <div class="setup-panel-head">
         <h3 class="modal-title">Player Stats</h3>
         <div class="setup-panel-actions">
-          <button class="btn-std btn-danger-ghost setup-panel-btn hidden" id="btnPlayerStatsReset" type="button">Reset Season</button>
           <button class="btn-std setup-panel-btn" id="btnPlayerStatsClose" type="button">Close</button>
         </div>
       </div>
       <div id="playerStatsBody"><div class="skeleton-loader"><div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line"></div></div></div>
+      <!-- P5.7e: destructive reset lives quietly in the footer, away from Close -->
+      <div class="panel-footer-quiet"><button class="panel-quiet-reset hidden" id="btnPlayerStatsReset" type="button">Reset Season&hellip;</button></div>
     </div>
   </div>
 
@@ -1071,7 +1073,7 @@
   <div class="small" style="font-weight:700; margin-top:14px; margin-bottom:10px;">Goalies</div>
   <div id="goalieList" class="roster-list"></div>
   <div class="roster-add-row">
-    <input id="goalieAddInput" class="roster-add-input" type="text" placeholder="e.g. 31, 1" autocomplete="off">
+    <input id="goalieAddInput" class="roster-add-input" type="text" inputmode="numeric" placeholder="e.g. 31, 1" autocomplete="off">
     <button class="btn-std btn-sm" id="btnGoalieAdd" type="button">Add</button>
   </div>
   <div class="rowbtn" style="margin-top:10px;">
@@ -1119,8 +1121,8 @@
   </div>
 
   <div class="rowbtn flex-between rowbtn-mt-lg">
-    <button class="btn-std" id="onIceUnknownPlus">Unk +</button>
-    <button class="btn-std" id="onIceUnknownMinus">Unk -</button>
+    <button class="btn-std" id="onIceUnknownPlus">+1 Unknown skater</button>
+    <button class="btn-std" id="onIceUnknownMinus">&minus;1 Unknown</button>
     <button class="btn-std" id="onIceClear">Clear</button>
   </div>
   <div class="rowbtn">

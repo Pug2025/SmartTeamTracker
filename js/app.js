@@ -319,8 +319,12 @@ function updateSetupReadiness(){
       ? 'Everything is set. Start tracking when the game begins.'
       : 'Enter the opponent name to unlock Start Game.';
   } else {
-    requirement.textContent = 'Add a team, then enter the opponent to start.';
+    requirement.textContent = '';
   }
+  // P5.7g: empty-state dedupe — with no team, the TEAM REQUIRED chip and
+  // the team card already say everything; the two hint lines below the
+  // date field were redundant noise.
+  requirement.style.display = (team || savedGame) ? '' : 'none';
 
   if(setupChip) setupChip.style.display = team ? 'none' : 'inline-flex';
 
@@ -329,12 +333,11 @@ function updateSetupReadiness(){
   startBtn.style.display = (!team && !savedGame) ? 'none' : '';
   startBtn.textContent = ready ? 'Start Game' : 'Enter Opponent to Start';
 
+  // P5.7g: #setupRequirement is the single hint line — the button label
+  // ('Enter Opponent to Start') already repeats the instruction, so the
+  // extra startHint copy under the button stays empty.
   const hint = $('startHint');
-  if(hint){
-    if(!ready && !team) hint.textContent = 'Select or create a team first, then add an opponent.';
-    else if(!ready && team) hint.textContent = 'Type an opponent name above to get started.';
-    else hint.textContent = '';
-  }
+  if(hint) hint.textContent = '';
 
   historyBtn.disabled = !team;
   seasonBtn.disabled = !team;
@@ -580,17 +583,14 @@ function updateGoalieChip(){
 }
 
 /**
- * Mid-game switch flow: confirm, then show picker (excluding current),
- * then update active goalie. Subsequent events tag the new goalie.
+ * Mid-game switch flow (GOALIE_PLAN locked copy): picker FIRST, then the
+ * "Are you sure you want to switch the goalie?" confirm — shown after the
+ * picker selection, before the active goalie actually changes. Subsequent
+ * events tag the new goalie.
  */
 async function switchGoalieFlow(){
   const goalies = (state.goalies || []).filter(g => g && String(g).trim());
   if(goalies.length < 2) return;
-
-  const ok = typeof window.showAppConfirm === 'function'
-    ? await window.showAppConfirm('Are you sure you want to switch the goalie?')
-    : window.confirm('Are you sure you want to switch the goalie?');
-  if(!ok) return;
 
   const current = state.activeGoalie;
   const options = goalies.filter(g => String(g) !== String(current));
@@ -605,13 +605,20 @@ async function switchGoalieFlow(){
   grid.onclick = (e) => {
     const btn = e.target.closest('.pickerBtn');
     if(!btn) return;
-    state.activeGoalie = btn.dataset.goalie;
-    save();
+    const picked = btn.dataset.goalie;
     $('goalieSwitchModal').style.display = 'none';
     grid.onclick = null;
-    updateGoalieChip();
-    const lbl = isNumStr(String(state.activeGoalie)) ? '#' + state.activeGoalie : state.activeGoalie;
-    showStatusToast('Goalie switched to ' + lbl, 'success');
+    const confirmSwitch = typeof window.showAppConfirm === 'function'
+      ? window.showAppConfirm('Are you sure you want to switch the goalie?')
+      : Promise.resolve(window.confirm('Are you sure you want to switch the goalie?'));
+    confirmSwitch.then(ok => {
+      if(!ok) return;
+      state.activeGoalie = picked;
+      save();
+      updateGoalieChip();
+      const lbl = isNumStr(String(picked)) ? '#' + picked : picked;
+      showStatusToast('Goalie switched to ' + lbl, 'success');
+    });
   };
 
   $('goalieSwitchModal').style.display = 'flex';
@@ -1103,8 +1110,11 @@ function addEvent(type, meta={}){
       const prevIdx = state.events.findIndex(e => e.id === lastShotAgainstId && e.type === 'shot');
       if(prevIdx !== -1){
         const prev = state.events[prevIdx];
-        // Revert the old "shot" counts
-        revert(prev);
+        // Revert the old "shot" counts. P5.7i: transactional — the event is
+        // still in the log as a 'shot' at this instant, so saving/validating
+        // here sees a half-applied upgrade and logs invariant violations.
+        // This path's own save()/validateState() run after the re-apply.
+        revert(prev, { transactional: true });
         // Upgrade it
         prev.type = type;
         Object.assign(prev, meta);
@@ -1284,7 +1294,10 @@ function undo(){
   renderAll();
   vibrate(HAPTIC.undo);
 }
-function revert(ev){
+/* Reverse an event's count contributions. opts.transactional skips the
+   save + invariant validation for callers that are mid-mutation (e.g. the
+   shot->big_save upgrade) and commit/validate themselves afterwards. */
+function revert(ev, opts = {}){
   clearGoodPendingFor(ev.id);
   const p = per[ev.period] || per[4];
 
@@ -1307,6 +1320,7 @@ function revert(ev){
   else if(ev.type==='missed_chance_against'){ state.team.missedChancesAgainst--; p.MCA--; }
   else if(ev.type==='forced_turnover'){ state.team.forcedTurnovers--; p.FT--; }
 
+  if(opts.transactional) return;
   save();
   validateState(`revert:${ev.type}`);
 }
@@ -1454,7 +1468,7 @@ function continueAfterGATag(ev, onIceOptional = false){
       exclude:[]
     });
   } else {
-    openStrengthPicker(ev, 'Our Team\'s Situation (required)');
+    openStrengthPicker(ev, 'Our Team\'s Situation (optional)');
   }
 }
 function openGAContext(ev){
@@ -1712,7 +1726,7 @@ $('onIceUse').addEventListener('click', ()=>{
   renderAll();
 
   // Strength required after any goal for/against (and soft goal)
-  if(ev.type==='goal'||ev.type==='soft_goal'||ev.type==='for_goal') openStrengthPicker(ev, 'Our Team\'s Situation (required)');
+  if(ev.type==='goal'||ev.type==='soft_goal'||ev.type==='for_goal') openStrengthPicker(ev, 'Our Team\'s Situation (optional)');
 });
 $('onIceCancel').addEventListener('click', ()=>{
   const ev = multiPick.eventRef;
@@ -1720,7 +1734,7 @@ $('onIceCancel').addEventListener('click', ()=>{
   multiPick.eventRef=null;
 
   if(ev && (ev.type==='goal'||ev.type==='soft_goal'||ev.type==='for_goal')){
-    openStrengthPicker(ev, 'Our Team\'s Situation (required)');
+    openStrengthPicker(ev, 'Our Team\'s Situation (optional)');
   }
 });
 
@@ -1921,14 +1935,15 @@ function computeGoalieScore() {
       const cause = ev.ga_cause || '';
       const ctx = ev.ga_ctx || '';
 
-      // Hard goals (less blame on goalie): breakaways, screens, deflections, odd-man rush, SH
+      // Hard goals (less blame on goalie): breakaways, screens, deflections, odd-man rush.
       // Note: HD is NOT included here. HD means the team let the opponent into a dangerous
       // position, but the goalie is still expected to compete on those shots. The goalie gets
       // credit via the 1.5x weighted shot for HD saves, but letting one in is not excused.
+      // P5.7h: strength is no longer a hard-cause — PK context is handled by the
+      // reduced-blame discount below so cause and situation stay orthogonal.
       const isHard =
         cause.includes('BA') ||
-        /Screen|Deflection\/Tip|Cross-Crease|Odd-Man Rush/.test(ctx) ||
-        ev.strength === 'SH';
+        /Screen|Deflection\/Tip|Cross-Crease|Odd-Man Rush/.test(ctx);
 
       // Soft goals (more blame on goalie): explicit soft goal, bad rebound, or clean look
       const isSoft =
@@ -1945,11 +1960,14 @@ function computeGoalieScore() {
         wGoal = 0.5;
       }
 
-      // PP goals against: goalie faces a man-advantage not their fault.
-      // Partially discount unless already classified as hard (0.5).
-      // Soft goals keep their progressive scale (x0.75 PP discount, floored)
-      // so a 3rd PK softie still weighs more than earlier ones.
-      if (ev.strength === 'PP' && wGoal > 0.5) {
+      // P5.7h: strength canon = OUR situation, so a GA while WE are
+      // shorthanded (strength 'SH') is the penalty-kill goal against — the
+      // goalie faces a man-advantage that isn't their fault. Partially
+      // discount unless already classified hard (0.5 stays). Soft goals keep
+      // their progressive scale (x0.75 discount, floored at 0.7) so a 3rd PK
+      // softie still weighs more than earlier ones. A GA tagged 'PP' means
+      // the opponent scored SHORTHANDED — no discount for that.
+      if (ev.strength === 'SH' && wGoal > 0.5) {
         wGoal = isSoft ? Math.max(0.7, wGoal * 0.75) : 0.7;
       }
     }
@@ -2408,7 +2426,7 @@ $('log').addEventListener('click', async e=>{
 
     // Strength tag badge → open strength picker
     if(badge.classList.contains('badge-str')){
-      openStrengthPicker(ev, 'Our Team\'s Situation (required)');
+      openStrengthPicker(ev, 'Our Team\'s Situation (optional)');
       return;
     }
 
@@ -3508,7 +3526,7 @@ if(prefs.trackPlusMinus){
   const max = Math.max(0, 5 - exclude.length);
   openMultiPicker({ title:`Other ${max} On Ice (optional)`, max, event: ev, field: 'forOnIce', exclude });
 } else {
-  openStrengthPicker(ev, 'Our Team\'s Situation (required)');
+  openStrengthPicker(ev, 'Our Team\'s Situation (optional)');
 }
 
 pickerFlow.mode=null;
@@ -3783,9 +3801,14 @@ return;
       $('acctSignOut').style.display = 'none';
       $('acctDeleteAccount').style.display = 'none';
     }
-    // Sync status
-    const statusEl = $('cloudStatus');
-    $('acctSyncStatus').textContent = statusEl ? statusEl.title : '—';
+    // Sync status. P5.7d: guests have no cloud account — 'Synced' would be a
+    // lie; their games live locally with an anonymous backup only.
+    if(user){
+      const statusEl = $('cloudStatus');
+      $('acctSyncStatus').textContent = statusEl ? statusEl.title : '—';
+    } else {
+      $('acctSyncStatus').textContent = 'Local + anonymous backup';
+    }
     const q = getOfflineQueue();
     $('acctQueueCount').textContent = q.length + ' game' + (q.length !== 1 ? 's' : '');
     // Plan
@@ -4172,6 +4195,9 @@ function renderTeamList() {
   }
 
   $('btnAddTeam').style.display = '';
+  // P5.7d: End Season archives seasons through the authenticated API — the
+  // endpoint 401s guests, so don't offer them a button that can only fail.
+  const isGuest = !(window.getAuthUser && window.getAuthUser());
   $('teamList').innerHTML = teams.map(t => {
     const isActive = t.id === activeId;
     const rosterCount = (t.roster || []).length;
@@ -4184,11 +4210,13 @@ function renderTeamList() {
       </div>
       <div class="team-item-actions">
         <button class="btn-edit" data-id="${t.id}">Edit</button>
-        <button class="btn-end-season" data-id="${t.id}">End Season</button>
+        ${isGuest ? '' : `<button class="btn-end-season" data-id="${t.id}">End Season</button>`}
         <button class="btn-del" data-id="${t.id}">Del</button>
       </div>
     </div>`;
-  }).join('');
+  }).join('') + (isGuest
+    ? '<div class="team-list-guest-note">Season archiving (End Season) needs an account — sign in to archive a season.</div>'
+    : '');
 
   // Delegated click handler for team list
   $('teamList').onclick = function(e) {

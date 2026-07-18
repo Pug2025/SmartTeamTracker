@@ -2717,6 +2717,39 @@
 
 /* Team list inside modal */
 .team-list{ display:flex; flex-direction:column; gap:6px; margin-bottom:10px; }
+/* P5.7e: quiet destructive control in the panel footer — deliberately
+   low-salience text link, far from Close, styled danger only on press */
+.panel-footer-quiet{
+  display:flex;
+  justify-content:center;
+  margin-top:14px;
+  padding-top:10px;
+  border-top:1px solid var(--surface-2);
+}
+.panel-quiet-reset{
+  background:none;
+  border:none;
+  font-family:inherit;
+  font-size:var(--fs-11);
+  color:var(--muted2-ice);
+  text-decoration:underline;
+  text-underline-offset:3px;
+  cursor:pointer;
+  padding:8px 12px;
+  -webkit-tap-highlight-color:transparent;
+}
+.panel-quiet-reset:active{ color:var(--them); }
+.panel-quiet-reset.hidden{ display:none; }
+/* no stray divider when the reset action is hidden */
+.panel-footer-quiet:has(> .hidden){ display:none; }
+
+/* P5.7d: guest note replacing the End Season action */
+.team-list-guest-note{
+  font-size:var(--fs-11);
+  line-height:1.4;
+  color:var(--muted2-ice);
+  padding:2px 2px 0;
+}
 .team-list-item{
   display:flex; justify-content:space-between; align-items:center;
   background:var(--surface-1); border:1px solid var(--surface-3); border-radius:var(--radius-sm);

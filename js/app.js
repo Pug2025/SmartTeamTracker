@@ -4570,6 +4570,124 @@ document.querySelectorAll('.modal').forEach(m=>
   })
 );
 
+/* ===== P5.6: hardware/browser Back closes the topmost UI layer =====
+   A "layer" is any open .modal, the confirm overlay, or an open setup
+   panel. One history entry is pushed per open layer; Back (popstate)
+   closes the topmost layer instead of leaving the app. Layers closed
+   in-UI consume their own entry via history.back(), so the stack never
+   accumulates stale entries. Back with nothing open behaves natively. */
+const uiLayerStack = [];        // open layer elements, bottom -> top
+let uiLayerHistoryCount = 0;    // history entries we own (== stack length when settled)
+let uiLayerPopPending = 0;      // closes initiated by popstate (no back() for those)
+
+function uiLayerElements(){
+  const els = [...document.querySelectorAll('.modal')];
+  const confirm = $('confirmOverlay');
+  if(confirm) els.push(confirm);
+  for(const id of ['historyPanel','seasonPanel','playerStatsPanel']){
+    const p = $(id);
+    if(p) els.push(p);
+  }
+  return els;
+}
+function uiLayerIsOpen(el){
+  const d = el.style.display;
+  return !!d && d !== 'none';
+}
+/* Mutations are processed per observer batch, NOT per record: a modal
+   chain that closes one dialog and opens the next in the same tick (picker
+   -> on-ice -> strength …) is a SWAP — the history entry carries over to
+   the new top layer. Acting per record would queue a history.back() whose
+   async traversal resolves against the pre-pushState position and lands on
+   the base entry, immediately closing the just-opened modal. */
+const uiLayerObserver = new MutationObserver(muts => {
+  const opened = [], closed = [];
+  for(const m of muts){
+    const el = m.target;
+    const open = uiLayerIsOpen(el);
+    const idx = uiLayerStack.indexOf(el);
+    if(open && idx === -1){
+      uiLayerStack.push(el);
+      if(closed.includes(el)) closed.splice(closed.indexOf(el), 1);
+      else if(!opened.includes(el)) opened.push(el);
+    } else if(!open && idx !== -1){
+      uiLayerStack.splice(idx, 1);
+      if(opened.includes(el)) opened.splice(opened.indexOf(el), 1);
+      else if(!closed.includes(el)) closed.push(el);
+    }
+  }
+  if(!opened.length && !closed.length) return;
+
+  // Closes driven by popstate already had their history entries consumed.
+  let uiCloses = 0;
+  for(let i = 0; i < closed.length; i++){
+    if(uiLayerPopPending > 0){
+      uiLayerPopPending--;
+      if(uiLayerHistoryCount > 0) uiLayerHistoryCount--;
+    } else {
+      uiCloses++;
+    }
+  }
+  const net = opened.length - uiCloses; // swaps cancel out — no history ops
+  if(net > 0){
+    for(let i = 0; i < net; i++){
+      uiLayerHistoryCount++;
+      try{ history.pushState({ sttLayers: uiLayerHistoryCount }, ''); }catch(_){}
+    }
+  } else if(net < 0){
+    const steps = Math.min(-net, uiLayerHistoryCount);
+    uiLayerHistoryCount -= steps;
+    if(steps > 0){ try{ history.go(-steps); }catch(_){} }
+  }
+
+  for(const el of closed) uiLayerFocusOnClose(el);
+  for(const el of opened) uiLayerFocusOnOpen(el);
+});
+for(const el of uiLayerElements()){
+  uiLayerObserver.observe(el, { attributes:true, attributeFilter:['style'] });
+}
+
+/* Route a close through each layer's own close semantics so per-layer
+   cleanup keeps running (backdrop-tap semantics for modals). */
+function closeTopUiLayer(){
+  const el = uiLayerStack[uiLayerStack.length - 1];
+  if(!el) return false;
+  if(el.id === 'historyPanel'){ $('btnHistoryClose').click(); }
+  else if(el.id === 'seasonPanel'){ $('btnSeasonClose').click(); }
+  else if(el.id === 'playerStatsPanel'){ $('btnPlayerStatsClose').click(); }
+  else if(el.id === 'confirmOverlay'){ $('confirmCancel').click(); }
+  else { el.dispatchEvent(new MouseEvent('click', { bubbles:false })); }
+  // If the close path refused (element still visible), report failure so
+  // popstate doesn't loop.
+  return !uiLayerIsOpen(el);
+}
+
+window.addEventListener('popstate', (e) => {
+  const expected = (e.state && typeof e.state.sttLayers === 'number') ? e.state.sttLayers : 0;
+  let toClose = uiLayerStack.length - expected;
+  while(toClose > 0){
+    uiLayerPopPending++;
+    if(!closeTopUiLayer()){
+      uiLayerPopPending--;
+      break;
+    }
+    toClose--;
+  }
+  // Safety: never let a failed close leak pop bookkeeping into later closes.
+  setTimeout(()=>{ uiLayerPopPending = 0; }, 60);
+});
+
+// A reload can land on a history entry that still carries our layer state
+// while every layer starts closed — normalize so Back isn't misread.
+try{
+  if(history.state && history.state.sttLayers) history.replaceState(null, '');
+}catch(_){}
+
+/* P5.8 wires real focus management onto these hooks; P5.6 keeps them as
+   no-op seams so the layer stack lands independently. */
+function uiLayerFocusOnOpen(el){}
+function uiLayerFocusOnClose(el){}
+
 /* Inputs */
 function syncOpponentSetupField(rawValue, { canonicalizeSaved = false } = {}){
   const input = $('opponent');

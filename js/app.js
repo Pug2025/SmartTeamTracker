@@ -4289,7 +4289,30 @@ function renderAll(){
   rebuildFromEvents();
   updateMeta();
   renderLog();
+  updateEventTicker();
 }
+
+/* P5.4: one-line ticker of the most recent event. Empty state before the
+   first event; tapping undoes that event via the same quick-tap undo path
+   (P5.3 toast + Restore). Fixed-height slot — never shifts the grid. */
+function updateEventTicker(){
+  const el = $('eventTicker');
+  if(!el) return;
+  const ev = state.events[state.events.length - 1];
+  if(!ev){
+    el.textContent = 'Tracking ready';
+    el.classList.add('empty');
+    el.disabled = true;
+    return;
+  }
+  el.classList.remove('empty');
+  el.disabled = false;
+  const player = ev.player && ev.player !== '?' && ev.player !== 'Unknown' ? ' — #' + ev.player : '';
+  el.textContent = '✓ ' + (EVENT_LABELS[ev.type] || ev.type.replace(/_/g,' ')) + player;
+}
+$('eventTicker').addEventListener('click', ()=>{
+  if(state.events.length) undo();
+});
 
 /* Button Wiring — Teams */
 $('btnAddFirstTeam').onclick = function(e){

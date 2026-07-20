@@ -5,16 +5,17 @@
 //
 // renderPreviewPng() is zero-dependency pixel-buffer compositing: it alpha-
 // composites sprites baked by outputs/brand/share-template/bake_share_assets.py
-// (template, status pills, Saira/Hanken glyph sheets in api/_share-assets/)
-// and encodes the result with its own PNG encoder. The bundled minimal PNG
-// decoder only supports what the bake script emits: 8-bit RGBA, non-interlaced.
+// (template, status pills, Saira/Hanken glyph sheets) and encodes the result
+// with its own PNG encoder. The bundled minimal PNG decoder only supports what
+// the bake script emits: 8-bit RGBA, non-interlaced.
+//
+// Sprites arrive via ./_share-assets-embedded.js (base64 in the module graph),
+// NOT readFileSync — a deployed function cannot depend on file tracing. See
+// outputs/brand/share-template/embed_share_assets.mjs. api/_share-assets/ stays
+// on disk as the source of truth for that generator and for dev_server.py.
 
 import { deflateSync, inflateSync } from "node:zlib";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
-
-const ASSET_DIR = fileURLToPath(new URL("./_share-assets/", import.meta.url));
+import { manifest as SHARE_MANIFEST, files as SHARE_FILES } from "./_share-assets-embedded.js";
 
 // Ice palette tints (design/spectator-ice.html); applied to white sprite art.
 const TINT_SCORE_THEM = [255, 128, 136]; // .score.them
@@ -154,6 +155,12 @@ export function renderShareHtml({ model, baseUrl }) {
 </html>`;
 }
 
+// Un-composited template, for when sprite compositing fails. Still a branded
+// 1200x630 card, so a share link never degrades to a broken image.
+export function renderFallbackPng() {
+  return Buffer.from(SHARE_FILES[SHARE_MANIFEST.template.file], "base64");
+}
+
 export function renderPreviewPng(model) {
   const assets = loadShareAssets();
   const layout = assets.manifest.layout;
@@ -184,8 +191,12 @@ let assetCache = null;
 
 function loadShareAssets() {
   if (assetCache) return assetCache;
-  const manifest = JSON.parse(readFileSync(join(ASSET_DIR, "manifest.json"), "utf8"));
-  const load = (file) => decodePng(readFileSync(join(ASSET_DIR, file)));
+  const manifest = SHARE_MANIFEST;
+  const load = (file) => {
+    const b64 = SHARE_FILES[file];
+    if (!b64) throw new Error(`share sprite missing from embedded bundle: ${file}`);
+    return decodePng(Buffer.from(b64, "base64"));
+  };
   const pills = {};
   for (const [key, meta] of Object.entries(manifest.pills)) {
     pills[key] = { ...meta, image: load(meta.file) };

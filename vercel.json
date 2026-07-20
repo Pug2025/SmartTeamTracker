@@ -1,12 +1,4 @@
 {
-  "functions": {
-    "api/spectator-preview.js": {
-      "includeFiles": "api/_share-assets/**"
-    },
-    "api/spectator-share.js": {
-      "includeFiles": "api/_share-assets/**"
-    }
-  },
   "headers": [
     {
       "source": "/",

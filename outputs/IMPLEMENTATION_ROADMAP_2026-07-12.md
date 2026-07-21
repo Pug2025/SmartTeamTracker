@@ -219,6 +219,12 @@ For each delivered asset: copy into `assets/brand/`, then:
 
 Build order: (1) **Share cards** — post-game image generator (final score + crests + goalie score + shot bar on ice art; 1080×1920 + 1200×630) — free at launch, the marketing loop; (2) **Season in Review** — card-stack recap per team/season (record, score trends, milestones, per-goalie) — flagship premium per Strava's Dec 2025 move; (3) **Premium gates**: spectator history beyond live + last game, season recaps, per-goalie season analytics, CSV/JSON export — live share and live scoring NEVER gated; (4) **Payment**: web-only checkout (Stripe), $39–59/yr family anchor (GameChanger $99 is the ceiling, we undercut as challenger); guest→account migration already built (PRE 7B) is the conversion path; upgrade prompts at: game saved, share link opened by 3+ viewers, season dashboard opened. Detailed spec to be written when Phases 0–2 have shipped.
 
+### Status & task log (Phase 6)
+- **6.1 Share cards → ✅ DONE (v6.4.2, 2026-07-21).** Post-game recap card (`js/share-card.js`, on-device canvas, 1080×1920) — free, the growth loop; shipped and refined per Jamie's on-device review (6.1a orientation-match + rebalance + footer copy, 6.1c shots-stat team attribution). Plus the app's own **landing link-preview card** (`assets/share/og-landing-1200x630.png`, baked by `outputs/brand/og-landing/bake_og_landing.py`; og:image wiring in `index.html`) — 6.1b — which fixed the app URL rendering nothing when shared. All verified live in production.
+- **6.2 Roster UI (folded in from audit PRE 4B).** Replace the raw "one jersey # per line" textareas — the last "developer tool" screen — with a proper roster editor. Self-contained, no pricing decision; first surface a paying parent judges. **← next build.**
+- **6.LP Landing page — surface new/key selling features (NEW, Jamie 2026-07-21).** The landing/marketing page doesn't showcase features shipped since it was written. Audit what's live now (live spectator share, the Ice reskin, context-aware goalie/team scores, PWA install, post-game share cards, etc.) and update the landing copy/sections to highlight the **key *selling* features** — the ones that drive installs/conversion — not an exhaustive changelog. Marketing-surface work; pairs with the eventual pricing/monetization messaging. Not blocking the build tasks; slot before or alongside launch.
+- **6.3 Season in Review**, **6.4 Premium gates**, **6.5 Stripe** — as in the build order above; 6.4/6.5 need pricing sign-off.
+
 ---
 
 ## Asset requests for Jamie's GPT 5.6 brand library

@@ -1,9 +1,9 @@
 // -----------------------------
 // Smart Team Tracker - Service Worker
-// Version: v6.3.28
+// Version: v6.4.0
 // -----------------------------
 
-const ASSET_VERSION = "6.3.28";
+const ASSET_VERSION = "6.4.0";
 const CACHE_VERSION = `team-tracker-cache-v${ASSET_VERSION}`;
 const CACHE_NAME = CACHE_VERSION;
 
@@ -16,6 +16,7 @@ const ASSETS_TO_CACHE = [
   `/js/auth.js?v=${ASSET_VERSION}`,
   `/js/spectator.js?v=${ASSET_VERSION}`,
   `/js/teams.js?v=${ASSET_VERSION}`,
+  `/js/share-card.js?v=${ASSET_VERSION}`,
   `/manifest.json?v=${ASSET_VERSION}`,
   "/favicon.ico",
   "/icon-192.png",
@@ -26,6 +27,7 @@ const ASSETS_TO_CACHE = [
   "/assets/brand/lockup-dark-640.webp",
   "/assets/brand/ice-texture-dark-1920.webp",
   "/assets/brand/ice-texture-band-1920.webp",
+  "/assets/brand/ice-texture-light-1920.webp",
   // Ice skin webfonts (system fallbacks keep the page usable offline/blocked)
   "https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@700;800;900&display=swap",
   "https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;700;800&display=swap",

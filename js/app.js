@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.3.28';
+const APP_VERSION = '6.4.0';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -7480,6 +7480,71 @@ $('btnCopyShareLink').addEventListener('click', () => {
 $('btnStopShare').addEventListener('click', () => {
   showConfirm('Stop live sharing?').then(ok => { if (ok) stopLiveShare(); });
 });
+
+/* ── Share Recap card (P6.1) ──
+   Gathers the finished game's numbers and hands them to STTShareCard, which
+   renders the branded 1080x1920 image on-device and opens the native share
+   sheet. Free by design — this card is the growth loop. */
+function _recapInitials(name, fallback){
+  const s = String(name || '').trim();
+  if(!s) return fallback;
+  const words = s.split(/\s+/).filter(Boolean);
+  const ini = words.length >= 2 ? (words[0][0] + words[1][0]) : s.slice(0, 2);
+  return ini.toUpperCase();
+}
+function _recapMetaLine(){
+  // state.date is a local YYYY-MM-DD; format without constructing a Date (avoids
+  // the classic UTC-parse off-by-one-day drift).
+  let dateLabel = '';
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(state.date || '');
+  if(m){
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    dateLabel = `${months[+m[2]-1]} ${+m[3]}, ${m[1]}`;
+  }
+  return [state.level || '', dateLabel].filter(Boolean).join(' · ');
+}
+function buildRecapData(){
+  const team = getActiveTeamSafe();
+  const teamName = (team && team.name) || 'Us';
+  const opponentName = state.opponent || 'Opponent';
+  const GF = state.countsF.goals, GA = state.countsA.goals;
+  const SF = state.countsF.shots, SA = state.countsA.shots;
+  const saves = Math.max(0, SA - GA);
+  return {
+    result: GF > GA ? 'WIN' : GF < GA ? 'LOSS' : 'TIE',
+    goalsFor: GF, goalsAgainst: GA,
+    teamName, opponentName,
+    teamInitials: _recapInitials(teamName, 'US'),
+    opponentInitials: _recapInitials(opponentName, 'OPP'),
+    metaLine: _recapMetaLine(),
+    shotsFor: SF, shotsAgainst: SA,
+    svPct: fmtSvPct(saves, SA),
+    shotShare: (SF + SA) ? Math.round(100 * SF / (SF + SA)) : 0,
+    teamRating: computeTeamScore().total,
+    fileTag: (opponentName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 32)) || 'game'
+  };
+}
+(function(){
+  const btn = $('btnShareRecap');
+  if(!btn) return;
+  btn.addEventListener('click', async () => {
+    if(!window.STTShareCard){ showStatusToast('Share unavailable', 'error'); return; }
+    const label = btn.querySelector('span');
+    const original = label ? label.textContent : '';
+    btn.classList.add('busy');
+    if(label) label.textContent = 'Preparing…';
+    try{
+      const res = await window.STTShareCard.share(buildRecapData());
+      if(res && res.method === 'download') showStatusToast('Recap saved', 'success');
+    }catch(err){
+      console.error('recap share failed:', err);
+      showStatusToast('Could not create recap', 'error');
+    }finally{
+      btn.classList.remove('busy');
+      if(label) label.textContent = original;
+    }
+  });
+})();
 
 /* ── Tap-to-explain on dashTiles ── */
 (function(){

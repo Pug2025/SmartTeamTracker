@@ -1968,6 +1968,36 @@
     min-width:auto;
   }
 
+  /* Share Recap — the P6.1 growth-loop CTA. Teal, prominent, sits just under
+     the score. Saira display face + generous hit area (P5 accessibility). */
+  .sum-share-recap{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:9px;
+    width:100%;
+    max-width:340px;
+    margin:18px auto 4px;
+    min-height:48px;
+    padding:13px 20px;
+    background:var(--ice);
+    color:#04121a;
+    border:none;
+    border-radius:var(--radius-lg);
+    font-family:var(--display);
+    font-weight:800;
+    font-size:17px;
+    letter-spacing:.4px;
+    text-transform:uppercase;
+    cursor:pointer;
+    box-shadow:0 6px 18px rgba(23,182,200,.28);
+    transition:transform .08s, box-shadow .15s, opacity .15s;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .sum-share-recap svg{width:20px;height:20px;flex:none}
+  .sum-share-recap:active{transform:translateY(1px) scale(.99)}
+  .sum-share-recap.busy{opacity:.7;pointer-events:none}
+
   .sum-actions{
     display:flex;
     gap:10px;

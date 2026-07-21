@@ -42,17 +42,17 @@ card = Image.alpha_composite(card, wash)
 
 draw = ImageDraw.Draw(card)
 
-# --- lockup (chrome), the hero; slightly larger to fill the frame ---
+# --- lockup (chrome), the undisputed hero; sized to dominate the frame ---
 lock = Image.open(LOCKUP).convert("RGBA")
-lw = 660
+lw = 880              # 660 -> 880: the logo must clearly outrank the copy
 lh = round(lock.height * (lw / lock.width))
 lock = lock.resize((lw, lh), Image.LANCZOS)
 
-# --- type + tunables ---
+# --- type + tunables (dialed down so the lockup wins the hierarchy) ---
 tag = "LIVE HOCKEY STAT TRACKING"
-f_tag = ImageFont.truetype(SAIRA_XB, 52)
+f_tag = ImageFont.truetype(SAIRA_XB, 44)   # 52 -> 44
 sub = "Shots · Goals · Saves · Goalie & Team Scores"
-f_sub = ImageFont.truetype(HANKEN, 28)
+f_sub = ImageFont.truetype(HANKEN, 26)     # 28 -> 26
 
 RULE_H = 4          # teal accent rule thickness
 GAP_LOCK_RULE = 40  # lockup bottom -> rule
@@ -74,7 +74,7 @@ block_top = (H - block_h) / 2 + OPTICAL_BIAS
 lock_cy = block_top + lh / 2
 glow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
 gd = ImageDraw.Draw(glow)
-gd.ellipse([W / 2 - 430, lock_cy - 300, W / 2 + 430, lock_cy + 300],
+gd.ellipse([W / 2 - 500, lock_cy - 310, W / 2 + 500, lock_cy + 310],
            fill=(23, 182, 200, 62))
 glow = glow.filter(ImageFilter.GaussianBlur(90))
 card = Image.alpha_composite(card, glow)

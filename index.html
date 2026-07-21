@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
-<link rel="manifest" href="manifest.json?v=6.4.3">
+<link rel="manifest" href="manifest.json?v=6.4.4">
 <link rel="icon" href="favicon.ico" sizes="48x48">
 <link rel="icon" href="icon-192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -16,8 +16,8 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Smart Team Tracker">
 <meta property="og:url" content="https://smartteamtracker.vercel.app/">
-<meta property="og:image" content="https://smartteamtracker.vercel.app/assets/share/og-landing-1200x630.png?v=6.4.3">
-<meta property="og:image:secure_url" content="https://smartteamtracker.vercel.app/assets/share/og-landing-1200x630.png?v=6.4.3">
+<meta property="og:image" content="https://smartteamtracker.vercel.app/assets/share/og-landing-1200x630.png?v=6.4.4">
+<meta property="og:image:secure_url" content="https://smartteamtracker.vercel.app/assets/share/og-landing-1200x630.png?v=6.4.4">
 <meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -25,13 +25,13 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Smart Team Tracker">
 <meta name="twitter:description" content="Live hockey stat tracking for coaches and parents.">
-<meta name="twitter:image" content="https://smartteamtracker.vercel.app/assets/share/og-landing-1200x630.png?v=6.4.3">
+<meta name="twitter:image" content="https://smartteamtracker.vercel.app/assets/share/og-landing-1200x630.png?v=6.4.4">
 <title>Smart Team Tracker — Live Hockey Stats</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@700;800;900&family=Hanken+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=6.4.3">
-<link rel="stylesheet" href="css/auth.css?v=6.4.3">
+<link rel="stylesheet" href="css/styles.css?v=6.4.4">
+<link rel="stylesheet" href="css/auth.css?v=6.4.4">
 </head>
 <body>
 
@@ -1077,22 +1077,51 @@
 <div id="btnUndo" class="fab-undo" style="display:none;" aria-label="Undo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10h10a5 5 0 0 1 0 10H11"/><polyline points="7 14 3 10 7 6"/></svg></div>
 
 <!-- MODALS -->
-<!-- Roster modal -->
-<div class="modal" id="rosterModal"><div class="box">
-  <div class="small" style="font-weight:700; margin-bottom:10px;">Roster</div>
-  <div id="rosterList" class="roster-list"></div>
-  <div class="roster-add-row">
-    <input id="rosterAddInput" class="roster-add-input" type="text" inputmode="numeric" placeholder="e.g. 1, 5, 12" autocomplete="off">
-    <button class="btn-std btn-sm" id="btnRosterAdd" type="button">Add</button>
+<!-- Roster editor (P6.2) — the single roster/goalie editing surface -->
+<div class="modal" id="rosterModal"><div class="box modal-scroll">
+  <div class="re-head">
+    <div>
+      <h3 class="re-title">Roster</h3>
+      <p class="re-sub" id="reSummary">No numbers yet</p>
+    </div>
+    <button class="re-close" id="btnRosterClose" type="button" title="Done" aria-label="Done">&times;</button>
   </div>
-  <div class="small" style="font-weight:700; margin-top:14px; margin-bottom:10px;">Goalies</div>
-  <div id="goalieList" class="roster-list"></div>
-  <div class="roster-add-row">
-    <input id="goalieAddInput" class="roster-add-input" type="text" inputmode="numeric" placeholder="e.g. 31, 1" autocomplete="off">
-    <button class="btn-std btn-sm" id="btnGoalieAdd" type="button">Add</button>
+
+  <div class="re-add">
+    <div class="re-add-row">
+      <div class="re-num-wrap">
+        <span class="re-hash">#</span>
+        <input class="re-input" id="reInput" type="text" inputmode="numeric" maxlength="2" placeholder="00" autocomplete="off" aria-label="Jersey number">
+      </div>
+      <button class="re-addbtn" id="reAddBtn" type="button">Add</button>
+    </div>
+    <div class="re-seg" id="reSeg" role="group" aria-label="Add as">
+      <button type="button" data-role="skater" class="on"><span class="re-dot"></span>Skater</button>
+      <button type="button" data-role="goalie"><span class="re-dot"></span>Goalie</button>
+    </div>
+    <div class="re-hint ok" id="reHint">Add jersey numbers 0&ndash;99. Tap &times; on a number to remove it.</div>
   </div>
-  <div class="rowbtn" style="margin-top:10px;">
-    <button class="btn-std btn-muted-border" id="btnRosterClose">Done</button>
+
+  <div class="re-section">
+    <div class="re-section-head">
+      <span class="re-section-title">Skaters</span>
+      <span class="re-count" id="reSkaterCount">0</span>
+      <span class="re-section-rule"></span>
+    </div>
+    <div class="re-grid" id="reSkaterGrid"></div>
+  </div>
+
+  <div class="re-section">
+    <div class="re-section-head">
+      <span class="re-section-title">Goalies</span>
+      <span class="re-count" id="reGoalieCount">0</span>
+      <span class="re-section-rule"></span>
+    </div>
+    <div class="re-grid" id="reGoalieGrid"></div>
+  </div>
+
+  <div class="re-foot">
+    <button class="re-done" id="btnRosterDone" type="button">Done</button>
   </div>
 </div></div>
 
@@ -1528,10 +1557,11 @@
     <select id="teamLevelInput" class="auth-input team-select-pad">
       <option>U9</option><option selected>U11</option><option>U13</option><option>U15</option><option>U18</option><option>Other</option>
     </select>
-    <div class="small team-roster-hint">Roster — optional, one # per line (you can also add players during the game)</div>
-    <textarea id="teamRosterInput" class="textarea-dark textarea-team-roster" placeholder="e.g.&#10;7&#10;11&#10;23&#10;99"></textarea>
-    <div class="small team-roster-hint">Goalies — one per line (jersey # or name). Used to attribute saves and goals against in net.</div>
-    <textarea id="teamGoaliesInput" class="textarea-dark textarea-team-roster" placeholder="e.g.&#10;1&#10;31"></textarea>
+    <div class="small team-roster-hint">Roster &amp; goalies &mdash; numbers only (you can also add players during a game)</div>
+    <button type="button" class="team-roster-launch" id="teamRosterLaunch">
+      <span class="trl-summary" id="teamRosterSummary">No numbers yet &mdash; tap to add</span>
+      <span class="trl-cta">Edit roster</span>
+    </button>
     <div class="rowbtn rowbtn-mt">
       <button class="btn-std btn-confirm-good" id="teamFormSave">Save Team</button>
       <button class="btn-std btn-muted-border" id="teamFormCancel">Cancel</button>
@@ -1650,10 +1680,10 @@
   </div>
 </div>
 
-<script src="js/spectator.js?v=6.4.3"></script>
-<script type="module" src="js/auth.js?v=6.4.3"></script>
-<script src="js/teams.js?v=6.4.3"></script>
-<script src="js/share-card.js?v=6.4.3"></script>
-<script src="js/app.js?v=6.4.3"></script>
+<script src="js/spectator.js?v=6.4.4"></script>
+<script type="module" src="js/auth.js?v=6.4.4"></script>
+<script src="js/teams.js?v=6.4.4"></script>
+<script src="js/share-card.js?v=6.4.4"></script>
+<script src="js/app.js?v=6.4.4"></script>
 </body>
 </html>

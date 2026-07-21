@@ -1,9 +1,9 @@
 // -----------------------------
 // Smart Team Tracker - Service Worker
-// Version: v6.4.3
+// Version: v6.4.4
 // -----------------------------
 
-const ASSET_VERSION = "6.4.3";
+const ASSET_VERSION = "6.4.4";
 const CACHE_VERSION = `team-tracker-cache-v${ASSET_VERSION}`;
 const CACHE_NAME = CACHE_VERSION;
 

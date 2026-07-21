@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.4.3';
+const APP_VERSION = '6.4.4';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -3319,103 +3319,218 @@ function makePlusMinusTable(){
   return html;
 }
 
-/* Roster Modal */
-function renderRosterList(){
-  const list = $('rosterList');
-  const roster = state.roster || [];
-  if(!roster.length){
-    list.innerHTML = '<div class="roster-empty">No players yet. Add jersey numbers below.</div>';
-    return;
-  }
-  list.innerHTML = roster.map(n =>
-    `<div class="roster-entry" data-n="${n}">
-      <span class="roster-number">#${n}</span>
-      <button class="roster-remove" type="button" aria-label="Remove #${n}">&times;</button>
-    </div>`
-  ).join('');
-}
-function persistRoster(){
-  localStorage.setItem(ROSTER_KEY, JSON.stringify(state.roster));
-  if (window.TeamManager) window.TeamManager.syncRosterToActiveTeam(state.roster);
-  save();
-}
-function parseRosterInput(raw){
-  return String(raw||'').split(/[\s,;\t\n]+/).map(x=>x.trim()).filter(x=>x.length>0 && isNumStr(x));
-}
-function addRosterNumbers(raw){
-  const nums = parseRosterInput(raw);
-  if(!nums.length) return false;
-  const set = new Set((state.roster||[]).map(x=>String(x).trim()));
-  let added = 0;
-  for(const n of nums){ if(!set.has(n)){ set.add(n); added++; } }
-  if(!added) return false;
-  state.roster = sortRoster([...set]);
-  persistRoster();
-  renderRosterList();
-  return true;
-}
-function removeRosterNumber(num){
-  state.roster = (state.roster||[]).filter(x => String(x).trim() !== String(num).trim());
-  persistRoster();
-  renderRosterList();
-}
-function openRoster(){
-  renderRosterList();
-  renderGoalieList();
-  $('rosterModal').style.display='flex';
-  $('rosterAddInput').value = '';
-  $('goalieAddInput').value = '';
-}
-function closeRoster(){ $('rosterModal').style.display='none'; }
+/* ===== Roster Editor (P6.2) =================================================
+ * One jersey-chip editor for skaters + goalies, shared by two entry points:
+ *   - the Roster button (btnRoster) — edits the ACTIVE team live via state.*
+ *   - the Manage-Teams form — edits the team being added/edited (form-local)
+ * Both drive the same #rosterModal DOM and this code path. A number is either
+ * a skater or a goalie (mutually exclusive); reassigning MOVES it between the
+ * two arrays. Numbers only, 0-99, "00" preserved and distinct from "0". Legacy
+ * non-numeric goalie entries are surfaced as flagged chips, never dropped. The
+ * data model is unchanged: state.roster / state.goalies string arrays. */
+const rosterEditor = {
+  roster: [],   // skater number strings (working copy)
+  goalies: [],  // goalie number strings (working copy; may hold legacy names)
+  role: 'skater',
+  onChange: null
+};
 
-/* Goalies (mirrors roster helpers but accepts non-numeric entries — 4v4
- * teams may not use jersey numbers, so the goalie input is free text.) */
-function renderGoalieList(){
-  const list = $('goalieList');
-  const goalies = state.goalies || [];
-  if(!goalies.length){
-    list.innerHTML = '<div class="roster-empty">No goalies yet. Add jersey #s or names below.</div>';
-    return;
-  }
-  list.innerHTML = goalies.map(n =>
-    `<div class="roster-entry" data-n="${n}">
-      <span class="roster-number">${isNumStr(String(n)) ? '#' + n : n}</span>
-      <button class="goalie-remove" type="button" aria-label="Remove ${n}">&times;</button>
-    </div>`
-  ).join('');
+function reNormalizeNum(raw){
+  // Strip to digits, cap at 2, preserve "00" as distinct from "0", and drop
+  // other leading zeros ("07" -> "7"). Returns null when nothing usable.
+  const digits = String(raw || '').replace(/\D/g, '').slice(0, 2);
+  if(!digits) return null;
+  if(digits === '00') return '00';
+  return String(parseInt(digits, 10));
 }
-function persistGoalies(){
-  if (window.TeamManager && typeof window.TeamManager.getActiveTeamId === 'function') {
+
+function reHas(n){
+  const t = String(n);
+  return (rosterEditor.roster || []).some(x => String(x) === t)
+      || (rosterEditor.goalies || []).some(x => String(x) === t);
+}
+
+function reSetHint(msg, kind){
+  const h = $('reHint');
+  if(!h) return;
+  h.textContent = msg;
+  h.className = 're-hint ' + (kind || 'ok');
+}
+const RE_HINT_DEFAULT = 'Add jersey numbers 0–99. Tap × on a number to remove it.';
+
+function reReject(msg){
+  reSetHint(msg, 'err');
+  showStatusToast(msg, 'error');
+  const inp = $('reInput');
+  if(inp){ inp.classList.remove('shake'); void inp.offsetWidth; inp.classList.add('shake'); }
+}
+
+function reCommit(){
+  if(typeof rosterEditor.onChange === 'function'){
+    rosterEditor.onChange(rosterEditor.roster.slice(), rosterEditor.goalies.slice());
+  }
+}
+
+function reEmptyState(kind){
+  if(kind === 'skater'){
+    return '<div class="re-empty">'
+      + '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 5-7 9-7 9s-7-4-7-9V6l7-3z"/></svg>'
+      + '<span>No numbers yet. Type a jersey number above and tap <b>Add</b> &mdash; you can also add players during a game.</span></div>';
+  }
+  return '<div class="re-empty">'
+    + '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/></svg>'
+    + '<span>Mark any number as a goalie to attribute saves &amp; goals against in net.</span></div>';
+}
+
+/* Build one jersey chip. Uses DOM (not innerHTML) so legacy goalie *names*
+ * can never inject markup. Non-numeric entries render flagged ("NEEDS #").
+ * Touch-first: the only control is an always-visible × (tap to remove). Role
+ * changes are done by removing and re-adding via the Skater/Goalie toggle. */
+function reChip(num, role){
+  const numStr = String(num);
+  const flagged = !isNumStr(numStr);
+  const el = document.createElement('div');
+  el.className = 're-jersey ' + (flagged ? 'flagged' : role);
+  el.dataset.n = numStr;
+  el.dataset.role = role;
+
+  if(flagged){
+    el.setAttribute('aria-label', numStr + ' needs a number');
+    const t = document.createElement('span');
+    t.className = 're-flagtext';
+    t.textContent = numStr;
+    const mark = document.createElement('span');
+    mark.className = 're-mark';
+    mark.textContent = 'NEEDS #';
+    el.appendChild(t);
+    el.appendChild(mark);
+  } else {
+    el.setAttribute('aria-label', '#' + numStr + (role === 'goalie' ? ' goalie' : ' skater'));
+    el.appendChild(document.createTextNode(numStr));
+    if(role === 'goalie'){
+      const mark = document.createElement('span');
+      mark.className = 're-mark';
+      mark.textContent = 'GOALIE';
+      el.appendChild(mark);
+    }
+  }
+
+  const rm = document.createElement('button');
+  rm.type = 'button';
+  rm.className = 're-rm';
+  rm.title = 'Remove ' + numStr;
+  rm.setAttribute('aria-label', 'Remove ' + numStr);
+  rm.textContent = '×';
+  rm.addEventListener('click', function(e){ e.stopPropagation(); reRemove(numStr, role); });
+  el.appendChild(rm);
+  return el;
+}
+
+function reRender(){
+  const sGrid = $('reSkaterGrid');
+  const gGrid = $('reGoalieGrid');
+  if(!sGrid || !gGrid) return;
+  sGrid.innerHTML = '';
+  gGrid.innerHTML = '';
+
+  const skaters = sortRoster((rosterEditor.roster || []).map(x => String(x)));
+  const goalies = sortRoster((rosterEditor.goalies || []).map(x => String(x)));
+
+  if(skaters.length){ skaters.forEach(n => sGrid.appendChild(reChip(n, 'skater'))); }
+  else { sGrid.innerHTML = reEmptyState('skater'); }
+  if(goalies.length){ goalies.forEach(n => gGrid.appendChild(reChip(n, 'goalie'))); }
+  else { gGrid.innerHTML = reEmptyState('goalie'); }
+
+  const s = (rosterEditor.roster || []).length;
+  const g = (rosterEditor.goalies || []).length;
+  const sc = $('reSkaterCount'); if(sc) sc.textContent = s;
+  const gc = $('reGoalieCount'); if(gc) gc.textContent = g;
+  const sum = $('reSummary');
+  if(sum){
+    sum.textContent = (s || g)
+      ? (s + ' skater' + (s === 1 ? '' : 's') + ' · ' + g + ' goalie' + (g === 1 ? '' : 's'))
+      : 'No numbers yet';
+  }
+}
+
+function reAdd(){
+  const inp = $('reInput');
+  if(!inp) return;
+  const digits = String(inp.value).replace(/\D/g, '').slice(0, 2);
+  if(!digits){ inp.focus(); return; } // name-only input is caught live on 'input'
+  const val = parseInt(digits, 10);
+  if(val < 0 || val > 99){ reReject('Jersey numbers are 0–99.'); return; }
+  const n = reNormalizeNum(digits);
+  if(reHas(n)){ reReject('#' + n + ' is already on the roster.'); return; }
+  if(rosterEditor.role === 'goalie'){ rosterEditor.goalies.push(n); }
+  else { rosterEditor.roster.push(n); }
+  reCommit();
+  reRender();
+  reSetHint('Added #' + n + ' as ' + rosterEditor.role + '.', 'ok');
+  inp.value = '';
+  inp.focus();
+}
+
+function reRemove(num, role){
+  const arr = role === 'goalie' ? rosterEditor.goalies : rosterEditor.roster;
+  const i = arr.findIndex(x => String(x) === String(num));
+  if(i !== -1) arr.splice(i, 1);
+  reCommit();
+  reRender();
+  reSetHint('Removed #' + num + '.', 'ok');
+}
+
+/* Open the editor against a given model. onChange(roster, goalies) fires after
+ * every mutation with fresh copies — callers persist however they need. */
+function openRosterEditor(opts){
+  opts = opts || {};
+  rosterEditor.roster = Array.isArray(opts.roster) ? opts.roster.map(x => String(x)) : [];
+  rosterEditor.goalies = Array.isArray(opts.goalies) ? opts.goalies.map(x => String(x)) : [];
+  rosterEditor.onChange = typeof opts.onChange === 'function' ? opts.onChange : null;
+  rosterEditor.role = 'skater';
+  const inp = $('reInput');
+  if(inp) inp.value = '';
+  reSetHint(RE_HINT_DEFAULT, 'ok');
+  document.querySelectorAll('#reSeg button').forEach(b => {
+    b.classList.toggle('on', b.getAttribute('data-role') === 'skater');
+  });
+  reRender();
+  $('rosterModal').style.display = 'flex';
+  if(inp) setTimeout(() => inp.focus(), 40);
+}
+
+/* Roster button — edits the ACTIVE team, committing live to state + storage. */
+function openRoster(){
+  openRosterEditor({
+    roster: (state.roster || []).slice(),
+    goalies: (state.goalies || []).slice(),
+    onChange: function(roster, goalies){
+      state.roster = roster;
+      state.goalies = goalies;
+      // Dropped the goalie who was in net? Clear the stale activeGoalie so the
+      // next event won't tag someone no longer on the roster.
+      if(state.activeGoalie != null && !goalies.some(x => String(x) === String(state.activeGoalie))){
+        state.activeGoalie = null;
+      }
+      persistActiveRoster();
+    }
+  });
+}
+
+function closeRoster(){
+  $('rosterModal').style.display = 'none';
+}
+
+/* Persist the active team's roster + goalies together: localStorage (roster),
+ * the active team object (roster + goalies), and the live game state. Replaces
+ * the old persistRoster / persistGoalies pair with a single write. */
+function persistActiveRoster(){
+  try{ localStorage.setItem(ROSTER_KEY, JSON.stringify(state.roster)); }catch(_){}
+  if(window.TeamManager && typeof window.TeamManager.getActiveTeamId === 'function'){
     const id = window.TeamManager.getActiveTeamId();
-    if (id) window.TeamManager.updateTeam(id, { goalies: state.goalies });
+    if(id) window.TeamManager.updateTeam(id, { roster: state.roster, goalies: state.goalies });
   }
   save();
-}
-function parseGoalieInput(raw){
-  // Free-text: numbers or names. Split on whitespace/commas/semicolons.
-  return String(raw||'').split(/[,;\t\n]+/).map(x=>x.trim()).filter(x=>x.length > 0);
-}
-function addGoalieEntries(raw){
-  const items = parseGoalieInput(raw);
-  if(!items.length) return false;
-  const set = new Set((state.goalies||[]).map(x=>String(x).trim()));
-  let added = 0;
-  for(const n of items){ if(!set.has(n)){ set.add(n); added++; } }
-  if(!added) return false;
-  state.goalies = [...set];
-  persistGoalies();
-  renderGoalieList();
-  return true;
-}
-function removeGoalieEntry(num){
-  state.goalies = (state.goalies||[]).filter(x => String(x).trim() !== String(num).trim());
-  // If the active goalie was just removed, clear it so the next event won't
-  // tag a stranger. The pre-game / live picker (Step 3+) will re-select.
-  if(state.activeGoalie && String(state.activeGoalie).trim() === String(num).trim()){
-    state.activeGoalie = null;
-  }
-  persistGoalies();
-  renderGoalieList();
 }
 
 /* Player picker flow (supports scorer + assist) */
@@ -4258,6 +4373,29 @@ function renderTeamList() {
   };
 }
 
+/* Form-local roster/goalies for the Manage-Teams form. Edited through the
+ * shared roster editor (launched by #teamRosterLaunch); committed to the team
+ * only on Save Team. Kept as string arrays to match the team data model. */
+let teamFormRoster = [];
+let teamFormGoalies = [];
+
+function updateTeamRosterSummary(){
+  const el = $('teamRosterSummary');
+  if(!el) return;
+  const s = teamFormRoster.length, g = teamFormGoalies.length;
+  if(!s && !g){
+    el.textContent = 'No numbers yet — tap to add';
+    el.classList.remove('warn');
+    return;
+  }
+  let txt = s + ' skater' + (s === 1 ? '' : 's') + ' · ' + g + ' goalie' + (g === 1 ? '' : 's');
+  // Surface legacy non-numeric goalie entries so they don't hide, unfixed.
+  const legacy = teamFormGoalies.filter(x => !isNumStr(String(x))).length;
+  if(legacy){ txt += ' · ' + legacy + ' need a number'; el.classList.add('warn'); }
+  else { el.classList.remove('warn'); }
+  el.textContent = txt;
+}
+
 function showTeamForm(team) {
   const form = $('teamForm');
   form.classList.add('visible');
@@ -4267,17 +4405,18 @@ function showTeamForm(team) {
     $('teamFormTitle').textContent = 'Edit Team';
     $('teamNameInput').value = team.name;
     $('teamLevelInput').value = team.level || 'U11';
-    $('teamRosterInput').value = (team.roster || []).join('\n');
-    $('teamGoaliesInput').value = (team.goalies || []).join('\n');
+    teamFormRoster = (team.roster || []).map(x => String(x));
+    teamFormGoalies = (team.goalies || []).map(x => String(x));
     form.dataset.editId = team.id;
   } else {
     $('teamFormTitle').textContent = 'Add New Team';
     $('teamNameInput').value = '';
     $('teamLevelInput').value = 'U11';
-    $('teamRosterInput').value = '';
-    $('teamGoaliesInput').value = '';
+    teamFormRoster = [];
+    teamFormGoalies = [];
     form.dataset.editId = '';
   }
+  updateTeamRosterSummary();
   $('teamNameInput').focus();
 }
 
@@ -4295,15 +4434,17 @@ function saveTeamFromForm() {
   nameInput.value = name;
   if (!name) { $('teamNameInput').focus(); return; }
   const level = $('teamLevelInput').value;
-  const rosterRaw = $('teamRosterInput').value.split('\n').map(x => x.trim()).filter(Boolean);
-  const goaliesRaw = $('teamGoaliesInput').value.split('\n').map(x => x.trim()).filter(Boolean);
+  // Roster + goalies come from the shared editor's form-local model, sorted
+  // for tidy storage. Legacy non-numeric goalie names are preserved as-is.
+  const roster = sortRoster(teamFormRoster.map(x => String(x)));
+  const goalies = sortRoster(teamFormGoalies.map(x => String(x)));
 
   const editId = $('teamForm').dataset.editId;
   if (editId) {
-    TM.updateTeam(editId, { name, level, roster: rosterRaw, goalies: goaliesRaw });
+    TM.updateTeam(editId, { name, level, roster, goalies });
     if (TM.getActiveTeamId() === editId) applyActiveTeam();
   } else {
-    const team = TM.createTeam(name, level, rosterRaw, goaliesRaw);
+    const team = TM.createTeam(name, level, roster, goalies);
     TM.setActiveTeamId(team.id);
     applyActiveTeam();
   }
@@ -4355,6 +4496,17 @@ $('teamModalClose').onclick = function(){ $('teamModal').style.display='none'; }
 $('btnAddTeam').onclick = function(){ showTeamForm(null); };
 $('teamFormSave').onclick = saveTeamFromForm;
 $('teamFormCancel').onclick = hideTeamForm;
+$('teamRosterLaunch').onclick = function(){
+  openRosterEditor({
+    roster: teamFormRoster.slice(),
+    goalies: teamFormGoalies.slice(),
+    onChange: function(roster, goalies){
+      teamFormRoster = roster;
+      teamFormGoalies = goalies;
+      updateTeamRosterSummary();
+    }
+  });
+};
 $('teamNameInput').addEventListener('input', e => {
   applyAutoCapitalizedWordsInput(e.target);
 });
@@ -4384,44 +4536,42 @@ document.addEventListener('click', (e) => {
   }
 });
 
-/* Button Wiring */
-$('btnRoster').onclick=openRoster;
-$('btnRosterClose').onclick=closeRoster;
-$('btnRosterAdd').onclick=function(){
-  const inp = $('rosterAddInput');
-  if(addRosterNumbers(inp.value)) inp.value = '';
-  inp.focus();
-};
-$('rosterAddInput').addEventListener('keydown', function(e){
-  if(e.key === 'Enter'){ e.preventDefault(); $('btnRosterAdd').click(); }
+/* Button Wiring — Roster editor (P6.2) */
+$('btnRoster').onclick = openRoster;
+$('btnRosterClose').onclick = closeRoster;
+$('btnRosterDone').onclick = closeRoster;
+$('reAddBtn').onclick = reAdd;
+$('reInput').addEventListener('input', function(){
+  const inp = $('reInput');
+  const before = inp.value;
+  const cleaned = before.replace(/\D/g, '').slice(0, 2);
+  if(cleaned !== before){
+    inp.value = cleaned;
+    // A non-digit was typed/pasted (a name) — enforce numbers-only out loud.
+    if(/\D/.test(before)) reSetHint('Numbers only — no names.', 'err');
+  } else if($('reHint').classList.contains('err')){
+    reSetHint(RE_HINT_DEFAULT, 'ok'); // clear a stale error once input is clean
+  }
 });
-$('rosterList').addEventListener('click', function(e){
-  const btn = e.target.closest('.roster-remove');
-  if(!btn) return;
-  const entry = btn.closest('.roster-entry');
-  if(!entry) return;
-  removeRosterNumber(entry.dataset.n);
+$('reInput').addEventListener('keydown', function(e){
+  if(e.key === 'Enter'){ e.preventDefault(); reAdd(); }
 });
-$('btnGoalieAdd').onclick=function(){
-  const inp = $('goalieAddInput');
-  if(addGoalieEntries(inp.value)) inp.value = '';
-  inp.focus();
-};
+document.querySelectorAll('#reSeg button').forEach(function(b){
+  b.addEventListener('click', function(){
+    rosterEditor.role = b.getAttribute('data-role');
+    document.querySelectorAll('#reSeg button').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    const inp = $('reInput'); if(inp) inp.focus();
+  });
+});
+$('rosterModal').addEventListener('click', function(e){
+  if(e.target === $('rosterModal')) closeRoster(); // backdrop tap closes
+});
 $('btnSwitchGoalie').onclick = function(){ switchGoalieFlow().catch(err => console.error(err)); };
 $('goalieSwitchCancel').onclick = function(){
   $('goalieSwitchModal').style.display = 'none';
   const grid = $('goalieSwitchGrid'); grid.onclick = null; grid.innerHTML = '';
 };
-$('goalieAddInput').addEventListener('keydown', function(e){
-  if(e.key === 'Enter'){ e.preventDefault(); $('btnGoalieAdd').click(); }
-});
-$('goalieList').addEventListener('click', function(e){
-  const btn = e.target.closest('.goalie-remove');
-  if(!btn) return;
-  const entry = btn.closest('.roster-entry');
-  if(!entry) return;
-  removeGoalieEntry(entry.dataset.n);
-});
 
 /* High Danger modal logic — auto-dismisses after 2s (defaults to No) */
 let dangerTarget = null;

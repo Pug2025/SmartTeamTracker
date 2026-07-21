@@ -4465,3 +4465,148 @@ body:not(.in-game) .event-ticker{ display:none; }
   color:#42d6e6; /* spec deviation from mockup's illegible #2a7a86 */
   font-weight:800; letter-spacing:.6px;
 }
+
+/* ===== Roster Editor (P6.2) — jersey-crest roster/goalie editor ===============
+   The single roster-editing surface. Lives in #rosterModal .box (which already
+   supplies the Ice frame + top gradient line); also launched over the team form.
+   Retires the old .roster-list chip UI and the team-form textareas. Ice tokens
+   only — no hardcoded palette beyond the jersey-crest gradients. */
+.re-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:2px; }
+.re-title{ font-family:var(--display); font-weight:800; font-size:var(--fs-20); letter-spacing:.4px; margin:0; }
+.re-sub{ font-size:var(--fs-12); color:var(--muted2-ice); margin:3px 0 0; }
+.re-close{
+  flex:none; width:30px; height:30px; border-radius:var(--radius-full);
+  background:var(--surface-2); border:1px solid var(--surface-3); color:var(--muted-ice);
+  font-size:18px; line-height:1; cursor:pointer;
+}
+.re-close:active{ transform:scale(.94); }
+
+.re-add{ margin-top:14px; }
+.re-add-row{ display:flex; gap:8px; align-items:stretch; }
+.re-num-wrap{ position:relative; flex:1; }
+.re-hash{ position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--muted2-ice);
+  font-family:var(--display); font-weight:700; font-size:var(--fs-20); pointer-events:none; }
+.re-input{
+  width:100%; height:48px; padding:0 12px 0 30px;
+  background:var(--surface-0); border:1px solid var(--surface-3); border-radius:var(--radius-md);
+  color:#fff; font-family:var(--display); font-weight:700; font-size:var(--fs-24);
+  letter-spacing:1px; font-variant-numeric:tabular-nums;
+}
+.re-input::placeholder{ color:var(--muted2-ice); font-weight:600; letter-spacing:0; }
+.re-input:focus{ outline:none; border-color:var(--ice); box-shadow:var(--focus-ring); }
+.re-input.shake{ animation:re-shake .32s var(--ease); border-color:var(--them); }
+@keyframes re-shake{ 10%,90%{transform:translateX(-1px);} 30%,70%{transform:translateX(-4px);} 50%{transform:translateX(4px);} }
+.re-addbtn{
+  flex:none; padding:0 20px; height:48px; border-radius:var(--radius-md); cursor:pointer;
+  background:linear-gradient(180deg, var(--ice), var(--ice-deep)); color:#04222a;
+  border:1px solid rgba(255,255,255,.14);
+  font-family:var(--ui); font-weight:800; font-size:var(--fs-15); letter-spacing:.3px;
+  box-shadow:0 8px 20px rgba(23,182,200,.28);
+}
+.re-addbtn:active{ transform:scale(.97); }
+
+/* segmented skater / goalie toggle */
+.re-seg{ display:flex; gap:4px; margin-top:9px; padding:3px; border-radius:var(--radius-full);
+  background:var(--surface-0); border:1px solid var(--surface-3); width:fit-content; }
+.re-seg button{
+  border:none; background:transparent; cursor:pointer; font-family:var(--ui);
+  font-weight:700; font-size:var(--fs-12); color:var(--muted2-ice);
+  padding:6px 15px; border-radius:var(--radius-full); display:inline-flex; align-items:center; gap:6px;
+  transition:color .15s, background .15s;
+}
+.re-seg .re-dot{ width:8px; height:8px; border-radius:50%; background:currentColor; opacity:.55; }
+.re-seg button[data-role="skater"].on{ background:rgba(47,111,237,.20); color:#9bc0ff; }
+.re-seg button[data-role="goalie"].on{ background:var(--ice-tint); color:var(--ice); }
+.re-seg button.on .re-dot{ opacity:1; }
+
+.re-hint{ min-height:16px; margin-top:8px; font-size:var(--fs-12); }
+.re-hint.err{ color:var(--them); font-weight:700; }
+.re-hint.ok{ color:var(--muted2-ice); }
+
+.re-section{ margin-top:18px; }
+.re-section-head{ display:flex; align-items:center; gap:8px; margin-bottom:11px; }
+.re-section-title{ font-family:var(--ui); font-weight:800; font-size:var(--fs-12); letter-spacing:1.4px;
+  text-transform:uppercase; color:var(--muted-ice); }
+.re-count{ font-size:var(--fs-11); font-weight:700; color:var(--muted2-ice);
+  background:var(--fill-2); border-radius:var(--radius-full); padding:2px 9px; min-width:22px; text-align:center; }
+.re-section-rule{ flex:1; height:1px; background:var(--line-soft); }
+
+.re-grid{ display:flex; flex-wrap:wrap; gap:12px; padding:5px 3px; }
+
+/* jersey-crest chip (motif shared with #spectatorView .spec-crest) */
+.re-jersey{
+  position:relative; width:52px; height:56px;
+  border-radius:13px 13px 16px 16px;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--display); font-weight:800; font-size:23px; line-height:1;
+  font-variant-numeric:tabular-nums; letter-spacing:.5px;
+  border:1px solid rgba(255,255,255,.16);
+  box-shadow:0 8px 20px rgba(0,0,0,.38);
+  user-select:none; cursor:default;
+  animation:re-pop .22s var(--ease);
+}
+@keyframes re-pop{ from{ transform:scale(.8); opacity:0; } to{ transform:scale(1); opacity:1; } }
+.re-jersey::after{ content:''; position:absolute; left:9px; right:9px; top:0; height:2px;
+  border-radius:999px; background:rgba(255,255,255,.4); }
+.re-jersey.skater{ background:linear-gradient(180deg,#2a5fd6,#163a86); color:#dce9ff;
+  box-shadow:0 8px 20px rgba(47,111,237,.32); }
+.re-jersey.goalie{ background:linear-gradient(180deg, var(--ice), #0b7d8b); color:#04222a;
+  box-shadow:0 8px 22px rgba(23,182,200,.36); }
+/* legacy non-numeric goalie entry — surfaced, never dropped */
+.re-jersey.flagged{ background:linear-gradient(180deg,#3b2a11,#281c09); color:var(--warn-ice);
+  border-color:rgba(244,166,39,.55); box-shadow:0 8px 20px rgba(244,166,39,.18);
+  font-family:var(--ui); padding:0 5px; }
+.re-jersey.flagged::after{ background:rgba(244,166,39,.5); }
+.re-jersey .re-flagtext{ font-size:12px; font-weight:800; line-height:1;
+  max-width:44px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-bottom:7px; }
+.re-jersey .re-mark{ position:absolute; bottom:4px; left:0; right:0; text-align:center;
+  font-family:var(--ui); font-weight:800; font-size:8px; letter-spacing:1.5px; opacity:.9; }
+.re-jersey.flagged .re-mark{ color:var(--warn-ice); letter-spacing:.4px; bottom:5px; opacity:.95; }
+
+/* remove control — ALWAYS-VISIBLE corner badge. Touch-first: nothing is gated
+   behind hover, which never fires on a phone. Tap × to remove a number. */
+.re-jersey .re-rm{
+  position:absolute; top:-7px; right:-7px; width:22px; height:22px; border-radius:50%;
+  background:var(--surface-3); border:1px solid rgba(255,255,255,.24); color:var(--ink-ice);
+  font-size:15px; line-height:1; display:flex; align-items:center; justify-content:center;
+  cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,.5);
+  transition:color .12s, background .12s, border-color .12s, transform .1s;
+}
+/* Expand the tap target to ~44px (P5 glove-friendly standard) without enlarging
+   the visible badge; biased toward the outer corner so it won't overlap neighbours. */
+.re-jersey .re-rm::before{ content:""; position:absolute; top:-14px; right:-14px; bottom:-8px; left:-8px; }
+.re-jersey .re-rm:hover, .re-jersey .re-rm:active{ background:var(--them); border-color:var(--them); color:#fff; }
+.re-jersey .re-rm:active{ transform:scale(.9); }
+
+/* empty state */
+.re-empty{
+  display:flex; align-items:center; gap:10px; padding:14px;
+  border:1px dashed var(--surface-3); border-radius:var(--radius-md);
+  color:var(--muted2-ice); font-size:var(--fs-12); background:var(--fill-1);
+}
+.re-empty svg{ flex:none; color:var(--muted2-ice); opacity:.8; }
+.re-empty b{ color:var(--muted-ice); font-weight:700; }
+
+.re-foot{ display:flex; justify-content:flex-end; margin-top:20px; }
+.re-done{
+  padding:11px 22px; border-radius:var(--radius-md); cursor:pointer;
+  background:var(--surface-2); border:1px solid var(--surface-3); color:#fff;
+  font-family:var(--ui); font-weight:700; font-size:var(--fs-15);
+}
+.re-done:active{ transform:scale(.98); }
+
+/* team-form roster launcher (replaces the two textareas) */
+.team-roster-launch{
+  display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%;
+  padding:12px 14px; margin-top:2px; cursor:pointer;
+  background:var(--surface-0); border:1px solid var(--surface-3); border-radius:var(--radius-md);
+  color:var(--ink-ice); font-family:var(--ui); text-align:left;
+}
+.team-roster-launch:hover{ border-color:var(--ice); }
+.team-roster-launch .trl-summary{ font-size:var(--fs-13); font-weight:600; color:var(--muted-ice); }
+.team-roster-launch .trl-summary.warn{ color:var(--warn-ice); }
+.team-roster-launch .trl-cta{ font-size:var(--fs-12); font-weight:800; color:var(--ice); letter-spacing:.3px; flex:none; }
+
+/* Roster editor can be launched over the team modal (both are .modal @9999);
+   lift it so it stacks above, while the confirm overlay (10001) still wins. */
+#rosterModal{ z-index:10000; }

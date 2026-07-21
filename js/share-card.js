@@ -111,6 +111,38 @@
     ctx.fillText(label.toUpperCase(), cx, 46);
   }
 
+  // Draw a two-sided stat (them – us) with each number in its team colour and
+  // small team initials beneath, so "who is this in favour of" is unambiguous.
+  // Order matches the score/crests: opponent (them) LEFT, us RIGHT.
+  function drawTeamStat(ctx, cx, themVal, usVal, themInit, usInit, label) {
+    ctx.textBaseline = "alphabetic";
+    ctx.font = '800 66px ' + DISPLAY;
+    var tw = ctx.measureText(themVal).width, uw = ctx.measureText(usVal).width;
+    ctx.font = '700 42px ' + DISPLAY;
+    var dw = ctx.measureText("–").width;
+    var gap = 12;
+    var total = tw + gap + dw + gap + uw;
+    var x = cx - total / 2;
+    ctx.textAlign = "left";
+    var themCx = x + tw / 2, usCx = x + tw + gap + dw + gap + uw / 2;
+
+    ctx.font = '800 66px ' + DISPLAY;
+    ctx.fillStyle = THEM; ctx.fillText(themVal, x, 0); x += tw + gap;
+    ctx.font = '700 42px ' + DISPLAY; ctx.fillStyle = DASH; ctx.fillText("–", x, -7); x += dw + gap;
+    ctx.font = '800 66px ' + DISPLAY; ctx.fillStyle = US; ctx.fillText(usVal, x, 0);
+
+    // team initials beneath each number, in the team colour
+    ctx.textAlign = "center";
+    ctx.font = '800 19px ' + DISPLAY;
+    ctx.fillStyle = THEM; ctx.fillText(themInit, themCx, 26);
+    ctx.fillStyle = US; ctx.fillText(usInit, usCx, 26);
+
+    // shared label — aligned with the other stat cells' labels (y=46)
+    ctx.fillStyle = INK_MUTE;
+    ctx.font = '700 21px ' + UI;
+    ctx.fillText(label.toUpperCase(), cx, 46);
+  }
+
   function drawCrest(ctx, cx, cy, initials, color) {
     var s = 116;
     roundRect(ctx, cx - s / 2, cy - s / 2, s, s, 32);
@@ -217,8 +249,15 @@
     ctx.stroke();
 
     // --- three stats ---
+    // Shots is two-sided (them vs us), so it uses drawTeamStat: opponent left /
+    // us right (matching the score), each number in its team colour with initials
+    // beneath. Save % and Team Rating are single "us" values.
     var stats = [
-      { value: data.shotsFor + "–" + data.shotsAgainst, suffix: "", label: "Shots", color: INK },
+      {
+        team: true,
+        them: String(data.shotsAgainst), us: String(data.shotsFor),
+        themInit: data.opponentInitials, usInit: data.teamInitials, label: "Shots"
+      },
       { value: data.svPct, suffix: "", label: "Save %", color: INK }
     ];
     if (data.teamRating != null) {
@@ -231,7 +270,9 @@
     for (var i = 0; i < 3; i++) {
       ctx.save();
       ctx.translate(0, statY);
-      drawStat(ctx, first + slotW * i, stats[i].value, stats[i].suffix, stats[i].label, stats[i].color);
+      var st = stats[i];
+      if (st.team) drawTeamStat(ctx, first + slotW * i, st.them, st.us, st.themInit, st.usInit, st.label);
+      else drawStat(ctx, first + slotW * i, st.value, st.suffix, st.label, st.color);
       ctx.restore();
     }
 

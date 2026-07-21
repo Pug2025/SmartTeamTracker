@@ -147,7 +147,7 @@
     // --- lockup (centered, top) ---
     var lockH = 74, lockW = lockH * (lock.width / lock.height);
     ctx.globalAlpha = 0.95;
-    ctx.drawImage(lock, CX - lockW / 2, 118, lockW, lockH);
+    ctx.drawImage(lock, CX - lockW / 2, 168, lockW, lockH);
     ctx.globalAlpha = 1;
 
     // --- eyebrow ---
@@ -155,54 +155,56 @@
     ctx.fillStyle = TEAL;
     ctx.font = '800 30px ' + UI;
     track(ctx, 10);
-    ctx.fillText("FINAL", CX, 300);
+    ctx.fillText("FINAL", CX, 384);
     track(ctx, 0);
 
     // --- result ---
     ctx.fillStyle = resultColor(data.result);
     ctx.font = '900 116px ' + DISPLAY;
-    ctx.fillText(data.result, CX, 420);
+    ctx.fillText(data.result, CX, 540);
 
-    // --- score: "GF – GA", numbers ink, dash muted ---
+    // --- score: "GA – GF" (them – us), matching the in-app summary header
+    // (sumGA/them on the left, sumGF/us on the right). numbers ink, dash muted ---
     var gf = String(data.goalsFor), ga = String(data.goalsAgainst);
     ctx.font = '900 300px ' + DISPLAY;
     var nGf = ctx.measureText(gf).width, nGa = ctx.measureText(ga).width;
     ctx.font = '700 190px ' + DISPLAY;
     var dashW = ctx.measureText("–").width;
     var gap = 44;
-    var total = nGf + gap + dashW + gap + nGa;
+    var total = nGa + gap + dashW + gap + nGf;
     var x = CX - total / 2;
-    var scoreY = 690;
+    var scoreY = 858;
     ctx.textAlign = "left";
     ctx.font = '900 300px ' + DISPLAY;
     ctx.fillStyle = INK;
-    ctx.fillText(gf, x, scoreY); x += nGf + gap;
+    ctx.fillText(ga, x, scoreY); x += nGa + gap;
     ctx.font = '700 190px ' + DISPLAY;
     ctx.fillStyle = DASH;
     ctx.fillText("–", x, scoreY - 30); x += dashW + gap;
     ctx.font = '900 300px ' + DISPLAY;
     ctx.fillStyle = INK;
-    ctx.fillText(ga, x, scoreY);
+    ctx.fillText(gf, x, scoreY);
     ctx.textAlign = "center";
 
-    // --- matchup: crest / VS / crest with names ---
-    var crestY = 860, colGap = 300;
-    drawCrest(ctx, CX - colGap / 2, crestY, data.teamInitials, US);
-    drawCrest(ctx, CX + colGap / 2, crestY, data.opponentInitials, THEM);
+    // --- matchup: crest / VS / crest with names.
+    // Them on the left, us on the right — same order as the summary header. ---
+    var crestY = 1070, colGap = 300;
+    drawCrest(ctx, CX - colGap / 2, crestY, data.opponentInitials, THEM);
+    drawCrest(ctx, CX + colGap / 2, crestY, data.teamInitials, US);
     ctx.fillStyle = INK_MUTE;
     ctx.font = '700 30px ' + DISPLAY;
     ctx.fillText("VS", CX, crestY + 12);
     ctx.fillStyle = INK;
     ctx.font = '700 32px ' + DISPLAY;
-    ctx.fillText(ellipsize(ctx, (data.teamName || "US").toUpperCase(), 300), CX - colGap / 2, crestY + 108);
-    ctx.fillText(ellipsize(ctx, (data.opponentName || "THEM").toUpperCase(), 300), CX + colGap / 2, crestY + 108);
+    ctx.fillText(ellipsize(ctx, (data.opponentName || "THEM").toUpperCase(), 300), CX - colGap / 2, crestY + 108);
+    ctx.fillText(ellipsize(ctx, (data.teamName || "US").toUpperCase(), 300), CX + colGap / 2, crestY + 108);
 
     // --- meta line ---
     ctx.fillStyle = INK;
     ctx.globalAlpha = 0.85;
     ctx.font = '600 27px ' + UI;
     track(ctx, 1.5);
-    ctx.fillText((data.metaLine || "").toUpperCase(), CX, 1050);
+    ctx.fillText((data.metaLine || "").toUpperCase(), CX, 1290);
     track(ctx, 0);
     ctx.globalAlpha = 1;
 
@@ -210,8 +212,8 @@
     ctx.strokeStyle = "rgba(14,24,38,0.12)";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(W * 0.11, 1120);
-    ctx.lineTo(W * 0.89, 1120);
+    ctx.moveTo(W * 0.11, 1372);
+    ctx.lineTo(W * 0.89, 1372);
     ctx.stroke();
 
     // --- three stats ---
@@ -224,7 +226,7 @@
     } else {
       stats.push({ value: data.shotShare, suffix: "%", label: "Shot Share", color: INK });
     }
-    var statY = 1230;
+    var statY = 1520;
     var slotW = (W * 0.78) / 3, first = CX - slotW;
     for (var i = 0; i < 3; i++) {
       ctx.save();
@@ -237,7 +239,7 @@
     ctx.fillStyle = INK_MUTE;
     ctx.font = '600 26px ' + UI;
     track(ctx, 2);
-    ctx.fillText("TRACKED WITH SMART TEAM TRACKER", CX, 1840);
+    ctx.fillText("LIVE HOCKEY STAT TRACKING", CX, 1740);
     track(ctx, 0);
 
     return await new Promise(function (resolve, reject) {

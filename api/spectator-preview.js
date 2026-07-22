@@ -1,4 +1,4 @@
-import { buildShareModel, fetchLiveSnapshot, renderPreviewPng, renderFallbackPng } from "./spectator-share-lib.js";
+import { buildShareModel, fetchLiveSnapshot, renderPreviewPng, renderFallbackPng } from "./_spectator-share-lib.js";
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {

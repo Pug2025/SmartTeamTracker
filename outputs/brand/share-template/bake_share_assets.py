@@ -2,7 +2,7 @@
 """P3.4a — Bake the Ice-themed share-preview assets.
 
 Generates the sprite set consumed by renderPreviewPng() in
-api/spectator-share-lib.js (and dev_server.py's Python mirror):
+api/_spectator-share-lib.js (and dev_server.py's Python mirror):
 
   api/_share-assets/template.png        1200x630 Ice template (band texture,
                                         glass scoreboard card, empty crest

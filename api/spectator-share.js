@@ -1,4 +1,4 @@
-import { buildShareModel, fetchLiveSnapshot, getBaseUrl, renderShareHtml } from "./spectator-share-lib.js";
+import { buildShareModel, fetchLiveSnapshot, getBaseUrl, renderShareHtml } from "./_spectator-share-lib.js";
 
 // Minimal, dependency-free share page. Used when the rich renderer throws, so a
 // shared link always opens the game rather than returning a 500.

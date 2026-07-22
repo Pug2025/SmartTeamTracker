@@ -8,7 +8,7 @@
 
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { buildShareModel, renderPreviewPng } from "../../../api/spectator-share-lib.js";
+import { buildShareModel, renderPreviewPng } from "../../../api/_spectator-share-lib.js";
 
 const model = buildShareModel(null, "");
 const png = renderPreviewPng(model);

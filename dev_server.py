@@ -211,7 +211,7 @@ def render_share_html(model: dict[str, Any], base_url: str) -> str:
 
 
 # P3.4a — Ice-themed preview PNG, mirroring renderPreviewPng() in
-# api/spectator-share-lib.js. Composites the sprites baked by
+# api/_spectator-share-lib.js. Composites the sprites baked by
 # outputs/brand/share-template/bake_share_assets.py (api/_share-assets/).
 # Falls back to the static baked preview if Pillow is unavailable.
 

@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.4.5';
+const APP_VERSION = '6.4.6';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -5822,7 +5822,7 @@ async function loadSeasonPanel(){
         : '<div class="text-center" style="padding:20px;">No games in this season.</div>';
       return;
     }
-    renderSeasonDashboard(games);
+    renderSeasonDashboard(games, selected);
   }catch(e){
     console.error(e);
     $('seasonBody').innerHTML = '<div class="text-center" style="padding:20px; color:var(--them);">Failed to load. Check your connection.</div>';
@@ -6576,6 +6576,7 @@ async function confirmEndSeason(){
     await refreshSeasonPanelIfOpen();
     await refreshHistoryPanelIfOpen();
     await refreshPlayerStatsPanelIfOpen();
+    await maybeOfferSeasonRecap(data.seasonName, data.archived);
   }catch(e){
     console.error(e);
     showStatusToast(e.message || 'End Season failed', 'error', 3500);
@@ -7018,7 +7019,7 @@ $('playerStatsBody').addEventListener('click', (e) => {
   renderPlayerDetail(playerKey);
 });
 
-function renderSeasonDashboard(games){
+function renderSeasonDashboard(games, scope){
   // Extract data from all games
   const stats = games.map(g => g.data || {}).filter(d => d.GF != null);
   if(!stats.length){
@@ -7102,6 +7103,23 @@ function renderSeasonDashboard(games){
   }
 
   let html = '';
+
+  // === Season in Review (P6.3): build the recap aggregate + entry-point CTA.
+  // The recap is offered only at/above the minimum game count; below that we
+  // simply omit the button (the dashboard itself already covers small samples).
+  const _recapTeam = getActiveTeamSafe();
+  const _recapLevel = (_recapTeam && _recapTeam.level) || (stats[0] && stats[0].Level) || '';
+  _seasonRecapContext = aggregateSeasonRecap(games, {
+    scope: scope || 'current',
+    teamName: (_recapTeam && _recapTeam.name) || 'Your Team',
+    level: _recapLevel
+  });
+  if(n >= SEASON_RECAP_MIN_GAMES){
+    html += `<button class="season-review-cta" id="btnSeasonReview" type="button">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+      Season in Review
+    </button>`;
+  }
 
   // Record
   html += `<div class="season-record">
@@ -7201,7 +7219,486 @@ function renderSeasonDashboard(games){
   }
 
   $('seasonBody').innerHTML = html;
+
+  const _rvBtn = $('btnSeasonReview');
+  if(_rvBtn) _rvBtn.addEventListener('click', () => openSeasonRecap(_seasonRecapContext));
 }
+
+/* ===== Season in Review (P6.3) =========================================
+   A swipeable, phone-native recap card-stack over a whole season's real
+   saved-game data. Pure aggregation (aggregateSeasonRecap) plus a DOM renderer
+   (openSeasonRecap). Design locked from design/season-recap-mockup.html (dark
+   "Ice" language). Privacy hard rule: numbers / jersey numbers only, never
+   player names or faces. Entry points: a button in the Season Dashboard and an
+   auto-offer when a season is archived. Minimum 6 games to offer. ========= */
+
+const SEASON_RECAP_MIN_GAMES = 6;
+let _seasonRecapContext = null;
+let _seasonRecapPrevOverflow = '';
+
+// 0-100 rating -> letter grade. Anchored to the score model's own scale
+// (mean ~63, +1 sigma ~81 = B+, +2 sigma ~89 = A, +3 sigma ~94 = A+; see the
+// comments in computeTeamScore).
+function ratingGrade(score){
+  const s = Number(score);
+  if(!Number.isFinite(s)) return '';
+  if(s >= 93) return 'A+';
+  if(s >= 88) return 'A';
+  if(s >= 83) return 'A-';
+  if(s >= 79) return 'B+';
+  if(s >= 73) return 'B';
+  if(s >= 68) return 'B-';
+  if(s >= 62) return 'C+';
+  if(s >= 56) return 'C';
+  if(s >= 50) return 'C-';
+  if(s >= 42) return 'D';
+  return 'F';
+}
+
+// Aggregate a season's saved games into everything the 7 recap cards need.
+// `games` is the raw list (API order: newest first). Pure, no DOM.
+function aggregateSeasonRecap(games, meta){
+  meta = meta || {};
+  const stats = (games || []).map(g => g.data || {}).filter(d => d.GF != null);
+  const n = stats.length;
+  const chrono = stats.slice().reverse(); // oldest -> newest
+
+  let wins = 0, losses = 0, ties = 0;
+  let totalGF = 0, totalGA = 0, totalSF = 0, totalSA = 0;
+  let totalTM = 0, tmCount = 0, totalGK = 0, gkCount = 0;
+  let shutouts = 0;
+  const results = [];   // 'W' | 'L' | 'T' in chronological order
+  const tmTrend = [];   // Team Rating per rated game, chronological
+  const dates = [];
+  const opponents = new Set();
+  let bestNight = null; // game with the highest Team Rating
+  const goalieMap = new Map();
+
+  for(const d of chrono){
+    const gf = Number(d.GF) || 0, ga = Number(d.GA) || 0;
+    if(gf > ga){ wins++; results.push('W'); }
+    else if(ga > gf){ losses++; results.push('L'); }
+    else { ties++; results.push('T'); }
+    totalGF += gf; totalGA += ga;
+    if(ga === 0) shutouts++;
+    totalSF += Number(d.SF) || 0;
+    totalSA += Number(d.SA) || 0;
+    if(d.TeamScore != null){ totalTM += d.TeamScore; tmCount++; tmTrend.push(Math.round(d.TeamScore)); }
+    if(d.GoalieScore != null){ totalGK += d.GoalieScore; gkCount++; }
+    if(d.Opponent) opponents.add(String(d.Opponent).trim().toLowerCase());
+    if(/^\d{4}-\d{2}-\d{2}$/.test(d.Date || '')) dates.push(d.Date);
+    if(d.TeamScore != null && (!bestNight || d.TeamScore > bestNight.score)){
+      bestNight = { score: Math.round(d.TeamScore), gf, ga, opponent: d.Opponent || '' };
+    }
+
+    const arr = Array.isArray(d.goalies) ? d.goalies : [];
+    for(const g of arr){
+      if(!g || g.id == null) continue;
+      const key = String(g.id);
+      const cur = goalieMap.get(key) || {
+        id: key, gp: 0, shots: 0, saves: 0, goalsAgainst: 0, bigSaves: 0, hdShots: 0, hdSaves: 0, so: 0
+      };
+      const gShots = Number(g.shots) || 0, gGA = Number(g.goalsAgainst) || 0;
+      cur.gp += 1;
+      cur.shots += gShots;
+      cur.saves += Number(g.saves) || 0;
+      cur.goalsAgainst += gGA;
+      cur.bigSaves += Number(g.bigSaves) || 0;
+      cur.hdShots += Number(g.hdShots) || 0;
+      cur.hdSaves += Number(g.hdSaves) || 0;
+      if(gShots > 0 && gGA === 0) cur.so += 1; // per-goalie shutout appearance
+      goalieMap.set(key, cur);
+    }
+  }
+
+  const goalDiff = totalGF - totalGA;
+  const shotShare = (totalSF + totalSA) ? Math.round(100 * totalSF / (totalSF + totalSA)) : 0;
+  const avgTM = tmCount ? Math.round(totalTM / tmCount) : null;
+  const avgGK = gkCount ? Math.round(totalGK / gkCount) : null;
+  const peakTM = tmTrend.length ? Math.max.apply(null, tmTrend) : null;
+  const startTM = tmTrend.length ? tmTrend[0] : null;
+  const endTM = tmTrend.length ? tmTrend[tmTrend.length - 1] : null;
+
+  // Per-goalie ordering: jersey number first (numeric), then any legacy ids.
+  const goalies = Array.from(goalieMap.values()).sort((a, b) => {
+    const na = Number(a.id), nb = Number(b.id);
+    const an = Number.isFinite(na), bn = Number.isFinite(nb);
+    if(an && bn) return na - nb;
+    if(an) return -1;
+    if(bn) return 1;
+    return String(a.id).localeCompare(String(b.id));
+  });
+  let totalHdShots = 0, totalHdSaves = 0, anonSeq = 0;
+  for(const g of goalies){ totalHdShots += g.hdShots; totalHdSaves += g.hdSaves; }
+  // Privacy: numeric ids render as "#NN"; any legacy NAME id is anonymized to
+  // "G1", "G2"... A player name is never rendered.
+  const goalieRows = goalies.map(g => {
+    const numeric = isNumStr(String(g.id));
+    if(!numeric) anonSeq++;
+    return {
+      label: numeric ? ('#' + g.id) : ('G' + anonSeq),
+      gp: g.gp,
+      svPct: fmtSvPct(g.saves, g.shots),
+      so: g.so,
+      bigSaves: g.bigSaves
+    };
+  });
+
+  dates.sort();
+  const monthsShort = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const fmtShort = (iso) => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+    return m ? (monthsShort[+m[2] - 1] + ' ' + (+m[3])) : '';
+  };
+  const dateRange = dates.length ? (fmtShort(dates[0]) + ' to ' + fmtShort(dates[dates.length - 1])) : '';
+
+  let seasonLabel = meta.seasonLabel;
+  if(!seasonLabel){
+    if(meta.scope && meta.scope !== 'current' && meta.scope !== 'all') seasonLabel = meta.scope;
+    else if(meta.scope === 'all') seasonLabel = 'All Seasons';
+    else seasonLabel = suggestSeasonName(dates.length ? dates[0] : '');
+  }
+
+  return {
+    n, wins, losses, ties,
+    recordStr: wins + '–' + losses + (ties ? '–' + ties : ''),
+    winPctStr: n ? (wins / n).toFixed(3).replace(/^0/, '') : '—',
+    goalDiff,
+    totalGF, totalGA,
+    gfPerGame: n ? (totalGF / n).toFixed(1) : '0.0',
+    gaPerGame: n ? (totalGA / n).toFixed(1) : '0.0',
+    shootingPct: fmtSvPct(totalGF, totalSF),
+    shotShare, totalSF, totalSA, shotDiff: totalSF - totalSA,
+    teamSvPct: fmtSvPct(totalSA - totalGA, totalSA),
+    teamHdSvPct: fmtSvPct(totalHdSaves, totalHdShots),
+    shutouts,
+    avgTM, peakTM, startTM, endTM,
+    climbDelta: (startTM != null && endTM != null) ? (endTM - startTM) : null,
+    avgTMGrade: avgTM != null ? ratingGrade(avgTM) : '',
+    peakTMGrade: peakTM != null ? ratingGrade(peakTM) : '',
+    avgGK, avgGKGrade: avgGK != null ? ratingGrade(avgGK) : '',
+    tmTrend, results, goalieRows,
+    hasGoalieData: goalieRows.length > 0,
+    bestNight: bestNight ? {
+      scoreStr: bestNight.gf + '–' + bestNight.ga,
+      opponent: bestNight.opponent,
+      rating: bestNight.score,
+      grade: ratingGrade(bestNight.score)
+    } : null,
+    dateRange,
+    opponentCount: opponents.size,
+    seasonLabel,
+    teamName: meta.teamName || 'Your Team',
+    level: meta.level || ''
+  };
+}
+
+// --- small render helpers (module-local) ---
+function _srrSigned(v){ return (Number(v) >= 0 ? '+' : '') + v; }
+function _srrDash(v){ return (v == null || v === '') ? '—' : v; }
+function _srrWinColor(v){ return Number(v) >= 0 ? 'var(--win)' : 'var(--them)'; }
+function _srrBg(){
+  return '<div class="srr-bg"><div class="srr-tex"></div><div class="srr-scrim"></div>' +
+         '<div class="srr-bloom"></div><div class="srr-scrapes"></div><div class="srr-vig"></div></div>';
+}
+function _srrFoot(rightHTML){
+  return '<div class="srr-foot"><span class="srr-brand">Smart Team Tracker</span>' + rightHTML + '</div>';
+}
+function _srrCounter(i){ return '<span class="srr-swipe">' + i + ' / 7</span>'; }
+
+// Map a Team Rating trend into an SVG line + area path inside a 300x130 box.
+function _srrClimbPath(trend){
+  const N = trend.length;
+  const W = 300, top = 16, bottom = 104;
+  if(N < 2) return null;
+  const lo = Math.min.apply(null, trend), hi = Math.max.apply(null, trend);
+  const span = (hi - lo) || 1;
+  const x = (i) => (i / (N - 1)) * W;
+  const y = (v) => bottom - ((v - lo) / span) * (bottom - top);
+  let line = '';
+  for(let i = 0; i < N; i++) line += (i === 0 ? 'M' : 'L') + x(i).toFixed(1) + ',' + y(trend[i]).toFixed(1) + ' ';
+  const area = 'M0,' + bottom + ' ' + trend.map((v, i) => 'L' + x(i).toFixed(1) + ',' + y(v).toFixed(1)).join(' ') +
+               ' L' + W + ',' + bottom + ' Z';
+  return { line: line.trim(), area, lastX: x(N - 1).toFixed(1), lastY: y(trend[N - 1]).toFixed(1) };
+}
+
+// Build the 7 card sections as an HTML string.
+function buildSeasonRecapCards(a){
+  const eyebrowSeason = /season/i.test(a.seasonLabel) ? a.seasonLabel : (a.seasonLabel + ' Season');
+  const checkSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+
+  // Card 1: Cover
+  let coverMeta = a.n + ' games';
+  if(a.dateRange) coverMeta += ' · ' + a.dateRange;
+  if(a.opponentCount) coverMeta += ' · ' + a.opponentCount + ' opponent' + (a.opponentCount === 1 ? '' : 's');
+  const cover = `<section class="srr-card">${_srrBg()}<div class="srr-body">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <img class="srr-lockup" src="/assets/brand/lockup-light-1000.webp" alt="Smart Team Tracker" onerror="this.style.display='none'">
+        <span class="srr-prem"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 8l4.5 3L12 5l4.5 6L21 8l-1.8 10H4.8L3 8z"/></svg>Recap</span>
+      </div>
+      <div class="srr-mt-auto"></div>
+      <div class="srr-eyebrow">${escapeHTML(eyebrowSeason)}</div>
+      <div class="srr-display" style="font-size:60px; margin-top:12px; line-height:.9;">SEASON<br><span class="srr-grad-ice">IN REVIEW</span></div>
+      <div style="margin-top:18px; font-size:17px; font-weight:700; color:var(--ink-ice);">${escapeHTML(a.teamName)}${a.level ? ' · ' + escapeHTML(a.level) : ''}</div>
+      <div class="srr-muted" style="margin-top:6px; font-size:13.5px;">${escapeHTML(coverMeta)}</div>
+      <div class="srr-mt-auto"></div>
+    </div>${_srrFoot('<span class="srr-swipe">Swipe to begin <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>')}</section>`;
+
+  // Card 2: The Record
+  const dotsHTML = a.results.map(r => {
+    const cls = r === 'W' ? 'w' : (r === 'L' ? 'l' : 't');
+    return `<span class="srr-dot ${cls}">${r}</span>`;
+  }).join('');
+  const record = `<section class="srr-card win">${_srrBg()}<div class="srr-body">
+      <div class="srr-eyebrow">The Record</div>
+      <div class="srr-mt-auto"></div>
+      <div class="srr-display srr-num-lg srr-grad-win">${escapeHTML(a.recordStr)}</div>
+      <div class="srr-kicker" style="margin-top:10px;">A ${a.winPctStr} win rate across ${a.n} games.</div>
+      <div class="srr-tiles" style="margin-top:22px;">
+        <div class="srr-glass srr-tile"><div class="v">${a.n}</div><div class="k">Games</div></div>
+        <div class="srr-glass srr-tile"><div class="v" style="color:var(--win)">${a.winPctStr}</div><div class="k">Win %</div></div>
+        <div class="srr-glass srr-tile"><div class="v" style="color:${_srrWinColor(a.goalDiff)}">${_srrSigned(a.goalDiff)}</div><div class="k">Goal Diff</div></div>
+      </div>
+      <div style="margin-top:24px;">
+        <div class="srr-eyebrow" style="color:var(--muted2-ice); letter-spacing:1.6px;">How the season ran</div>
+        <div class="srr-dots" style="margin-top:11px;">${dotsHTML}</div>
+      </div>
+      <div class="srr-mt-auto"></div>
+    </div>${_srrFoot(_srrCounter(2))}</section>`;
+
+  // Card 3: Goals
+  const forPct = (a.totalGF + a.totalGA) > 0
+    ? Math.max(22, Math.min(80, Math.round(100 * a.totalGF / (a.totalGF + a.totalGA))))
+    : 50;
+  let goalsKicker;
+  if(a.goalDiff > 0) goalsKicker = `You outscored opponents by ${a.goalDiff} goal${a.goalDiff === 1 ? '' : 's'} this season.`;
+  else if(a.goalDiff < 0) goalsKicker = `Opponents outscored you by ${-a.goalDiff} goal${-a.goalDiff === 1 ? '' : 's'} this season.`;
+  else goalsKicker = 'Goals for and against finished even.';
+  const goals = `<section class="srr-card">${_srrBg()}<div class="srr-body">
+      <div class="srr-eyebrow">Goals</div>
+      <div class="srr-mt-auto"></div>
+      <div style="display:flex; align-items:baseline; gap:14px;">
+        <div class="srr-display srr-num-md srr-grad-win">${a.totalGF}</div>
+        <div class="srr-muted" style="font-size:15px; font-weight:700;">scored</div>
+        <div style="flex:1"></div>
+        <div class="srr-display srr-num-md" style="font-size:44px; color:var(--them)">${a.totalGA}</div>
+        <div class="srr-muted" style="font-size:15px; font-weight:700;">against</div>
+      </div>
+      <div class="srr-split" style="margin-top:16px;">
+        <div class="for" style="flex:0 0 ${forPct}%;"><b>${a.totalGF}</b><span>For</span></div>
+        <div class="ag" style="flex:1;"><span>Against</span><b>${a.totalGA}</b></div>
+      </div>
+      <div class="srr-tiles" style="margin-top:20px;">
+        <div class="srr-glass srr-tile"><div class="v" style="color:var(--win)">${a.gfPerGame}</div><div class="k">For / game</div></div>
+        <div class="srr-glass srr-tile"><div class="v" style="color:var(--them)">${a.gaPerGame}</div><div class="k">Ag / game</div></div>
+        <div class="srr-glass srr-tile"><div class="v">${a.shootingPct}</div><div class="k">Shooting %</div></div>
+      </div>
+      <div class="srr-kicker" style="margin-top:20px;">${goalsKicker}</div>
+      <div class="srr-mt-auto"></div>
+    </div>${_srrFoot(_srrCounter(3))}</section>`;
+
+  // Card 4: Territory (shot-share donut)
+  const circ = 2 * Math.PI * 52;
+  const off = circ * (1 - a.shotShare / 100);
+  const territory = `<section class="srr-card">${_srrBg()}<div class="srr-body">
+      <div class="srr-eyebrow">Territory</div>
+      <div class="srr-kicker" style="margin-top:6px;">Who controlled the shot clock.</div>
+      <div style="display:flex; justify-content:center; margin-top:14px;">
+        <svg width="200" height="200" viewBox="0 0 120 120">
+          <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="13"/>
+          <circle cx="60" cy="60" r="52" style="fill:none; stroke:var(--ice)" stroke-width="13" stroke-linecap="round" stroke-dasharray="${circ.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 60 60)"/>
+          <text x="60" y="57" text-anchor="middle" font-family="Saira Semi Condensed" font-weight="900" font-size="34" style="fill:var(--ink-ice)">${a.shotShare}%</text>
+          <text x="60" y="74" text-anchor="middle" font-family="Hanken Grotesk" font-weight="700" font-size="8.5" letter-spacing="1.5" style="fill:var(--muted2-ice)">SHOT SHARE</text>
+        </svg>
+      </div>
+      <div class="srr-legend">
+        <div><i style="background:var(--ice)"></i>${a.totalSF} shots for</div>
+        <div><i style="background:rgba(255,255,255,.18)"></i>${a.totalSA} against</div>
+      </div>
+      <div class="srr-tiles" style="margin-top:22px;">
+        <div class="srr-glass srr-tile"><div class="v" style="color:var(--ice)">${a.teamSvPct}</div><div class="k">Team SV %</div></div>
+        <div class="srr-glass srr-tile"><div class="v">${a.shootingPct}</div><div class="k">Shooting %</div></div>
+        <div class="srr-glass srr-tile"><div class="v" style="color:${_srrWinColor(a.shotDiff)}">${_srrSigned(a.shotDiff)}</div><div class="k">Shot Diff</div></div>
+      </div>
+      <div class="srr-mt-auto"></div>
+    </div>${_srrFoot(_srrCounter(4))}</section>`;
+
+  // Card 5: The Climb (Team Rating trend)
+  const clip = _srrClimbPath(a.tmTrend);
+  let climbChart;
+  if(clip){
+    climbChart = `<svg width="100%" height="130" viewBox="0 0 300 130" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="srrClimbStroke" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#F4A627"/><stop offset="1" stop-color="#1FB880"/></linearGradient>
+          <linearGradient id="srrClimbFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(31,184,128,.30)"/><stop offset="1" stop-color="rgba(31,184,128,0)"/></linearGradient>
+        </defs>
+        <line x1="0" y1="98" x2="300" y2="98" stroke="rgba(255,255,255,.08)" stroke-width="1"/>
+        <line x1="0" y1="60" x2="300" y2="60" stroke="rgba(255,255,255,.08)" stroke-width="1"/>
+        <line x1="0" y1="22" x2="300" y2="22" stroke="rgba(255,255,255,.08)" stroke-width="1"/>
+        <path d="${clip.area}" fill="url(#srrClimbFill)"/>
+        <path d="${clip.line}" fill="none" stroke="url(#srrClimbStroke)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="${clip.lastX}" cy="${clip.lastY}" r="5" fill="#1FB880"/>
+      </svg>
+      <div style="display:flex; justify-content:space-between; margin-top:4px;">
+        <span class="srr-muted" style="font-size:11px;">Game 1 · ${_srrDash(a.startTM)}</span>
+        <span class="srr-muted" style="font-size:11px;">Game ${a.tmTrend.length} · ${_srrDash(a.endTM)}</span>
+      </div>`;
+  } else {
+    climbChart = `<div class="srr-muted" style="font-size:13px; padding:8px 2px;">Not enough rated games yet to chart the climb.</div>`;
+  }
+  let climbKicker = '';
+  if(a.climbDelta != null){
+    if(a.climbDelta > 0) climbKicker = `The team finished ${a.climbDelta} point${a.climbDelta === 1 ? '' : 's'} stronger than it started.`;
+    else if(a.climbDelta < 0) climbKicker = `The team finished ${-a.climbDelta} point${-a.climbDelta === 1 ? '' : 's'} below where it started.`;
+    else climbKicker = 'The team finished right where it started.';
+  }
+  const climb = `<section class="srr-card gold">${_srrBg()}<div class="srr-body">
+      <div class="srr-eyebrow">The Climb</div>
+      <div class="srr-kicker" style="margin-top:6px;">Your Team Rating, game by game.</div>
+      <div style="display:flex; align-items:flex-end; gap:16px; margin-top:14px;">
+        <div><div class="srr-display srr-num-md" style="font-size:60px;">${_srrDash(a.avgTM)}</div><div class="k" style="font-size:11px; font-weight:700; letter-spacing:.6px; color:var(--muted2-ice); text-transform:uppercase;">Season Avg${a.avgTMGrade ? ' · ' + a.avgTMGrade : ''}</div></div>
+        <div style="margin-bottom:8px;"><div class="srr-display" style="font-size:30px; color:var(--warn-ice);">${_srrDash(a.peakTM)}</div><div class="srr-muted" style="font-size:11px; font-weight:700; letter-spacing:.6px; text-transform:uppercase;">Peak${a.peakTMGrade ? ' · ' + a.peakTMGrade : ''}</div></div>
+      </div>
+      <div class="srr-glass" style="margin-top:16px; padding:16px 14px 12px;">${climbChart}</div>
+      ${climbKicker ? `<div class="srr-kicker" style="margin-top:18px;">${climbKicker}</div>` : ''}
+      <div class="srr-mt-auto"></div>
+    </div>${_srrFoot(_srrCounter(5))}</section>`;
+
+  // Card 6: Between the Pipes (per-goalie, jersey numbers only)
+  let goalieBlock;
+  if(a.hasGoalieData){
+    const rows = a.goalieRows.map(r =>
+      `<tr><td><span class="srr-jersey">${escapeHTML(r.label)}</span></td><td>${r.gp}</td><td>${r.svPct}</td><td>${r.so}</td><td>${r.bigSaves}</td></tr>`
+    ).join('');
+    goalieBlock = `<div class="srr-glass" style="margin-top:16px; padding:6px 16px 10px;">
+        <table class="srr-gtable">
+          <tr><th>Goalie</th><th>GP</th><th>SV%</th><th>SO</th><th>Big Saves</th></tr>
+          ${rows}
+        </table>
+        <div class="srr-muted" style="font-size:10.5px; margin-top:8px; letter-spacing:.3px;">Jersey numbers only. This recap never shows player names.</div>
+      </div>`;
+  } else {
+    goalieBlock = `<div class="srr-glass" style="margin-top:16px; padding:14px 16px;">
+        <div class="srr-muted" style="font-size:12.5px;">No per-goalie tracking in these games. Team totals shown above.</div>
+      </div>`;
+  }
+  const pipes = `<section class="srr-card">${_srrBg()}<div class="srr-body">
+      <div class="srr-eyebrow">Between the Pipes</div>
+      <div class="srr-mt-auto"></div>
+      <div style="display:flex; align-items:baseline; gap:14px;">
+        <div class="srr-display srr-num-md srr-grad-ice">${_srrDash(a.avgGK)}</div>
+        <div><div class="srr-muted" style="font-size:12px; font-weight:700; letter-spacing:.6px; text-transform:uppercase;">Goalie Rating${a.avgGKGrade ? ' · ' + a.avgGKGrade : ''}</div>
+          <div style="font-size:13px; color:var(--muted-ice); margin-top:2px;">across the crease</div></div>
+      </div>
+      <div class="srr-tiles" style="margin-top:18px;">
+        <div class="srr-glass srr-tile"><div class="v" style="color:var(--ice)">${a.teamSvPct}</div><div class="k">Save %</div></div>
+        <div class="srr-glass srr-tile"><div class="v">${a.teamHdSvPct}</div><div class="k">High-Danger SV%</div></div>
+        <div class="srr-glass srr-tile"><div class="v" style="color:var(--win)">${a.shutouts}</div><div class="k">Shutouts</div></div>
+      </div>
+      ${goalieBlock}
+      <div class="srr-mt-auto"></div>
+    </div>${_srrFoot(_srrCounter(6))}</section>`;
+
+  // Card 7: The Wrap
+  let bestNightHTML = '';
+  if(a.bestNight){
+    const bn = a.bestNight;
+    bestNightHTML = `<div class="srr-glass" style="margin-top:18px; padding:15px 16px;">
+        <div class="srr-eyebrow" style="color:var(--warn-ice); letter-spacing:1.6px;">Best Night</div>
+        <div class="srr-peakline" style="margin-top:8px;"><b style="font-family:var(--display); font-size:26px;">${escapeHTML(bn.scoreStr)}</b> <span>${bn.opponent ? 'vs ' + escapeHTML(bn.opponent) + ' · ' : ''}Team Rating <b>${bn.rating}${bn.grade ? ' · ' + bn.grade : ''}</b></span></div>
+      </div>`;
+  }
+  const wrapMeta = (a.level ? escapeHTML(a.level) + ' · ' : '') + escapeHTML(a.seasonLabel) + ' · ' + a.n + ' games';
+  const diffAttr = a.goalDiff >= 0 ? ' class="srr-grad-win"' : ' style="color:var(--them)"';
+  const wrap = `<section class="srr-card win">${_srrBg()}<div class="srr-body">
+      <img class="srr-lockup srr-lockup-lg" src="/assets/brand/lockup-light-1000.webp" alt="Smart Team Tracker" onerror="this.style.display='none'">
+      <div style="margin-top:20px;"><span class="srr-stamp">${checkSvg}Season Complete</span></div>
+      <div class="srr-display" style="font-size:32px; margin-top:20px; line-height:1;">${escapeHTML(a.teamName)}</div>
+      <div class="srr-muted" style="font-size:14px; margin-top:6px;">${wrapMeta}</div>
+      <div style="display:flex; gap:10px; margin-top:22px; flex-wrap:wrap;">
+        <div class="srr-chip"><b class="srr-grad-win">${escapeHTML(a.recordStr)}</b><span>Record</span></div>
+        <div class="srr-chip"><b>${_srrDash(a.avgTM)}</b><span>Team Rating</span></div>
+        <div class="srr-chip"><b${diffAttr}>${_srrSigned(a.goalDiff)}</b><span>Goal Diff</span></div>
+      </div>
+      ${bestNightHTML}
+      <button class="srr-donebtn" id="srrDone" type="button">${checkSvg}Done</button>
+    </div>${_srrFoot('<span class="srr-swipe">smartteamtracker.app</span>')}</section>`;
+
+  return cover + record + goals + territory + climb + pipes + wrap;
+}
+
+function openSeasonRecap(agg){
+  if(!agg || agg.n < SEASON_RECAP_MIN_GAMES){
+    showStatusToast('Need at least ' + SEASON_RECAP_MIN_GAMES + ' games for Season in Review.', 'warn', 3200);
+    return;
+  }
+  const overlay = $('seasonRecapOverlay');
+  const deck = $('srrDeck');
+  const progress = $('srrProgress');
+  deck.innerHTML = buildSeasonRecapCards(agg);
+  const count = deck.children.length;
+  let bars = '';
+  for(let i = 0; i < count; i++) bars += '<i' + (i === 0 ? ' class="cur"' : '') + '></i>';
+  progress.innerHTML = bars;
+  overlay.classList.add('srr-open');
+  overlay.setAttribute('aria-hidden', 'false');
+  _seasonRecapPrevOverflow = document.body.style.overflow;
+  document.body.style.overflow = 'hidden';
+  deck.scrollLeft = 0;
+}
+
+function closeSeasonRecap(){
+  const overlay = $('seasonRecapOverlay');
+  if(!overlay) return;
+  overlay.classList.remove('srr-open');
+  overlay.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = _seasonRecapPrevOverflow || '';
+}
+
+// Offered automatically after a season is archived (>= min games).
+async function maybeOfferSeasonRecap(seasonName, archivedCount){
+  if((Number(archivedCount) || 0) < SEASON_RECAP_MIN_GAMES) return;
+  const ok = await showConfirm(`Season archived as ${seasonName}. View your Season in Review?`);
+  if(!ok) return;
+  try{
+    const games = await fetchScopedGames(500, seasonName);
+    const team = getActiveTeamSafe();
+    const agg = aggregateSeasonRecap(games, {
+      scope: seasonName,
+      seasonLabel: seasonName,
+      teamName: (team && team.name) || 'Your Team',
+      level: (team && team.level) || (games[0] && games[0].data && games[0].data.Level) || ''
+    });
+    openSeasonRecap(agg);
+  }catch(e){
+    console.error('Season in Review load failed:', e);
+    showStatusToast('Could not open Season in Review', 'error', 3000);
+  }
+}
+
+// Wire the overlay's static controls once (deck/progress/close/escape live in
+// index.html; card content is injected per open).
+(function initSeasonRecap(){
+  const overlay = document.getElementById('seasonRecapOverlay');
+  if(!overlay) return;
+  const deck = document.getElementById('srrDeck');
+  const progress = document.getElementById('srrProgress');
+  deck.addEventListener('scroll', function(){
+    const bars = progress.children;
+    if(!bars.length) return;
+    const idx = Math.round(deck.scrollLeft / (deck.clientWidth || 1));
+    for(let i = 0; i < bars.length; i++){
+      bars[i].className = i < idx ? 'on' : (i === idx ? 'cur' : '');
+    }
+  }, { passive: true });
+  const closeBtn = document.getElementById('srrClose');
+  if(closeBtn) closeBtn.addEventListener('click', closeSeasonRecap);
+  overlay.addEventListener('click', function(e){ if(e.target === overlay) closeSeasonRecap(); });
+  deck.addEventListener('click', function(e){ if(e.target.closest('#srrDone')) closeSeasonRecap(); });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && overlay.classList.contains('srr-open')) closeSeasonRecap();
+  });
+})();
 
 /* ===== Live Spectator Sharing ===== */
 

@@ -4610,3 +4610,170 @@ body:not(.in-game) .event-ticker{ display:none; }
 /* Roster editor can be launched over the team modal (both are .modal @9999);
    lift it so it stacks above, while the confirm overlay (10001) still wins. */
 #rosterModal{ z-index:10000; }
+
+/* ==========================================================================
+ * Season in Review (P6.3): swipeable premium recap card-stack.
+ * Full-screen overlay; dark "Ice" language matching design/season-recap-mockup.html.
+ * All rules scoped under #seasonRecapOverlay and prefixed .srr- to avoid
+ * collisions with the app's generic .card/.tile/.glass/.chip classes.
+ * ======================================================================== */
+#seasonRecapOverlay{
+  position:fixed; inset:0; z-index:12000; display:none;
+  background:radial-gradient(1200px 700px at 50% -10%, #0c141d 0%, transparent 60%), #02040a;
+  color:var(--ink-ice); font-family:var(--ui);
+  -webkit-font-smoothing:antialiased;
+}
+#seasonRecapOverlay.srr-open{ display:block; }
+
+/* deck */
+#seasonRecapOverlay .srr-deck{
+  display:flex; height:100%; width:100%; overflow-x:auto; overflow-y:hidden;
+  scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; scrollbar-width:none;
+}
+#seasonRecapOverlay .srr-deck::-webkit-scrollbar{ display:none; }
+#seasonRecapOverlay .srr-card{
+  position:relative; flex:0 0 100%; width:100%; height:100%;
+  scroll-snap-align:center; overflow:hidden; display:flex; flex-direction:column;
+}
+
+/* card background layers */
+#seasonRecapOverlay .srr-bg{ position:absolute; inset:0; z-index:0; pointer-events:none; }
+#seasonRecapOverlay .srr-tex{ position:absolute; inset:0;
+  background-image:url("/assets/brand/ice-texture-dark-1920.webp");
+  background-size:cover; background-position:center; opacity:.5; mix-blend-mode:screen; }
+#seasonRecapOverlay .srr-scrim{ position:absolute; inset:0;
+  background:linear-gradient(180deg, rgba(3,6,12,.4), rgba(3,6,12,.88)); }
+#seasonRecapOverlay .srr-bloom{ position:absolute; left:50%; top:-120px; width:520px; height:420px;
+  transform:translateX(-50%); filter:blur(18px); opacity:.5;
+  background:radial-gradient(circle, rgba(23,182,200,.5), transparent 62%); }
+#seasonRecapOverlay .srr-card.win .srr-bloom{ background:radial-gradient(circle, rgba(31,184,128,.5), transparent 62%); }
+#seasonRecapOverlay .srr-card.gold .srr-bloom{ background:radial-gradient(circle, rgba(244,166,39,.42), transparent 62%); }
+#seasonRecapOverlay .srr-scrapes{ position:absolute; inset:0; opacity:.5;
+  background:repeating-linear-gradient(64deg, transparent 0 30px, rgba(120,160,190,0.035) 30px 31px),
+             repeating-linear-gradient(-58deg, transparent 0 44px, rgba(120,160,190,0.03) 44px 45px); }
+#seasonRecapOverlay .srr-vig{ position:absolute; inset:0;
+  background:radial-gradient(120% 80% at 50% 40%, transparent 55%, rgba(0,0,0,.5)); }
+
+/* story progress bar (shared, top of overlay) */
+#seasonRecapOverlay .srr-progress{ position:absolute; top:16px; left:16px; right:60px; z-index:30;
+  display:flex; gap:5px; }
+#seasonRecapOverlay .srr-progress i{ flex:1; height:3px; border-radius:99px;
+  background:rgba(255,255,255,.22); overflow:hidden; }
+#seasonRecapOverlay .srr-progress i.on{ background:rgba(255,255,255,.9); }
+#seasonRecapOverlay .srr-progress i.cur{ background:rgba(255,255,255,.9); }
+
+/* close button */
+#seasonRecapOverlay .srr-close{ position:absolute; top:10px; right:12px; z-index:40;
+  width:38px; height:38px; border-radius:99px; border:1px solid var(--line-ice);
+  background:rgba(9,14,24,0.55); color:var(--ink-ice); display:flex; align-items:center;
+  justify-content:center; cursor:pointer; backdrop-filter:blur(6px); }
+#seasonRecapOverlay .srr-close svg{ width:18px; height:18px; }
+
+/* content wrapper */
+#seasonRecapOverlay .srr-body{ position:relative; z-index:10; flex:1; display:flex;
+  flex-direction:column; padding:52px 24px 22px; }
+#seasonRecapOverlay .srr-foot{ position:relative; z-index:10; padding:0 24px 22px;
+  display:flex; align-items:center; justify-content:space-between; }
+#seasonRecapOverlay .srr-foot .srr-brand{ font-family:var(--display); font-weight:800; font-size:12px;
+  letter-spacing:1.4px; color:var(--muted2-ice); text-transform:uppercase; }
+#seasonRecapOverlay .srr-swipe{ font-size:11px; color:var(--muted2-ice); letter-spacing:.4px;
+  display:flex; align-items:center; gap:6px; }
+#seasonRecapOverlay .srr-swipe svg{ width:14px; height:14px; opacity:.8; }
+
+#seasonRecapOverlay .srr-eyebrow{ font-weight:800; font-size:11.5px; letter-spacing:2.6px;
+  text-transform:uppercase; color:var(--ice); }
+#seasonRecapOverlay .srr-card.win .srr-eyebrow{ color:var(--win); }
+#seasonRecapOverlay .srr-card.gold .srr-eyebrow{ color:var(--warn-ice); }
+#seasonRecapOverlay .srr-kicker{ font-weight:700; font-size:13px; letter-spacing:.3px; color:var(--muted-ice); }
+#seasonRecapOverlay .srr-muted{ color:var(--muted2-ice); }
+#seasonRecapOverlay .srr-mt-auto{ margin-top:auto; }
+
+#seasonRecapOverlay .srr-display{ font-family:var(--display); font-weight:900; line-height:.92; letter-spacing:-.5px; }
+#seasonRecapOverlay .srr-num-lg{ font-size:80px; }
+#seasonRecapOverlay .srr-num-md{ font-size:56px; }
+#seasonRecapOverlay .srr-grad-ice{ background:linear-gradient(180deg,#eafaff,#7fe3ef 60%,var(--ice));
+  -webkit-background-clip:text; background-clip:text; color:transparent; }
+#seasonRecapOverlay .srr-grad-win{ background:linear-gradient(180deg,#e7fff4,#5fe0b2 55%,var(--win));
+  -webkit-background-clip:text; background-clip:text; color:transparent; }
+
+/* premium pill */
+#seasonRecapOverlay .srr-prem{ display:inline-flex; align-items:center; gap:6px; font-weight:800;
+  font-size:10.5px; letter-spacing:1.8px; text-transform:uppercase; color:#0a1a1d;
+  padding:5px 11px 5px 9px; border-radius:99px;
+  background:linear-gradient(90deg,#7fe3ef,var(--ice)); box-shadow:0 6px 18px rgba(23,182,200,.35); }
+#seasonRecapOverlay .srr-prem svg{ width:12px; height:12px; }
+
+/* glass tile */
+#seasonRecapOverlay .srr-glass{ position:relative; overflow:hidden; background:rgba(9,14,24,0.55);
+  border:1px solid var(--line-ice); border-radius:var(--radius-xl);
+  box-shadow:0 18px 44px rgba(6,12,22,.45), inset 0 1px 0 rgba(255,255,255,.12); backdrop-filter:blur(6px); }
+
+/* stat tiles */
+#seasonRecapOverlay .srr-tiles{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:9px; }
+#seasonRecapOverlay .srr-tile{ padding:14px 8px 13px; text-align:center; }
+#seasonRecapOverlay .srr-tile .v{ font-family:var(--display); font-weight:800; font-size:28px;
+  color:var(--ink-ice); line-height:1; }
+#seasonRecapOverlay .srr-tile .k{ font-size:10px; font-weight:700; letter-spacing:.5px;
+  color:var(--muted2-ice); text-transform:uppercase; margin-top:7px; }
+
+/* result dots */
+#seasonRecapOverlay .srr-dots{ display:flex; gap:6px; flex-wrap:wrap; }
+#seasonRecapOverlay .srr-dot{ width:26px; height:26px; border-radius:8px; display:flex; align-items:center;
+  justify-content:center; font-family:var(--display); font-weight:800; font-size:13px; color:#04120c; }
+#seasonRecapOverlay .srr-dot.w{ background:linear-gradient(180deg,#2fe39a,var(--win)); }
+#seasonRecapOverlay .srr-dot.l{ background:linear-gradient(180deg,#f0616f,var(--them)); color:#2a0a0d; }
+#seasonRecapOverlay .srr-dot.t{ background:linear-gradient(180deg,#ffcf6b,var(--warn-ice)); color:#2a1c04; }
+
+/* goals split bar */
+#seasonRecapOverlay .srr-split{ border-radius:14px; overflow:hidden; display:flex; height:64px;
+  border:1px solid var(--line-ice); }
+#seasonRecapOverlay .srr-split .for{ background:linear-gradient(90deg,rgba(31,184,128,.25),rgba(31,184,128,.6));
+  display:flex; align-items:center; padding-left:16px; gap:10px; min-width:0; }
+#seasonRecapOverlay .srr-split .ag{ background:linear-gradient(90deg,rgba(219,59,75,.55),rgba(219,59,75,.22));
+  display:flex; align-items:center; justify-content:flex-end; padding-right:16px; gap:10px; min-width:0; }
+#seasonRecapOverlay .srr-split b{ font-family:var(--display); font-weight:900; font-size:32px; color:#fff; line-height:1; }
+#seasonRecapOverlay .srr-split span{ font-size:11px; font-weight:700; letter-spacing:1px;
+  text-transform:uppercase; color:rgba(255,255,255,.85); }
+
+/* legend */
+#seasonRecapOverlay .srr-legend{ display:flex; gap:18px; margin-top:14px; justify-content:center; }
+#seasonRecapOverlay .srr-legend div{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted-ice); }
+#seasonRecapOverlay .srr-legend i{ width:11px; height:11px; border-radius:3px; display:inline-block; }
+
+/* goalie table (numbers only) */
+#seasonRecapOverlay .srr-gtable{ width:100%; border-collapse:collapse; margin-top:4px; }
+#seasonRecapOverlay .srr-gtable th{ font-size:10px; font-weight:800; letter-spacing:.8px; text-transform:uppercase;
+  color:var(--muted2-ice); text-align:right; padding:8px 5px; border-bottom:1px solid var(--line-soft); }
+#seasonRecapOverlay .srr-gtable th:first-child{ text-align:left; }
+#seasonRecapOverlay .srr-gtable td{ font-size:14px; padding:11px 5px; text-align:right; color:var(--ink-ice);
+  border-bottom:1px solid var(--line-soft); }
+#seasonRecapOverlay .srr-gtable td:first-child{ text-align:left; }
+#seasonRecapOverlay .srr-jersey{ font-family:var(--display); font-weight:800; color:var(--ice); }
+
+/* wrap card bits */
+#seasonRecapOverlay .srr-stamp{ display:inline-flex; align-items:center; gap:9px; padding:9px 16px; border-radius:99px;
+  border:1.5px solid var(--win); color:var(--win); font-family:var(--display); font-weight:800; font-size:13px;
+  letter-spacing:2px; text-transform:uppercase; background:var(--win-tint); }
+#seasonRecapOverlay .srr-chip{ display:inline-flex; align-items:baseline; gap:7px; padding:10px 15px; border-radius:14px;
+  background:var(--fill-1); border:1px solid var(--line-soft); }
+#seasonRecapOverlay .srr-chip b{ font-family:var(--display); font-weight:900; font-size:24px; color:var(--ink-ice); line-height:1; }
+#seasonRecapOverlay .srr-chip span{ font-size:11px; font-weight:700; letter-spacing:.6px; text-transform:uppercase; color:var(--muted2-ice); }
+#seasonRecapOverlay .srr-peakline{ display:flex; align-items:center; gap:10px; font-size:13px; color:var(--muted-ice); flex-wrap:wrap; }
+#seasonRecapOverlay .srr-peakline b{ color:var(--ink-ice); font-weight:700; }
+
+/* done button (share export deferred; see js/app.js openSeasonRecap) */
+#seasonRecapOverlay .srr-donebtn{ margin-top:auto; display:flex; align-items:center; justify-content:center; gap:10px;
+  padding:16px; border-radius:16px; font-family:var(--display); font-weight:800; font-size:16px; letter-spacing:.6px;
+  text-transform:uppercase; color:#04191d; border:none; cursor:pointer; width:100%;
+  background:linear-gradient(90deg,#7fe3ef,var(--ice)); box-shadow:0 14px 34px rgba(23,182,200,.4); }
+#seasonRecapOverlay .srr-donebtn svg{ width:19px; height:19px; }
+
+#seasonRecapOverlay .srr-lockup{ height:30px; width:auto; opacity:.95; }
+#seasonRecapOverlay .srr-lockup-lg{ height:42px; }
+
+/* entry-point button in the Season Dashboard panel */
+.season-review-cta{ display:flex; align-items:center; justify-content:center; gap:9px; width:100%;
+  padding:14px; margin-bottom:12px; border:none; cursor:pointer; border-radius:var(--radius-md);
+  font-family:var(--display); font-weight:800; font-size:15px; letter-spacing:.5px; text-transform:uppercase;
+  color:#04191d; background:linear-gradient(90deg,#7fe3ef,var(--ice)); box-shadow:0 10px 26px rgba(23,182,200,.32); }
+.season-review-cta svg{ width:18px; height:18px; }

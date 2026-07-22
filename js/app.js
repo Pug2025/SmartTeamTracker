@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.4.10';
+const APP_VERSION = '6.4.11';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -3355,6 +3355,17 @@ function clearCheckoutParam(){
     history.replaceState(null, '', url.pathname + url.search + url.hash);
   }catch(_){}
 }
+function showPremiumWelcome(){
+  const m = $('premiumWelcomeModal');
+  if(!m){
+    // Fallback if the modal markup is ever missing.
+    showStatusToast('Premium unlocked.', 'success', 3200);
+    return;
+  }
+  m.style.display = 'flex';
+}
+window.showPremiumWelcome = showPremiumWelcome;
+
 async function maybeHandleCheckoutReturn(){
   if(_checkoutReturnHandled) return;
   let co = null;
@@ -3383,7 +3394,7 @@ async function maybeHandleCheckoutReturn(){
   clearCheckoutParam();
 
   if(premium){
-    showStatusToast('Premium unlocked. Enjoy your full season!', 'success', 3200);
+    showPremiumWelcome();
     refreshSeasonPanelIfOpen().catch(()=>{});
     refreshHistoryPanelIfOpen().catch(()=>{});
     refreshPlayerStatsPanelIfOpen().catch(()=>{});
@@ -3405,6 +3416,10 @@ window.maybeHandleCheckoutReturn = maybeHandleCheckoutReturn;
   if(acct) acct.onclick = function(){ startCheckout(); };
   const pm = $('paywallModal');
   if(pm) pm.addEventListener('click', function(e){ if(e.target === pm) closePaywall(); });
+  const pwmClose = $('premiumWelcomeClose');
+  const pwm = $('premiumWelcomeModal');
+  if(pwmClose) pwmClose.onclick = function(){ if(pwm) pwm.style.display = 'none'; };
+  if(pwm) pwm.addEventListener('click', function(e){ if(e.target === pwm) pwm.style.display = 'none'; });
   // Delegated: inline paywall cards injected into panels share one handler.
   document.addEventListener('click', function(e){
     const cta = e.target.closest && e.target.closest('[data-paywall-cta]');
@@ -4406,6 +4421,17 @@ window.onAuthReady = (user) => {
   invalidateSetupGamesCache();
   setupOpponentsLoadToken += 1;
   refreshTeamUI();
+  // First-run orientation: show the how-it-works modal once, now that the user
+  // is actually in the app (moved here from the pre-login landing flow). Skip
+  // during a checkout return so it never stacks on the activation flow.
+  try {
+    const inCheckout = !!new URLSearchParams(location.search).get('checkout');
+    if(!inCheckout && !window.__spectatorMode
+       && typeof window.hasSeenWelcomeModal === 'function' && !window.hasSeenWelcomeModal()
+       && typeof window.showWelcomeModal === 'function'){
+      window.showWelcomeModal();
+    }
+  } catch(_){}
   // Resolve premium state first, then refresh any open gated panels so they
   // render with the correct entitlement, and handle a checkout return.
   refreshEntitlement().catch(() => {}).finally(() => {

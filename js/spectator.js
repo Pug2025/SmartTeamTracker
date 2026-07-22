@@ -46,6 +46,8 @@
     const appShell = $('appShell');
     const specView = $('spectatorView');
 
+    const bootSplash = $('bootSplash');
+    if (bootSplash) bootSplash.style.display = 'none';
     if (authScreen) authScreen.style.display = 'none';
     if (appShell) appShell.style.display = 'none';
     if (specView) specView.style.display = 'flex';

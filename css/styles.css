@@ -2476,6 +2476,7 @@
     top:60px;
     left:50%;
     transform:translateX(-50%);
+    text-align:center;
     padding:10px 20px;
     border-radius:var(--radius-md);
     font-size:var(--fs-13);
@@ -3786,6 +3787,56 @@
   animation:activating-spin 0.8s linear infinite;
 }
 @keyframes activating-spin { to { transform:rotate(360deg); } }
+
+/* Premium unlocked: welcome moment after checkout */
+.box.premium-welcome{ text-align:center; padding-top:24px; }
+.premium-welcome-badge{
+  width:64px;
+  height:64px;
+  margin:2px auto 16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:32px;
+  font-weight:800;
+  color:#fff;
+  background:linear-gradient(145deg, var(--ice), var(--ice-deep));
+  border-radius:var(--radius-full);
+  box-shadow:0 8px 22px rgba(23,182,200,.35), var(--shadow-2);
+}
+.premium-welcome-title{
+  font-size:var(--fs-17);
+  font-weight:800;
+  color:var(--ink-ice);
+  margin:0 0 8px;
+  letter-spacing:0.2px;
+}
+.premium-welcome-sub{
+  font-size:var(--fs-13);
+  color:var(--muted-ice);
+  line-height:1.5;
+  margin:0 auto 18px;
+  max-width:34ch;
+}
+.premium-welcome-cta{ min-width:200px; }
+
+/* Boot splash: holds the first paint on the brand mark until auth resolves,
+   so the app never flashes the wrong screen (app/login/landing) on load. */
+#bootSplash{
+  position:fixed;
+  inset:0;
+  z-index:6000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:32px;
+  background:var(--surface-0);
+}
+#bootSplash img{
+  width:min(70vw, 320px);
+  height:auto;
+  opacity:0.97;
+}
 
 /* Period-end flash summary */
 .period-flash{

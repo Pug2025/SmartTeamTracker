@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
-<link rel="manifest" href="manifest.json?v=6.4.10">
+<link rel="manifest" href="manifest.json?v=6.4.11">
 <link rel="icon" href="favicon.ico" sizes="48x48">
 <link rel="icon" href="icon-192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -16,8 +16,8 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Smart Team Tracker">
 <meta property="og:url" content="https://smartteamtracker.vercel.app/">
-<meta property="og:image" content="https://smartteamtracker.vercel.app/assets/share/og-landing-1200x630.png?v=6.4.10">
-<meta property="og:image:secure_url" content="https://smartteamtracker.vercel.app/assets/share/og-landing-1200x630.png?v=6.4.10">
+<meta property="og:image" content="https://smartteamtracker.vercel.app/assets/share/og-landing-1200x630.png?v=6.4.11">
+<meta property="og:image:secure_url" content="https://smartteamtracker.vercel.app/assets/share/og-landing-1200x630.png?v=6.4.11">
 <meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -25,17 +25,21 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Smart Team Tracker">
 <meta name="twitter:description" content="Live hockey stat tracking for coaches and parents.">
-<meta name="twitter:image" content="https://smartteamtracker.vercel.app/assets/share/og-landing-1200x630.png?v=6.4.10">
+<meta name="twitter:image" content="https://smartteamtracker.vercel.app/assets/share/og-landing-1200x630.png?v=6.4.11">
 <title>Smart Team Tracker — Live Hockey Stats</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@700;800;900&family=Hanken+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=6.4.10">
-<link rel="stylesheet" href="css/auth.css?v=6.4.10">
+<link rel="stylesheet" href="css/styles.css?v=6.4.11">
+<link rel="stylesheet" href="css/auth.css?v=6.4.11">
 </head>
 <body>
 
 <!-- Landing Page (shown to unauthenticated visitors) -->
+<div id="bootSplash" aria-hidden="true">
+  <img src="assets/brand/lockup-dark-640.webp" alt="" width="640" height="141" decoding="async">
+</div>
+
 <div id="landingPage" class="landing-page" style="display:none;">
 
   <!-- Hero (P2.5: wrapper is unstyled below 900px so mobile is unchanged;
@@ -565,7 +569,7 @@
 </div>
 
 <!-- App Shell (hidden until authenticated) -->
-<div id="appShell">
+<div id="appShell" style="display:none;">
 
 <!-- Sticky Header -->
 <header class="sticky-header">
@@ -1372,6 +1376,14 @@
   <div class="activating-spinner" aria-hidden="true"></div>
 </div></div>
 
+<!-- Checkout return: premium unlocked welcome -->
+<div class="modal" id="premiumWelcomeModal"><div class="box premium-welcome">
+  <div class="premium-welcome-badge" aria-hidden="true">✓</div>
+  <h3 class="premium-welcome-title">You're Premium</h3>
+  <p class="premium-welcome-sub">Your full season is unlocked. Complete game history, the Season in Review recap, per goalie stats, and CSV and JSON export are yours now.</p>
+  <button class="btn-std btn-primary-sm premium-welcome-cta" id="premiumWelcomeClose">Close</button>
+</div></div>
+
 <!-- Help Modal (? button) -->
 <div class="modal" id="helpModal"><div class="box help-box">
   <div class="modal-head-lg">
@@ -1738,11 +1750,11 @@
   </div>
 </div>
 
-<script src="js/spectator.js?v=6.4.10"></script>
-<script type="module" src="js/auth.js?v=6.4.10"></script>
-<script src="js/teams.js?v=6.4.10"></script>
-<script src="js/share-card.js?v=6.4.10"></script>
-<script src="js/app.js?v=6.4.10"></script>
-<script src="js/install-prompt.js?v=6.4.10"></script>
+<script src="js/spectator.js?v=6.4.11"></script>
+<script type="module" src="js/auth.js?v=6.4.11"></script>
+<script src="js/teams.js?v=6.4.11"></script>
+<script src="js/share-card.js?v=6.4.11"></script>
+<script src="js/app.js?v=6.4.11"></script>
+<script src="js/install-prompt.js?v=6.4.11"></script>
 </body>
 </html>

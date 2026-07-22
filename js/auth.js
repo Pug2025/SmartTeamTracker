@@ -45,8 +45,23 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
+// Fail-safe: onAuthStateChanged should always fire, but if it somehow does not,
+// don't strand the user on the boot splash — fall open to the landing page.
+setTimeout(() => {
+  const s = document.getElementById('bootSplash');
+  if (s && s.style.display !== 'none' && !window.__spectatorMode) {
+    showLandingPage();
+  }
+}, 5000);
+
 /* ===== UI ===== */
+function hideBootSplash() {
+  const s = document.getElementById('bootSplash');
+  if (s) s.style.display = 'none';
+}
+
 function showLandingPage() {
+  hideBootSplash();
   const landing = document.getElementById('landingPage');
   const auth = document.getElementById('authScreen');
   const app = document.getElementById('appShell');
@@ -56,6 +71,7 @@ function showLandingPage() {
 }
 
 function showAuthForm() {
+  hideBootSplash();
   const landing = document.getElementById('landingPage');
   const auth = document.getElementById('authScreen');
   const app = document.getElementById('appShell');
@@ -65,20 +81,10 @@ function showAuthForm() {
 }
 
 function handleLandingGetStarted() {
-  // Hide the landing page first — it has a higher z-index than .modal,
-  // so the welcome modal would otherwise render underneath it and look like nothing happened.
-  const landing = document.getElementById('landingPage');
-  if (landing) landing.style.display = 'none';
-
-  const hasSeenWelcome = typeof window.hasSeenWelcomeModal === 'function'
-    ? window.hasSeenWelcomeModal()
-    : false;
-
-  if (!hasSeenWelcome && typeof window.showWelcomeModal === 'function') {
-    window.showWelcomeModal({ onDismiss: showAuthForm });
-    return;
-  }
-
+  // Straight to the sign-up / guest choice. The first-run welcome modal now
+  // fires on first entry INTO the app (see onAuthReady in app.js), not here, so
+  // tapping the CTA is never interrupted by onboarding before the user has even
+  // chosen to enter.
   showAuthForm();
 }
 
@@ -88,6 +94,7 @@ function showAuthScreen() {
 }
 
 function hideAuthScreen() {
+  hideBootSplash();
   const landing = document.getElementById('landingPage');
   const el = document.getElementById('authScreen');
   const app = document.getElementById('appShell');

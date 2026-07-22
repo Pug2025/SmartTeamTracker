@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
-<link rel="manifest" href="manifest.json?v=6.4.6">
+<link rel="manifest" href="manifest.json?v=6.4.7">
 <link rel="icon" href="favicon.ico" sizes="48x48">
 <link rel="icon" href="icon-192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -16,8 +16,8 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Smart Team Tracker">
 <meta property="og:url" content="https://smartteamtracker.vercel.app/">
-<meta property="og:image" content="https://smartteamtracker.vercel.app/assets/share/og-landing-1200x630.png?v=6.4.6">
-<meta property="og:image:secure_url" content="https://smartteamtracker.vercel.app/assets/share/og-landing-1200x630.png?v=6.4.6">
+<meta property="og:image" content="https://smartteamtracker.vercel.app/assets/share/og-landing-1200x630.png?v=6.4.7">
+<meta property="og:image:secure_url" content="https://smartteamtracker.vercel.app/assets/share/og-landing-1200x630.png?v=6.4.7">
 <meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -25,13 +25,13 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Smart Team Tracker">
 <meta name="twitter:description" content="Live hockey stat tracking for coaches and parents.">
-<meta name="twitter:image" content="https://smartteamtracker.vercel.app/assets/share/og-landing-1200x630.png?v=6.4.6">
+<meta name="twitter:image" content="https://smartteamtracker.vercel.app/assets/share/og-landing-1200x630.png?v=6.4.7">
 <title>Smart Team Tracker — Live Hockey Stats</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@700;800;900&family=Hanken+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=6.4.6">
-<link rel="stylesheet" href="css/auth.css?v=6.4.6">
+<link rel="stylesheet" href="css/styles.css?v=6.4.7">
+<link rel="stylesheet" href="css/auth.css?v=6.4.7">
 </head>
 <body>
 
@@ -39,19 +39,19 @@
 <div id="landingPage" class="landing-page" style="display:none;">
 
   <!-- Hero (P2.5: wrapper is unstyled below 900px so mobile is unchanged;
-       at >=900px it becomes a 2-col grid — copy/CTA left, mockup right) -->
+       at >=900px it becomes a 2-col grid, copy/CTA left, mockup right) -->
   <div class="landing-hero-wrap">
   <div class="landing-hero">
     <img class="landing-logo-img" src="assets/brand/lockup-dark-640.webp" alt="Smart Team Tracker" width="640" height="141" decoding="async">
     <h1 class="landing-headline">Know how your team<br>really played.</h1>
-    <p class="landing-sub">Live stat tracking that gives your team and goalie a consistent, context-aware performance score after every game. Built for coaches and hockey parents.</p>
+    <p class="landing-sub">Track shots, goals, and saves from the bench. After the game, your team and goalie each get a rating from 0 to 100 with the full breakdown. For hockey coaches and parents.</p>
     <button class="landing-cta" id="landingGetStarted">Get Started Free</button>
     <div class="landing-note">Free to use. No credit card required.</div>
   </div>
 
   <!-- Section: Game Summary -->
   <div class="landing-section">
-    <div class="landing-section-label">After every game, see exactly how your team performed</div>
+    <div class="landing-section-label">After the game, see how your team and goalie played.</div>
 
     <div class="landing-mockup">
       <!-- Summary header -->
@@ -197,9 +197,12 @@
   </div>
   </div><!-- /landing-hero-wrap -->
 
-  <!-- Section: Live Spectator View -->
-  <div class="landing-section">
-    <div class="landing-section-label">Send family a link. They follow along live from anywhere.</div>
+  <div class="divider"></div>
+
+  <!-- Section: Live Spectator View (elevated to position 3) -->
+  <div class="landing-section" style="padding-top:36px;">
+    <div class="landing-section-label">Send family a link. They watch the game live.</div>
+    <div class="landing-section-sub">A free, view-only link. Relatives open it in any browser and follow the score, shots, momentum, and every event as it happens. No app, no account.</div>
 
     <div class="landing-mockup landing-mockup-spectator">
       <div style="text-align:center; margin-bottom:10px;">
@@ -257,9 +260,45 @@
     </div>
   </div>
 
+  <div class="divider"></div>
+
+  <!-- Section: Share Recap Card (new) -->
+  <div class="landing-section" style="padding-top:36px;">
+    <div class="landing-section-label">Share the recap card after the game.<span class="new-pill">New</span></div>
+    <div class="landing-section-sub">The app builds an image with the final score, shots, save %, and Team Rating. Share it to your team chat or save it to your phone.</div>
+    <div class="recap-wrap">
+      <div class="recap-card">
+        <img class="recap-lockup" src="assets/brand/lockup-dark-640.webp" alt="Smart Team Tracker" decoding="async">
+        <div class="recap-final">FINAL</div>
+        <div class="recap-result">WIN</div>
+        <div class="recap-score"><span class="them">2</span><span class="dash"> &ndash; </span><span class="us">4</span></div>
+        <div class="recap-matchup">NAP vs US</div>
+        <div class="recap-meta">U11 &middot; Mar 8, 2026</div>
+        <div class="recap-stats">
+          <div class="recap-stat">
+            <div class="split"><span class="them">17</span> / <span class="us">29</span></div>
+            <div class="k">Shots</div>
+          </div>
+          <div class="recap-stat">
+            <div class="v">.882</div>
+            <div class="k">Save %</div>
+          </div>
+          <div class="recap-stat">
+            <div class="v" style="color:var(--ice-deep);">80<small>/100</small></div>
+            <div class="k">Team Rating</div>
+          </div>
+        </div>
+        <div class="recap-footer">LIVE HOCKEY STAT TRACKING</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
   <!-- Section: Tracking Interface -->
-  <div class="landing-section">
-    <div class="landing-section-label">Designed to be used rink-side. Just tap when things happen.</div>
+  <div class="landing-section" style="padding-top:36px;">
+    <div class="landing-section-label">Tap as it happens, rink-side.</div>
+    <div class="landing-section-sub">Two columns: red for the other team, blue for yours. Goals count as shots automatically.</div>
 
     <div class="landing-mockup">
       <div class="split-grid" style="pointer-events:none;">
@@ -298,13 +337,84 @@
           <div class="g-btn ctx h-md">Our Penalty</div>
         </div>
       </div>
-      <div class="landing-tracking-caption">Two columns. Red for what they do, blue for what we do. Goals auto-count as shots, context links up automatically.</div>
     </div>
   </div>
 
+  <div class="divider"></div>
+
+  <!-- Section: By Goalie (new) -->
+  <div class="landing-section" style="padding-top:36px;">
+    <div class="landing-section-label">Track more than one goalie.<span class="new-pill">New</span></div>
+    <div class="landing-section-sub">Pick who starts in net and switch mid-game. Every save and goal against is credited to the goalie who was in.</div>
+    <div class="landing-mockup">
+      <div style="font-size:11px; color:var(--muted2-ice); font-weight:700; margin-bottom:10px;">By Goalie &middot; season</div>
+      <table class="lgt-table">
+        <thead>
+          <tr><th>Goalie</th><th>GP</th><th>SV%</th><th>HD SV%</th><th>Reb</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="lgt-num">#31</span></td><td>8</td><td class="lgt-good">.918</td><td>.842</td><td>Good</td></tr>
+          <tr><td><span class="lgt-num">#1</span></td><td>5</td><td>.897</td><td>.800</td><td>Avg</td></tr>
+        </tbody>
+      </table>
+      <div class="lgt-note">Per goalie: save %, high-danger save %, rebound control, and soft-goal rate. Shown in each game summary and on the season dashboard.</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Section: Roster (new) reuses the real P6.2 roster-editor UI (.re-*) -->
+  <div class="landing-section" style="padding-top:36px;">
+    <div class="landing-section-label">Set your roster by jersey number.<span class="new-pill">New</span></div>
+    <div class="landing-section-sub">Add skaters and goalies as number chips. You can also add a player during a game.</div>
+    <div class="landing-mockup">
+      <div class="re-head">
+        <div>
+          <h3 class="re-title">Roster</h3>
+          <p class="re-sub">11 skaters &middot; 2 goalies</p>
+        </div>
+      </div>
+      <div class="re-add">
+        <div class="re-add-row">
+          <div class="re-num-wrap"><span class="re-hash">#</span><input class="re-input" value="22" readonly aria-hidden="true" tabindex="-1"></div>
+          <button class="re-addbtn" type="button" tabindex="-1">Add</button>
+        </div>
+        <div class="re-seg">
+          <button type="button" data-role="skater" class="on" tabindex="-1"><span class="re-dot"></span>Skater</button>
+          <button type="button" data-role="goalie" tabindex="-1"><span class="re-dot"></span>Goalie</button>
+        </div>
+      </div>
+      <div class="re-section">
+        <div class="re-section-head"><span class="re-section-title">Skaters</span><span class="re-count">11</span><span class="re-section-rule"></span></div>
+        <div class="re-grid">
+          <div class="re-jersey skater">7<span class="re-rm">&times;</span></div>
+          <div class="re-jersey skater">9<span class="re-rm">&times;</span></div>
+          <div class="re-jersey skater">12<span class="re-rm">&times;</span></div>
+          <div class="re-jersey skater">14<span class="re-rm">&times;</span></div>
+          <div class="re-jersey skater">16<span class="re-rm">&times;</span></div>
+          <div class="re-jersey skater">19<span class="re-rm">&times;</span></div>
+          <div class="re-jersey skater">21<span class="re-rm">&times;</span></div>
+          <div class="re-jersey skater">27<span class="re-rm">&times;</span></div>
+          <div class="re-jersey skater">44<span class="re-rm">&times;</span></div>
+          <div class="re-jersey skater">88<span class="re-rm">&times;</span></div>
+          <div class="re-jersey skater">91<span class="re-rm">&times;</span></div>
+        </div>
+      </div>
+      <div class="re-section">
+        <div class="re-section-head"><span class="re-section-title">Goalies</span><span class="re-count">2</span><span class="re-section-rule"></span></div>
+        <div class="re-grid">
+          <div class="re-jersey goalie">1<span class="re-rm">&times;</span></div>
+          <div class="re-jersey goalie">31<span class="re-rm">&times;</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
   <!-- Section: Season Stats -->
-  <div class="landing-section">
-    <div class="landing-section-label">Track your whole season. See trends over time.</div>
+  <div class="landing-section" style="padding-top:36px;">
+    <div class="landing-section-label">Track the whole season. See trends over time.</div>
 
     <div class="landing-mockup">
       <div class="landing-season-record">
@@ -336,179 +446,87 @@
     </div>
   </div>
 
-  <!-- Section: Player Stats -->
-  <div class="landing-section">
-    <div class="landing-section-label">Track every player across the season</div>
-
-    <div class="landing-mockup">
-      <div class="player-season-list">
-
-        <!-- Player 1 -->
-        <div class="player-season-row" style="cursor:default;">
-          <div class="player-season-row-head">
-            <div class="player-season-rank">1</div>
-            <div class="player-season-identity">
-              <div class="player-season-name">#9</div>
-              <div class="player-season-sub">13 games &middot; Top scorer</div>
-            </div>
-            <div class="player-season-trend up">+3 last 5</div>
-          </div>
-          <div class="player-season-row-stats">
-            <div class="player-season-stat" style="flex:1 1 0%;min-width:0"><div class="k">PTS</div><div class="v">18</div></div>
-            <div class="player-season-stat" style="flex:1 1 0%;min-width:0"><div class="k">G</div><div class="v">11</div></div>
-            <div class="player-season-stat" style="flex:1 1 0%;min-width:0"><div class="k">A</div><div class="v">7</div></div>
-            <div class="player-season-stat" style="flex:1 1 0%;min-width:0"><div class="k">S</div><div class="v">42</div></div>
-            <div class="player-season-stat" style="flex:1 1 0%;min-width:0"><div class="k">+/-</div><div class="v" style="color:var(--win);">+8</div></div>
-          </div>
-          <div class="player-season-row-spark" style="margin-top:8px;">
-            <div style="font-size:10px;color:var(--muted2-ice);margin-bottom:2px;">Points per game</div>
-            <svg class="player-sparkline" viewBox="0 0 200 28" preserveAspectRatio="none">
-              <polyline points="0,22 16,18 32,14 48,20 64,10 80,16 96,8 112,12 128,6 144,10 160,4 176,8 192,2" fill="none" stroke="var(--ice)" stroke-width="1.5"/>
-            </svg>
-          </div>
-        </div>
-
-        <!-- Player 2 -->
-        <div class="player-season-row" style="cursor:default;">
-          <div class="player-season-row-head">
-            <div class="player-season-rank">2</div>
-            <div class="player-season-identity">
-              <div class="player-season-name">#14</div>
-              <div class="player-season-sub">12 games</div>
-            </div>
-            <div class="player-season-trend up">+2 last 5</div>
-          </div>
-          <div class="player-season-row-stats">
-            <div class="player-season-stat" style="flex:1 1 0%;min-width:0"><div class="k">PTS</div><div class="v">14</div></div>
-            <div class="player-season-stat" style="flex:1 1 0%;min-width:0"><div class="k">G</div><div class="v">5</div></div>
-            <div class="player-season-stat" style="flex:1 1 0%;min-width:0"><div class="k">A</div><div class="v">9</div></div>
-            <div class="player-season-stat" style="flex:1 1 0%;min-width:0"><div class="k">S</div><div class="v">28</div></div>
-            <div class="player-season-stat" style="flex:1 1 0%;min-width:0"><div class="k">+/-</div><div class="v" style="color:var(--win);">+5</div></div>
-          </div>
-          <div class="player-season-row-spark" style="margin-top:8px;">
-            <div style="font-size:10px;color:var(--muted2-ice);margin-bottom:2px;">Points per game</div>
-            <svg class="player-sparkline" viewBox="0 0 200 28" preserveAspectRatio="none">
-              <polyline points="0,20 16,22 32,16 48,18 64,14 80,12 96,16 112,10 128,14 144,8 160,10 176,6" fill="none" stroke="var(--ice)" stroke-width="1.5"/>
-            </svg>
-          </div>
-        </div>
-
-        <!-- Player 3 -->
-        <div class="player-season-row" style="cursor:default;">
-          <div class="player-season-row-head">
-            <div class="player-season-rank">3</div>
-            <div class="player-season-identity">
-              <div class="player-season-name">#7</div>
-              <div class="player-season-sub">13 games</div>
-            </div>
-            <div class="player-season-trend down">-1 last 5</div>
-          </div>
-          <div class="player-season-row-stats">
-            <div class="player-season-stat" style="flex:1 1 0%;min-width:0"><div class="k">PTS</div><div class="v">10</div></div>
-            <div class="player-season-stat" style="flex:1 1 0%;min-width:0"><div class="k">G</div><div class="v">6</div></div>
-            <div class="player-season-stat" style="flex:1 1 0%;min-width:0"><div class="k">A</div><div class="v">4</div></div>
-            <div class="player-season-stat" style="flex:1 1 0%;min-width:0"><div class="k">S</div><div class="v">35</div></div>
-            <div class="player-season-stat" style="flex:1 1 0%;min-width:0"><div class="k">+/-</div><div class="v" style="color:var(--them);">-2</div></div>
-          </div>
-          <div class="player-season-row-spark" style="margin-top:8px;">
-            <div style="font-size:10px;color:var(--muted2-ice);margin-bottom:2px;">Points per game</div>
-            <svg class="player-sparkline" viewBox="0 0 200 28" preserveAspectRatio="none">
-              <polyline points="0,8 16,12 32,6 48,10 64,14 80,8 96,12 112,16 128,10 144,18 160,14 176,20" fill="none" stroke="var(--ice)" stroke-width="1.5"/>
-            </svg>
-          </div>
-        </div>
-
-        <!-- Player 4 -->
-        <div class="player-season-row" style="cursor:default;">
-          <div class="player-season-row-head">
-            <div class="player-season-rank">4</div>
-            <div class="player-season-identity">
-              <div class="player-season-name">#22</div>
-              <div class="player-season-sub">11 games</div>
-            </div>
-            <div class="player-season-trend">— last 5</div>
-          </div>
-          <div class="player-season-row-stats">
-            <div class="player-season-stat" style="flex:1 1 0%;min-width:0"><div class="k">PTS</div><div class="v">7</div></div>
-            <div class="player-season-stat" style="flex:1 1 0%;min-width:0"><div class="k">G</div><div class="v">3</div></div>
-            <div class="player-season-stat" style="flex:1 1 0%;min-width:0"><div class="k">A</div><div class="v">4</div></div>
-            <div class="player-season-stat" style="flex:1 1 0%;min-width:0"><div class="k">S</div><div class="v">19</div></div>
-            <div class="player-season-stat" style="flex:1 1 0%;min-width:0"><div class="k">+/-</div><div class="v" style="color:var(--win);">+3</div></div>
-          </div>
-          <div class="player-season-row-spark" style="margin-top:8px;">
-            <div style="font-size:10px;color:var(--muted2-ice);margin-bottom:2px;">Points per game</div>
-            <svg class="player-sparkline" viewBox="0 0 200 28" preserveAspectRatio="none">
-              <polyline points="0,16 16,14 32,18 48,12 64,16 80,14 96,18 112,14 128,16 144,14 176,16" fill="none" stroke="var(--ice)" stroke-width="1.5"/>
-            </svg>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  </div>
+  <div class="divider"></div>
 
   <!-- Features List -->
-  <div class="landing-section">
-    <div class="landing-section-label">Built for anyone who wants to know the real story</div>
+  <div class="landing-section" style="padding-top:36px;">
+    <div class="landing-section-label">What you get</div>
     <div class="landing-features">
+
       <div class="landing-feature">
-        <div class="landing-feature-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:middle;"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+        <div class="landing-feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
         <div>
-          <div class="landing-feature-title">Live Game Tracking</div>
-          <div class="landing-feature-desc">Track shots, goals, saves, penalties, breakaways, turnovers, and more. Big buttons designed for cold hands at the rink.</div>
+          <div class="landing-feature-title">Live game tracking</div>
+          <div class="landing-feature-desc">Track shots, goals, saves, penalties, breakaways, and turnovers. Big buttons for cold hands at the rink.</div>
         </div>
       </div>
+
       <div class="landing-feature">
-        <div class="landing-feature-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:middle;"><line x1="6" y1="20" x2="6" y2="14"/><line x1="12" y1="20" x2="12" y2="8"/><line x1="18" y1="20" x2="18" y2="4"/></svg></div>
+        <div class="landing-feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="20" x2="6" y2="14"/><line x1="12" y1="20" x2="12" y2="8"/><line x1="18" y1="20" x2="18" y2="4"/></svg></div>
         <div>
-          <div class="landing-feature-title">Context-Aware Performance Scores</div>
-          <div class="landing-feature-desc">Goalie Rating and Team Rating rated 0&ndash;100 with full breakdowns. Know how your goalie or team actually played, not just whether they won.</div>
+          <div class="landing-feature-title">Goalie Rating and Team Rating</div>
+          <div class="landing-feature-desc">Each rated from 0 to 100 with a full breakdown. They account for how the game went, not just the final score.</div>
         </div>
       </div>
+
       <div class="landing-feature">
-        <div class="landing-feature-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:middle;"><circle cx="12" cy="12" r="2"/><path d="M7.76 16.24a6 6 0 0 1 0-8.49"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49"/><path d="M4.93 19.07a10 10 0 0 1 0-14.14"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg></div>
+        <div class="landing-feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="2"/><path d="M7.76 16.24a6 6 0 0 1 0-8.49"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49"/><path d="M4.93 19.07a10 10 0 0 1 0-14.14"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg></div>
         <div>
-          <div class="landing-feature-title">Live Spectator Sharing</div>
-          <div class="landing-feature-desc">Share a live link. Family, friends, and other parents follow along in real time with scores, shots, momentum, and an event feed.</div>
+          <div class="landing-feature-title">Live spectator link</div>
+          <div class="landing-feature-desc">Share a free view-only link. Family and other parents follow the score, shots, momentum, and event feed in real time. No app, no account.</div>
         </div>
       </div>
+
       <div class="landing-feature">
-        <div class="landing-feature-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:middle;"><rect x="3" y="4" width="18" height="13" rx="2"/><line x1="3" y1="17" x2="3" y2="21"/><line x1="21" y1="17" x2="21" y2="21"/><line x1="8" y1="4" x2="8" y2="17"/><line x1="16" y1="4" x2="16" y2="17"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+        <div class="landing-feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2"/><polyline points="9 8 12 5 15 8"/><line x1="12" y1="5" x2="12" y2="14"/></svg></div>
         <div>
-          <div class="landing-feature-title">Real Goalie Evaluation</div>
-          <div class="landing-feature-desc">Save quality, rebound control, big saves, and goals saved above expected. Finally know how your goalie performed beyond just the score.</div>
+          <div class="landing-feature-title">Share recap card</div>
+          <div class="landing-feature-desc">The app builds a recap image after the game with the score, shots, save %, and Team Rating. Share it from your phone.</div>
         </div>
       </div>
+
       <div class="landing-feature">
-        <div class="landing-feature-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:middle;"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></div>
+        <div class="landing-feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><line x1="8" y1="4" x2="8" y2="17"/><line x1="16" y1="4" x2="16" y2="17"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
         <div>
-          <div class="landing-feature-title">Works Offline</div>
-          <div class="landing-feature-desc">Full offline support. Track the entire game with no WiFi. Syncs automatically when you&rsquo;re back online.</div>
+          <div class="landing-feature-title">Every goalie, tracked separately</div>
+          <div class="landing-feature-desc">Pick who is in net, switch mid-game, and get save %, high-danger save %, rebound control, and soft-goal rate per goalie.</div>
         </div>
       </div>
+
       <div class="landing-feature">
-        <div class="landing-feature-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:middle;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <div class="landing-feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
         <div>
-          <div class="landing-feature-title">Multi-Team &amp; Player Stats</div>
-          <div class="landing-feature-desc">Manage multiple teams. Track player goals, assists, and plus/minus across the full season.</div>
+          <div class="landing-feature-title">Roster and player stats</div>
+          <div class="landing-feature-desc">Set your roster by jersey number. Track goals, assists, shots, and plus/minus for each player across the season.</div>
         </div>
       </div>
+
       <div class="landing-feature">
-        <div class="landing-feature-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:middle;"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg></div>
+        <div class="landing-feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></div>
         <div>
-          <div class="landing-feature-title">Cloud Sync &amp; Export</div>
-          <div class="landing-feature-desc">Games saved to the cloud. Access from any device. Export to CSV, JSON, or copy summaries to your team chat.</div>
+          <div class="landing-feature-title">Add to your home screen</div>
+          <div class="landing-feature-desc">Install it from your browser and it opens full-screen like an app. Works offline, so you can track a full game with no wifi, then it syncs.</div>
         </div>
       </div>
+
+      <div class="landing-feature">
+        <div class="landing-feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg></div>
+        <div>
+          <div class="landing-feature-title">Cloud sync and export</div>
+          <div class="landing-feature-desc">Games save to the cloud and open on any device. Export to CSV or JSON, or copy a summary to your team chat.</div>
+        </div>
+      </div>
+
     </div>
   </div>
 
   <!-- Bottom CTA -->
   <div class="landing-bottom-cta">
-    <div class="landing-bottom-headline">Ready to see what your stats really mean?</div>
+    <div class="landing-bottom-headline">Track your next game.</div>
     <button class="landing-cta" id="landingGetStarted2">Get Started Free</button>
     <div class="landing-note">No credit card required. Track your first game in under a minute.</div>
   </div>
+
 
   <div class="landing-footer">
     Smart Team Tracker &middot; Built for hockey coaches and parents
@@ -1691,10 +1709,10 @@
   </div>
 </div>
 
-<script src="js/spectator.js?v=6.4.6"></script>
-<script type="module" src="js/auth.js?v=6.4.6"></script>
-<script src="js/teams.js?v=6.4.6"></script>
-<script src="js/share-card.js?v=6.4.6"></script>
-<script src="js/app.js?v=6.4.6"></script>
+<script src="js/spectator.js?v=6.4.7"></script>
+<script type="module" src="js/auth.js?v=6.4.7"></script>
+<script src="js/teams.js?v=6.4.7"></script>
+<script src="js/share-card.js?v=6.4.7"></script>
+<script src="js/app.js?v=6.4.7"></script>
 </body>
 </html>

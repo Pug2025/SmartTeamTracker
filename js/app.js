@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.4.9';
+const APP_VERSION = '6.4.10';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -539,11 +539,21 @@ function proceedWithStartGame(){
  * Show the pre-game "Who's in net?" picker. Required choice — no skip,
  * no backdrop dismiss. Calls onPick() after the user selects.
  */
+// Coerce a goalie entry to its jersey-number string. Team rosters store number
+// strings, but a per-game stat object ({id, shots, ...}) can leak into the list
+// from legacy or imported data; pull the id so the picker never renders
+// "[object Object]".
+function goalieNum(g){
+  if(g == null) return '';
+  if(typeof g === 'object') g = (g.id != null) ? g.id : (g.number != null) ? g.number : (g.jersey != null) ? g.jersey : '';
+  return String(g).trim();
+}
+
 function showGoalieStartPicker(goalies, onPick){
   const grid = $('goalieStartGrid');
-  grid.innerHTML = goalies.map(g => {
-    const label = isNumStr(String(g)) ? '#' + g : g;
-    return `<div class="pickerBtn" data-goalie="${String(g).replace(/"/g,'&quot;')}">${label}</div>`;
+  grid.innerHTML = goalies.map(goalieNum).filter(Boolean).map(n => {
+    const label = isNumStr(n) ? '#' + n : n;
+    return `<div class="pickerBtn" data-goalie="${n.replace(/"/g,'&quot;')}">${label}</div>`;
   }).join('');
   // One-shot click handler — wired fresh each open so old games don't bleed.
   grid.onclick = (e) => {
@@ -592,14 +602,14 @@ async function switchGoalieFlow(){
   const goalies = (state.goalies || []).filter(g => g && String(g).trim());
   if(goalies.length < 2) return;
 
-  const current = state.activeGoalie;
-  const options = goalies.filter(g => String(g) !== String(current));
+  const current = goalieNum(state.activeGoalie);
+  const options = goalies.map(goalieNum).filter(Boolean).filter(n => n !== current);
   if(!options.length) return;
 
   const grid = $('goalieSwitchGrid');
-  grid.innerHTML = options.map(g => {
-    const label = isNumStr(String(g)) ? '#' + g : g;
-    return `<div class="pickerBtn" data-goalie="${String(g).replace(/"/g,'&quot;')}">${label}</div>`;
+  grid.innerHTML = options.map(n => {
+    const label = isNumStr(n) ? '#' + n : n;
+    return `<div class="pickerBtn" data-goalie="${n.replace(/"/g,'&quot;')}">${label}</div>`;
   }).join('');
 
   grid.onclick = (e) => {

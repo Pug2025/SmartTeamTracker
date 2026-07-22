@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.4.8';
+const APP_VERSION = '6.4.9';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -3078,6 +3078,7 @@ async function saveGameToCloud(game){
       localStorage.setItem(LAST_SAVED_KEY, state.gameId);
       setCloudStatus('Synced','good');
       showStatusToast('Game saved!', 'success');
+      if(window.maybeShowUpgradePrompt) window.maybeShowUpgradePrompt('game_saved');
     }else{
       setCloudStatus('Error','bad');
       showStatusToast('Save failed', 'error', 3500);
@@ -3227,7 +3228,182 @@ function buildSavedGamePlayerRows(){
   return order.map((player) => map.get(player));
 }
 
+/* ===== Premium entitlement + paywall (6.4 gates / 6.5 checkout) ===========
+   Client-side gating ONLY. This flag drives UI; it never protects paid value
+   on its own. Every gated server operation re-checks the entitlement with the
+   Firebase-verified uid (see api/_entitlement.js). Guests are always
+   non-premium. ======================================================= */
+window._entitlement = { status: 'free', isPremium: false, currentPeriodEnd: null };
+
+function isPremiumClient(){
+  return !!(window._entitlement && window._entitlement.isPremium);
+}
+window.isPremiumClient = isPremiumClient;
+
+function setEntitlementState(ent){
+  window._entitlement = ent || { status: 'free', isPremium: false, currentPeriodEnd: null };
+  const premium = isPremiumClient();
+  // Mirror into the dormant subscription globals the account modal reads.
+  window._subscriptionPlan = premium ? 'Premium' : 'Free';
+  window._subscriptionFeatures = {
+    liveShare: true,
+    cloudSync: true,
+    seasonStats: premium,
+    exportCSV: premium,
+    exportJSON: premium
+  };
+  const planEl = $('acctPlan');
+  if(planEl) planEl.textContent = window._subscriptionPlan;
+  syncAccountPremiumButton();
+}
+
+// Pull the signed-in caller's entitlement. Guests and any failure resolve to
+// non-premium (fail-safe): the client never assumes premium on a read error.
+async function refreshEntitlement(){
+  const user = window.getAuthUser ? window.getAuthUser() : null;
+  const free = { status: 'free', isPremium: false, currentPeriodEnd: null };
+  if(!user){ setEntitlementState(free); return window._entitlement; }
+  try{
+    const res = await fetch('/api/entitlement', { cache:'no-store', headers: await authHeaders() });
+    if(res.ok){
+      const d = await res.json();
+      setEntitlementState({
+        status: d.status || 'free',
+        isPremium: !!d.isPremium,
+        currentPeriodEnd: d.currentPeriodEnd || null
+      });
+    } else {
+      setEntitlementState(free);
+    }
+  }catch(_){
+    setEntitlementState(free);
+  }
+  return window._entitlement;
+}
+window.refreshEntitlement = refreshEntitlement;
+
+function syncAccountPremiumButton(){
+  const btn = $('acctGoPremium');
+  if(!btn) return;
+  const user = window.getAuthUser ? window.getAuthUser() : null;
+  // Offer the upgrade only to a signed-in, non-premium account.
+  btn.style.display = (user && !isPremiumClient()) ? '' : 'none';
+}
+
+/* --- Paywall modal --- */
+function openPaywall(){
+  const m = $('paywallModal');
+  if(m) m.style.display = 'flex';
+}
+window.openPaywall = openPaywall;
+function closePaywall(){
+  const m = $('paywallModal');
+  if(m) m.style.display = 'none';
+}
+
+// Inline paywall card for embedding inside a gated panel (season dashboard,
+// history). Clicks route through the delegated [data-paywall-cta] handler.
+function paywallCardHTML(opts){
+  opts = opts || {};
+  const title = opts.title || 'Unlock your full season';
+  const sub = opts.sub || 'Premium keeps your whole game history, the Season in Review recap, per goalie season stats, and CSV and JSON export. Live scoring and the live share link stay free. $49 per year for your family.';
+  const extra = opts.compact ? ' paywall-row' : '';
+  return `<div class="paywall-card${extra}">
+    <div class="paywall-lock" aria-hidden="true">&#128274;</div>
+    <div class="paywall-title">${title}</div>
+    <div class="paywall-sub">${sub}</div>
+    <button class="btn-std btn-primary-sm paywall-cta" data-paywall-cta type="button">Go Premium, $49/yr</button>
+  </div>`;
+}
+window.paywallCardHTML = paywallCardHTML;
+
+/* --- Checkout (6.5) --- */
+async function startCheckout(){
+  const user = window.getAuthUser ? window.getAuthUser() : null;
+  if(!user){
+    showStatusToast('Create a free account first, then go Premium.', 'warn', 3600);
+    return;
+  }
+  showStatusToast('Opening secure checkout...', 'success');
+  try{
+    const res = await fetch('/api/create-checkout-session', { method:'POST', headers: await authHeaders() });
+    const d = await res.json().catch(() => ({}));
+    if(res.ok && d.url){ window.location.href = d.url; return; }
+    showStatusToast(d.message || d.error || 'Could not start checkout.', 'error', 3600);
+  }catch(_){
+    showStatusToast('Network error starting checkout.', 'error', 3600);
+  }
+}
+window.startCheckout = startCheckout;
+
+/* --- Checkout return (?checkout=success|cancel) --- */
+let _checkoutReturnHandled = false;
+function clearCheckoutParam(){
+  try{
+    const url = new URL(location.href);
+    url.searchParams.delete('checkout');
+    history.replaceState(null, '', url.pathname + url.search + url.hash);
+  }catch(_){}
+}
+async function maybeHandleCheckoutReturn(){
+  if(_checkoutReturnHandled) return;
+  let co = null;
+  try{ co = new URLSearchParams(location.search).get('checkout'); }catch(_){ return; }
+  if(!co) return;
+  _checkoutReturnHandled = true;
+
+  if(co === 'cancel'){
+    clearCheckoutParam();
+    showStatusToast('Checkout canceled. No charge was made.', 'warn', 3200);
+    return;
+  }
+  if(co !== 'success'){ clearCheckoutParam(); return; }
+
+  // Poll the entitlement until the webhook flips it to premium (it can lag a
+  // second or two behind the redirect).
+  const modal = $('activatingModal');
+  if(modal) modal.style.display = 'flex';
+  let premium = false;
+  for(let i = 0; i < 20; i++){
+    const ent = await refreshEntitlement();
+    if(ent && ent.isPremium){ premium = true; break; }
+    await new Promise(r => setTimeout(r, 1500));
+  }
+  if(modal) modal.style.display = 'none';
+  clearCheckoutParam();
+
+  if(premium){
+    showStatusToast('Premium unlocked. Enjoy your full season!', 'success', 3200);
+    refreshSeasonPanelIfOpen().catch(()=>{});
+    refreshHistoryPanelIfOpen().catch(()=>{});
+    refreshPlayerStatsPanelIfOpen().catch(()=>{});
+  } else {
+    showStatusToast('Payment received. Activation is taking a moment; reopen the app shortly.', 'warn', 5000);
+  }
+}
+window.maybeHandleCheckoutReturn = maybeHandleCheckoutReturn;
+
+/* --- Wire paywall + account premium controls (DOM is ready at this point) --- */
+(function wirePaywallControls(){
+  const close = $('paywallClose');
+  if(close) close.onclick = closePaywall;
+  const notNow = $('paywallNotNow');
+  if(notNow) notNow.onclick = closePaywall;
+  const go = $('paywallGoPremium');
+  if(go) go.onclick = function(){ closePaywall(); startCheckout(); };
+  const acct = $('acctGoPremium');
+  if(acct) acct.onclick = function(){ startCheckout(); };
+  const pm = $('paywallModal');
+  if(pm) pm.addEventListener('click', function(e){ if(e.target === pm) closePaywall(); });
+  // Delegated: inline paywall cards injected into panels share one handler.
+  document.addEventListener('click', function(e){
+    const cta = e.target.closest && e.target.closest('[data-paywall-cta]');
+    if(cta){ e.preventDefault(); startCheckout(); }
+  });
+})();
+
 function exportGameCSV(){
+  if(!isPremiumClient()){ openPaywall(); return; }
   const K=computeGoalieScore(), T=computeTeamScore();
   const date = state.date || getLocalTodayYMD();
 
@@ -3932,11 +4108,13 @@ return;
     $('acctQueueCount').textContent = q.length + ' game' + (q.length !== 1 ? 's' : '');
     // Plan
     $('acctPlan').textContent = window._subscriptionPlan || 'Free';
+    syncAccountPremiumButton();
 
     $('accountModal').style.display = 'flex';
   }
 
   function exportAllData(){
+    if(!isPremiumClient()){ openPaywall(); return; }
     // Gather all local data
     const data = {
       currentGame: null,
@@ -3982,13 +4160,23 @@ return;
   }
   window.checkFeatureAccess = checkFeatureAccess;
 
-  // Upgrade prompt helper — shows toast with upgrade nudge at natural moments
+  // Upgrade prompt helper — shows a toast nudge at natural moments, once per
+  // moment per session, and only for non-premium accounts.
   let _upgradePromptShown = {};
+  const UPGRADE_PROMPT_COPY = {
+    game_saved: 'Game saved. Premium keeps every game and unlocks your season recap.',
+    season_dashboard_opened: 'See your full season with Premium. Ratings, trends, and per goalie stats across every game.'
+  };
   function maybeShowUpgradePrompt(moment){
-    if(window._subscriptionPlan !== 'Free') return;
+    if(isPremiumClient()) return;
     if(_upgradePromptShown[moment]) return;
+    const msg = UPGRADE_PROMPT_COPY[moment];
+    if(!msg) return;
     _upgradePromptShown[moment] = true;
-    // Don't show upgrade prompts yet — infrastructure only; activate when pricing is configured
+    // game_saved fires right after the "Game saved!" toast; delay so the two
+    // don't overwrite each other (single shared toast element).
+    const delay = moment === 'game_saved' ? 2700 : 400;
+    setTimeout(() => showStatusToast(msg, 'success', 4200), delay);
   }
   window.maybeShowUpgradePrompt = maybeShowUpgradePrompt;
 
@@ -4208,11 +4396,16 @@ window.onAuthReady = (user) => {
   invalidateSetupGamesCache();
   setupOpponentsLoadToken += 1;
   refreshTeamUI();
-  refreshSeasonPanelIfOpen().catch(err => console.error(err));
-  refreshPlayerStatsPanelIfOpen().catch(err => console.error(err));
-  if($('historyPanel').style.display === 'block'){
-    loadHistoryPanel().catch(err => console.error(err));
-  }
+  // Resolve premium state first, then refresh any open gated panels so they
+  // render with the correct entitlement, and handle a checkout return.
+  refreshEntitlement().catch(() => {}).finally(() => {
+    refreshSeasonPanelIfOpen().catch(err => console.error(err));
+    refreshPlayerStatsPanelIfOpen().catch(err => console.error(err));
+    if($('historyPanel').style.display === 'block'){
+      loadHistoryPanel().catch(err => console.error(err));
+    }
+    maybeHandleCheckoutReturn().catch(err => console.error(err));
+  });
   // Pull teams from cloud so they appear on new devices. Fire-and-forget —
   // failures fall back to localStorage. Skipped automatically for guests.
   const TM = getTeamManager();
@@ -5642,10 +5835,18 @@ function buildGamesApiUrl({ limit = 50, id = null, includeLimit = true, opponent
   if(season && id == null) params.push('season=' + encodeURIComponent(String(season)));
   return '/api/games' + (params.length ? '?' + params.join('&') : '');
 }
-async function fetchScopedGames(limit = 50, season = 'current'){
+// Full /api/games response, including the server's { truncated, premiumRequired }
+// flags. The server clamps non-premium callers to the single most recent game
+// (the entitlement chokepoint), so callers that need to react to that — the
+// history panel — read the flags here.
+async function fetchScopedGamesResponse(limit = 50, season = 'current'){
   const res = await fetch(buildGamesApiUrl({ limit, season }), { cache:'no-store', headers: await authHeaders() });
   const data = await res.json();
   if(!data.success) throw new Error(data.error || 'Fetch failed');
+  return data;
+}
+async function fetchScopedGames(limit = 50, season = 'current'){
+  const data = await fetchScopedGamesResponse(limit, season);
   return data.games || [];
 }
 async function deleteGameRecord(gameId){
@@ -5809,6 +6010,14 @@ async function loadSeasonPanel(){
   closeOtherSetupPanels('seasonPanel');
   $('seasonPanel').style.display = 'block';
   syncSetupPanelPills();
+  // Gated: the whole season dashboard (record, trends, and the per-goalie
+  // block inside it) is premium. Free users get the paywall card instead.
+  if(!isPremiumClient()){
+    $('btnSeasonReset').classList.add('hidden');
+    $('seasonSelectorRow').classList.add('hidden');
+    $('seasonBody').innerHTML = paywallCardHTML();
+    return;
+  }
   $('seasonBody').innerHTML = SKELETON_HTML;
   try{
     const listing = await fetchSeasonsList();
@@ -5876,7 +6085,7 @@ async function refreshPlayerStatsPanelIfOpen(){
   if($('playerStatsPanel').style.display !== 'block') return;
   await loadPlayerStatsPanel();
 }
-const historyViewState = { filter: 'all', games: [] };
+const historyViewState = { filter: 'all', games: [], premiumLocked: false };
 async function loadHistoryPanel(){
   resetHistorySwipeState();
   closeOtherSetupPanels('historyPanel');
@@ -5886,10 +6095,16 @@ async function loadHistoryPanel(){
   historyViewState.filter = 'all';
   setHistoryFilterActive('all');
   try{
-    const games = await fetchScopedGames(50);
-    historyViewState.games = games || [];
+    // Depth is gated server-side: non-premium callers get only the last game
+    // plus premiumRequired:true. Show that game, then a paywall row.
+    const resp = await fetchScopedGamesResponse(50);
+    const games = resp.games || [];
+    historyViewState.games = games;
+    historyViewState.premiumLocked = !!resp.premiumRequired;
     if(!games.length){
-      $('historyList').innerHTML = '<div class="text-center" style="padding:20px;">No past games found.</div>';
+      $('historyList').innerHTML = historyViewState.premiumLocked
+        ? paywallCardHTML({ title:'Unlock your game history', sub:'Premium keeps every game you track. Live scoring and the live share link stay free. $49 per year for your family.' })
+        : '<div class="text-center" style="padding:20px;">No past games found.</div>';
       return;
     }
     renderHistoryView();
@@ -5913,23 +6128,29 @@ function renderHistoryView(){
   list._games = games;
   if(historyViewState.filter === 'opp'){
     renderHistoryByOpponent(games);
-    return;
-  }
-  let subset = games;
-  if(historyViewState.filter === 'wins'){
-    subset = games.filter(g => Number((g.data || {}).GF) > Number((g.data || {}).GA));
-    if(!subset.length){
-      list.innerHTML = '<div class="history-empty">No wins yet this season.</div>';
-      return;
+  } else {
+    let subset = games;
+    if(historyViewState.filter === 'wins'){
+      subset = games.filter(g => Number((g.data || {}).GF) > Number((g.data || {}).GA));
+    } else if(historyViewState.filter === 'losses'){
+      subset = games.filter(g => Number((g.data || {}).GA) > Number((g.data || {}).GF));
     }
-  } else if(historyViewState.filter === 'losses'){
-    subset = games.filter(g => Number((g.data || {}).GA) > Number((g.data || {}).GF));
-    if(!subset.length){
-      list.innerHTML = '<div class="history-empty">No losses recorded — good work.</div>';
-      return;
+    if((historyViewState.filter === 'wins' || historyViewState.filter === 'losses') && !subset.length){
+      list.innerHTML = historyViewState.filter === 'wins'
+        ? '<div class="history-empty">No wins yet this season.</div>'
+        : '<div class="history-empty">No losses recorded — good work.</div>';
+    } else {
+      renderHistoryFlat(subset);
     }
   }
-  renderHistoryFlat(subset);
+  // Depth paywall: free users see their last game, then this row.
+  if(historyViewState.premiumLocked){
+    list.insertAdjacentHTML('beforeend', paywallCardHTML({
+      compact: true,
+      title: 'Unlock your full game history',
+      sub: 'This is your latest game. Premium keeps every game, plus your season recap and exports.'
+    }));
+  }
 }
 $('btnHistory').addEventListener('click', async ()=>{
   if(!getActiveTeamSafe()){
@@ -6494,6 +6715,7 @@ $('btnSeason').addEventListener('click', async ()=>{
   }
   await loadSeasonPanel();
   scrollSetupPanelIntoView('seasonPanel');
+  if(window.maybeShowUpgradePrompt) window.maybeShowUpgradePrompt('season_dashboard_opened');
 });
 $('btnSeasonClose').addEventListener('click', ()=>{ closeSetupPanel('seasonPanel'); });
 $('btnSeasonReset').addEventListener('click', resetSeasonStats);
@@ -7632,6 +7854,8 @@ function buildSeasonRecapCards(a){
 }
 
 function openSeasonRecap(agg){
+  // Gated: covers both entries (the dashboard CTA and the archive auto-offer).
+  if(!isPremiumClient()){ openPaywall(); return; }
   if(!agg || agg.n < SEASON_RECAP_MIN_GAMES){
     showStatusToast('Need at least ' + SEASON_RECAP_MIN_GAMES + ' games for Season in Review.', 'warn', 3200);
     return;

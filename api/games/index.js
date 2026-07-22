@@ -1,5 +1,6 @@
 import { authenticateRequest } from '../_auth.js';
 import { checkRateLimit, sendRateLimited } from '../_rate-limit.js';
+import { getEntitlement } from '../_entitlement.js';
 
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
@@ -65,7 +66,22 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, seasons, currentCount });
       }
 
-      const limit = Math.min(Number(req.query.limit) || 50, 500);
+      // Entitlement chokepoint. Non-premium callers (guests included) receive
+      // only the single most recent saved game. This one clamp protects
+      // history depth, the season dashboard, per-goalie analytics, and the
+      // Season in Review recap, because all of them read through this endpoint.
+      // The live game is in-progress client state, not a DB row, so live
+      // scoring and the live spectator share stay unaffected and free.
+      const ent = await getEntitlement(uid);
+      const isPremium = ent.isPremium;
+
+      let limit = Math.min(Number(req.query.limit) || 50, 500);
+      let effectiveSeasonFilter = seasonFilter;
+      if (!isPremium) {
+        limit = 1;                 // last saved game only
+        effectiveSeasonFilter = ''; // ignore any past-season filter; newest overall
+      }
+
       let queryUrl = `${supabaseUrl}/rest/v1/games?select=id,game_id,date,opponent,level,season,data&order=created_at.desc&limit=${limit}`;
       queryUrl += userId
         ? `&user_id=eq.${encodeURIComponent(userId)}`
@@ -73,7 +89,7 @@ export default async function handler(req, res) {
       if (teamId) {
         queryUrl += `&team_id=eq.${encodeURIComponent(teamId)}`;
       }
-      queryUrl += seasonFilter;
+      queryUrl += effectiveSeasonFilter;
 
       const response = await fetch(
         queryUrl,
@@ -90,6 +106,12 @@ export default async function handler(req, res) {
 
       if (!response.ok) {
         return res.status(response.status).json({ error: "Fetch failed", details: data });
+      }
+
+      if (!isPremium) {
+        // Flags let the client show the last game plus a paywall row instead of
+        // the full history/season views.
+        return res.status(200).json({ success: true, games: data, truncated: true, premiumRequired: true });
       }
 
       return res.status(200).json({ success: true, games: data });

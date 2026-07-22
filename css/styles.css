@@ -3736,6 +3736,57 @@
   font-weight:700;
 }
 .btn-primary-sm:active{ opacity:0.85; }
+
+/* ===== Premium paywall / upgrade ===== */
+.paywall-body{
+  font-size:var(--fs-13);
+  color:var(--muted-ice);
+  margin:8px 0 16px;
+  line-height:1.5;
+}
+.account-premium-btn{
+  width:100%;
+  margin:0 0 14px;
+}
+/* Inline paywall card embedded in gated panels (season dashboard, history). */
+.paywall-card{
+  text-align:center;
+  padding:24px 18px;
+  border:1px solid var(--surface-3);
+  border-radius:var(--radius-lg);
+  background:var(--surface-2);
+}
+.paywall-card .paywall-lock{ font-size:26px; line-height:1; margin-bottom:10px; }
+.paywall-card .paywall-title{
+  font-size:var(--fs-15);
+  font-weight:700;
+  color:var(--ink-ice);
+  margin-bottom:6px;
+}
+.paywall-card .paywall-sub{
+  font-size:var(--fs-13);
+  color:var(--muted-ice);
+  line-height:1.5;
+  margin:0 auto 16px;
+  max-width:34ch;
+}
+.paywall-card .paywall-cta{ min-width:190px; }
+.paywall-row{
+  margin-top:14px;
+  padding:16px;
+}
+/* Activating spinner shown while polling entitlement after checkout. */
+.activating-spinner{
+  width:26px;
+  height:26px;
+  margin:6px auto 2px;
+  border:3px solid var(--surface-3);
+  border-top-color:var(--ice);
+  border-radius:var(--radius-full);
+  animation:activating-spin 0.8s linear infinite;
+}
+@keyframes activating-spin { to { transform:rotate(360deg); } }
+
 /* Period-end flash summary */
 .period-flash{
   margin:8px 0;

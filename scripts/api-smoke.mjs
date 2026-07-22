@@ -59,6 +59,9 @@ const READ_CHECKS = [
   { path: "/api/live-game?code=SMOKE_NOPE", status: 404, type: "application/json" },
   { path: "/api/end-season", status: 405, type: "application/json", note: "POST only" },
   { path: "/api/save-game", status: 405, type: "application/json", note: "POST only" },
+  { path: "/api/entitlement", status: 401, type: "application/json", note: "auth required" },
+  { path: "/api/create-checkout-session", status: 405, type: "application/json", note: "GET not allowed" },
+  { path: "/api/stripe-webhook", status: 405, type: "application/json", note: "GET not allowed" },
   { path: "/api/spectator-share", status: 200, type: "text/html" },
   { path: "/api/spectator-share?live=SMOKE_NOPE", status: 404, type: "text/html" },
   { path: "/api/spectator-preview", status: 200, type: "image/png" },
@@ -148,6 +151,40 @@ async function main() {
       `?${q} does not widen scope`,
       r.status === 200 && JSON.stringify(body.games) === JSON.stringify(baseline.games),
       `client user_id altered the result set (${(body.games || []).length} vs ${(baseline.games || []).length} rows)`
+    );
+  }
+
+  // Monetization POST contract. These are safe against production: both
+  // requests are rejected before any Stripe call or DB write — checkout 401s an
+  // unauthenticated caller, and the webhook 400s a request with no valid
+  // signature. No entitlement can be granted this way.
+  console.log("\nMonetization endpoints");
+  {
+    const r = await fetch(`${base}/api/create-checkout-session`, {
+      method: "POST",
+      redirect: "manual",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    });
+    check(
+      "/api/create-checkout-session POST (no auth) -> 401",
+      r.status !== 405 && r.status < 500 && r.status === 401,
+      `expected 401, got ${r.status}`
+    );
+  }
+  {
+    // No Stripe-Signature header on purpose: the endpoint must reject with 400
+    // regardless of whether STRIPE_WEBHOOK_SECRET is configured on the deploy.
+    const r = await fetch(`${base}/api/stripe-webhook`, {
+      method: "POST",
+      redirect: "manual",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    });
+    check(
+      "/api/stripe-webhook POST (missing signature) -> 400",
+      r.status < 500 && r.status === 400,
+      `expected 400, got ${r.status}`
     );
   }
 

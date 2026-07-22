@@ -187,6 +187,21 @@ async function main() {
       `expected 400, got ${r.status}`
     );
   }
+  {
+    // Beta access-code redeem must reject an unauthenticated caller: nobody can
+    // comp themselves without a valid Firebase token.
+    const r = await fetch(`${base}/api/entitlement`, {
+      method: "POST",
+      redirect: "manual",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "redeem", code: "SMOKE_NOPE" }),
+    });
+    check(
+      "/api/entitlement POST redeem (no auth) -> 401",
+      r.status < 500 && r.status === 401,
+      `expected 401, got ${r.status}`
+    );
+  }
 
   // WRITE CHECKS — opt-in. Creates a real guest game row, reads it back to
   // prove the client-supplied user_id was discarded, then deletes it. Skipped

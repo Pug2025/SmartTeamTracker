@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.4.11';
+const APP_VERSION = '6.4.12';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -3293,11 +3293,14 @@ async function refreshEntitlement(){
 window.refreshEntitlement = refreshEntitlement;
 
 function syncAccountPremiumButton(){
-  const btn = $('acctGoPremium');
-  if(!btn) return;
   const user = window.getAuthUser ? window.getAuthUser() : null;
-  // Offer the upgrade only to a signed-in, non-premium account.
-  btn.style.display = (user && !isPremiumClient()) ? '' : 'none';
+  // Offer the upgrade and the beta-code entry only to a signed-in,
+  // non-premium account.
+  const showForNonPremium = !!(user && !isPremiumClient());
+  const btn = $('acctGoPremium');
+  if(btn) btn.style.display = showForNonPremium ? '' : 'none';
+  const codeWrap = $('acctCodeWrap');
+  if(codeWrap) codeWrap.style.display = showForNonPremium ? '' : 'none';
 }
 
 /* --- Paywall modal --- */
@@ -3345,6 +3348,48 @@ async function startCheckout(){
   }
 }
 window.startCheckout = startCheckout;
+
+/* --- Beta access code redemption (free premium, no Stripe) --- */
+async function redeemAccessCode(){
+  const input = $('acctCodeInput');
+  const msg = $('acctCodeMsg');
+  const btn = $('acctRedeemBtn');
+  const setMsg = (text, ok) => {
+    if(!msg) return;
+    msg.textContent = text;
+    msg.style.display = text ? 'block' : 'none';
+    msg.style.color = ok ? 'var(--win)' : 'var(--them)';
+  };
+  const code = (input && input.value || '').trim();
+  if(!code){ setMsg('Enter your access code.', false); return; }
+  const user = window.getAuthUser ? window.getAuthUser() : null;
+  if(!user){ setMsg('Sign in first, then enter your code.', false); return; }
+
+  if(btn) btn.disabled = true;
+  setMsg('', false);
+  try{
+    const res = await fetch('/api/entitlement', {
+      method:'POST',
+      headers: await authHeaders(),
+      body: JSON.stringify({ action:'redeem', code })
+    });
+    const d = await res.json().catch(() => ({}));
+    if(res.ok && d.success){
+      if(input) input.value = '';
+      await refreshEntitlement();
+      const acct = $('accountModal');
+      if(acct) acct.style.display = 'none';
+      showPremiumWelcome();
+    } else {
+      setMsg(d.error || d.message || 'That code did not work.', false);
+    }
+  }catch(_){
+    setMsg('Network error. Please try again.', false);
+  }finally{
+    if(btn) btn.disabled = false;
+  }
+}
+window.redeemAccessCode = redeemAccessCode;
 
 /* --- Checkout return (?checkout=success|cancel) --- */
 let _checkoutReturnHandled = false;
@@ -3414,6 +3459,10 @@ window.maybeHandleCheckoutReturn = maybeHandleCheckoutReturn;
   if(go) go.onclick = function(){ closePaywall(); startCheckout(); };
   const acct = $('acctGoPremium');
   if(acct) acct.onclick = function(){ startCheckout(); };
+  const redeemBtn = $('acctRedeemBtn');
+  if(redeemBtn) redeemBtn.onclick = function(){ redeemAccessCode(); };
+  const codeInput = $('acctCodeInput');
+  if(codeInput) codeInput.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); redeemAccessCode(); } });
   const pm = $('paywallModal');
   if(pm) pm.addEventListener('click', function(e){ if(e.target === pm) closePaywall(); });
   const pwmClose = $('premiumWelcomeClose');

@@ -3838,6 +3838,34 @@
   opacity:0.97;
 }
 
+/* Beta access-code redemption in the account modal */
+.account-code{ margin:0 0 14px; }
+.account-code-label{
+  display:block;
+  font-size:var(--fs-13);
+  color:var(--muted-ice);
+  margin:0 0 6px;
+}
+.account-code-row{ display:flex; gap:8px; }
+.account-code-input{
+  flex:1;
+  min-width:0;
+  padding:10px 12px;
+  border-radius:var(--radius-md);
+  border:1px solid var(--surface-3);
+  background:var(--surface-2);
+  color:var(--ink-ice);
+  font-size:var(--fs-15);
+  text-transform:uppercase;
+}
+.account-code-input::placeholder{ color:var(--muted2-ice); text-transform:none; }
+.account-code-row .btn-std{ flex:0 0 auto; }
+.account-code-msg{
+  font-size:var(--fs-13);
+  line-height:1.4;
+  margin-top:8px;
+}
+
 /* Period-end flash summary */
 .period-flash{
   margin:8px 0;

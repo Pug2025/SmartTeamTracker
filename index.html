@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
-<link rel="manifest" href="manifest.json?v=6.4.4">
+<link rel="manifest" href="manifest.json?v=6.4.5">
 <link rel="icon" href="favicon.ico" sizes="48x48">
 <link rel="icon" href="icon-192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -16,8 +16,8 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Smart Team Tracker">
 <meta property="og:url" content="https://smartteamtracker.vercel.app/">
-<meta property="og:image" content="https://smartteamtracker.vercel.app/assets/share/og-landing-1200x630.png?v=6.4.4">
-<meta property="og:image:secure_url" content="https://smartteamtracker.vercel.app/assets/share/og-landing-1200x630.png?v=6.4.4">
+<meta property="og:image" content="https://smartteamtracker.vercel.app/assets/share/og-landing-1200x630.png?v=6.4.5">
+<meta property="og:image:secure_url" content="https://smartteamtracker.vercel.app/assets/share/og-landing-1200x630.png?v=6.4.5">
 <meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -25,13 +25,13 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Smart Team Tracker">
 <meta name="twitter:description" content="Live hockey stat tracking for coaches and parents.">
-<meta name="twitter:image" content="https://smartteamtracker.vercel.app/assets/share/og-landing-1200x630.png?v=6.4.4">
+<meta name="twitter:image" content="https://smartteamtracker.vercel.app/assets/share/og-landing-1200x630.png?v=6.4.5">
 <title>Smart Team Tracker — Live Hockey Stats</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@700;800;900&family=Hanken+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=6.4.4">
-<link rel="stylesheet" href="css/auth.css?v=6.4.4">
+<link rel="stylesheet" href="css/styles.css?v=6.4.5">
+<link rel="stylesheet" href="css/auth.css?v=6.4.5">
 </head>
 <body>
 
@@ -69,7 +69,7 @@
       <!-- Score Rings -->
       <div class="ringsRow rings-mt" style="margin-top:14px;">
         <div class="ringCard">
-          <div class="small mb-sm">Goalie Score</div>
+          <div class="small mb-sm">Goalie Rating</div>
           <div class="scoreRing">
             <svg viewBox="0 0 80 80" class="ringSvg">
               <circle class="ringBg" cx="40" cy="40" r="35"></circle>
@@ -80,7 +80,7 @@
           <div class="ring-confidence" style="font-size:10px; color:var(--muted2-ice); margin-top:4px;">Excellent &middot; 17 shots faced</div>
         </div>
         <div class="ringCard">
-          <div class="small mb-sm">Team Score</div>
+          <div class="small mb-sm">Team Rating</div>
           <div class="scoreRing">
             <svg viewBox="0 0 80 80" class="ringSvg">
               <circle class="ringBg" cx="40" cy="40" r="35"></circle>
@@ -92,9 +92,9 @@
         </div>
       </div>
 
-      <!-- Goalie Score Breakdown -->
+      <!-- Goalie Rating Breakdown -->
       <div style="margin-top:14px;">
-        <div style="font-size:11px; color:var(--muted2-ice); font-weight:700; margin-bottom:8px;">Goalie Score Breakdown</div>
+        <div style="font-size:11px; color:var(--muted2-ice); font-weight:700; margin-bottom:8px;">Goalie Rating Breakdown</div>
         <div class="landing-comp-bars">
           <div class="landing-comp-row">
             <span class="landing-comp-label">Save Quality</span>
@@ -115,9 +115,9 @@
         <div style="font-size:10px; color:var(--muted2-ice); margin-top:6px;">+2.6 goals saved above expected &middot; 4 good / 1 bad / 2 smothered &middot; 3 big saves</div>
       </div>
 
-      <!-- Team Score Breakdown -->
+      <!-- Team Rating Breakdown -->
       <div style="margin-top:14px;">
-        <div style="font-size:11px; color:var(--muted2-ice); font-weight:700; margin-bottom:8px;">Team Score Breakdown</div>
+        <div style="font-size:11px; color:var(--muted2-ice); font-weight:700; margin-bottom:8px;">Team Rating Breakdown</div>
         <div class="landing-comp-bars">
           <div class="landing-comp-row">
             <span class="landing-comp-label">Possession</span>
@@ -324,11 +324,11 @@
       </div>
       <!-- Sparkline mockup -->
       <div style="margin-top:12px;">
-        <div style="font-size:11px; color:var(--muted2-ice); font-weight:700; margin-bottom:4px;">Goalie Score Trend</div>
+        <div style="font-size:11px; color:var(--muted2-ice); font-weight:700; margin-bottom:4px;">Goalie Rating Trend</div>
         <svg class="landing-sparkline" viewBox="0 0 200 40" preserveAspectRatio="none">
           <polyline points="0,28 16,24 32,30 48,22 64,18 80,26 96,14 112,16 128,12 144,20 160,8 176,10 192,6" fill="none" stroke="var(--ice)" stroke-width="2"/>
         </svg>
-        <div style="font-size:11px; color:var(--muted2-ice); font-weight:700; margin-top:8px; margin-bottom:4px;">Team Score Trend</div>
+        <div style="font-size:11px; color:var(--muted2-ice); font-weight:700; margin-top:8px; margin-bottom:4px;">Team Rating Trend</div>
         <svg class="landing-sparkline" viewBox="0 0 200 40" preserveAspectRatio="none">
           <polyline points="0,30 16,26 32,28 48,20 64,22 80,16 96,18 112,14 128,10 144,12 160,8 176,14 192,6" fill="none" stroke="var(--win)" stroke-width="2"/>
         </svg>
@@ -462,7 +462,7 @@
         <div class="landing-feature-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:middle;"><line x1="6" y1="20" x2="6" y2="14"/><line x1="12" y1="20" x2="12" y2="8"/><line x1="18" y1="20" x2="18" y2="4"/></svg></div>
         <div>
           <div class="landing-feature-title">Context-Aware Performance Scores</div>
-          <div class="landing-feature-desc">Goalie Score and Team Score rated 0&ndash;100 with full breakdowns. Know how your goalie or team actually played, not just whether they won.</div>
+          <div class="landing-feature-desc">Goalie Rating and Team Rating rated 0&ndash;100 with full breakdowns. Know how your goalie or team actually played, not just whether they won.</div>
         </div>
       </div>
       <div class="landing-feature">
@@ -840,7 +840,7 @@
 
       <div class="ringsRow">
         <div class="ringCard" id="goalieRingCard">
-          <div class="small mb-sm">Goalie Score</div>
+          <div class="small mb-sm">Goalie Rating</div>
           <div class="scoreRing">
             <svg viewBox="0 0 80 80" class="ringSvg">
               <circle class="ringBg" cx="40" cy="40" r="35"></circle>
@@ -852,7 +852,7 @@
           <div class="ring-tooltip" id="goalieRingTooltip"></div>
         </div>
         <div class="ringCard" id="teamRingCard">
-          <div class="small mb-sm">Team Score</div>
+          <div class="small mb-sm">Team Rating</div>
           <div class="scoreRing">
             <svg viewBox="0 0 80 80" class="ringSvg">
               <circle class="ringBg" cx="40" cy="40" r="35"></circle>
@@ -949,10 +949,10 @@
       <span>Share Recap</span>
     </button>
 
-    <!-- Rings: Goalie + Team Score -->
+    <!-- Rings: Goalie + Team Rating -->
     <div class="ringsRow rings-mt">
       <div class="ringCard">
-        <div class="small mb-sm">Goalie Score</div>
+        <div class="small mb-sm">Goalie Rating</div>
         <div class="scoreRing">
           <svg viewBox="0 0 80 80" class="ringSvg">
             <circle class="ringBg" cx="40" cy="40" r="35"></circle>
@@ -963,7 +963,7 @@
         <div class="ring-confidence" id="goalieConfidenceSum"></div>
       </div>
       <div class="ringCard">
-        <div class="small mb-sm">Team Score</div>
+        <div class="small mb-sm">Team Rating</div>
         <div class="scoreRing">
           <svg viewBox="0 0 80 80" class="ringSvg">
             <circle class="ringBg" cx="40" cy="40" r="35"></circle>
@@ -974,9 +974,9 @@
       </div>
     </div>
 
-    <!-- Team Score Breakdown -->
+    <!-- Team Rating Breakdown -->
     <div class="sum-section">
-      <div class="sum-section-label">Team Score Breakdown</div>
+      <div class="sum-section-label">Team Rating Breakdown</div>
       <div class="key-takeaway hidden" id="keyTakeaway"></div>
       <div id="teamCompBars"></div>
       <div class="score-explain-toggle" id="teamExplainToggle">How is this scored?</div>
@@ -985,9 +985,9 @@
       </div>
     </div>
 
-    <!-- Goalie Score Breakdown -->
+    <!-- Goalie Rating Breakdown -->
     <div class="sum-section">
-      <div class="sum-section-label">Goalie Score Breakdown</div>
+      <div class="sum-section-label">Goalie Rating Breakdown</div>
       <div id="goalieCompBars"></div>
       <div class="score-explain-toggle" id="goalieExplainToggle">How is this scored?</div>
       <div class="score-explain-panel hidden" id="goalieExplainPanel">
@@ -1357,12 +1357,12 @@
       </ul>
       <h4>Goalie Events</h4>
       <ul>
-        <li><strong>Soft Goal</strong> &mdash; A goal your goalie should have stopped. You&rsquo;ll be asked what went wrong (Misplay, Poor Positioning, or Other) and the game situation. This counts as both a shot and a goal automatically, and it weighs more heavily against the Goalie Score than a normal goal.</li>
+        <li><strong>Soft Goal</strong> &mdash; A goal your goalie should have stopped. You&rsquo;ll be asked what went wrong (Misplay, Poor Positioning, or Other) and the game situation. This counts as both a shot and a goal automatically, and it weighs more heavily against the Goalie Rating than a normal goal.</li>
         <li><strong>Bad Rebound</strong> &mdash; The goalie gave up a dangerous rebound that stayed in the scoring area. This counts as a shot against, so do not log a separate Shot Against. If a goal follows within 5 seconds, it is automatically tagged as rebound-related.</li>
       </ul>
       <h4>Defensive Context</h4>
       <ul>
-        <li><strong>Breakaway</strong> &mdash; An opponent got in alone on your goalie. If a goal follows within 10 seconds, it is automatically linked. Breakaway goals count less against the Goalie Score because the goalie is at a disadvantage.</li>
+        <li><strong>Breakaway</strong> &mdash; An opponent got in alone on your goalie. If a goal follows within 10 seconds, it is automatically linked. Breakaway goals count less against the Goalie Rating because the goalie is at a disadvantage.</li>
         <li><strong>DZ Turnover</strong> (defensive-zone turnover) &mdash; Your team lost the puck in your own end. If a goal follows within 10 seconds, it is automatically linked.</li>
         <li><strong>Odd-Man Rush</strong> &mdash; The opponent has more attackers than defenders on a rush (2-on-1, 3-on-2, etc.). If a goal follows within 10 seconds, it is automatically linked.</li>
         <li><strong>Missed Chance</strong> &mdash; The opponent had a quality scoring opportunity but no shot reached the net (post, wide, fanned on it, etc.). This still counts toward the opponent&rsquo;s chance quality in the dashboard.</li>
@@ -1382,8 +1382,8 @@
       </ul>
       <h4>Goalie Positives</h4>
       <ul>
-        <li><strong>Smother</strong> &mdash; Your goalie covered the puck and froze play, killing the opponent&rsquo;s momentum. This gives a bonus to the Goalie Score.</li>
-        <li><strong>Big Save</strong> &mdash; An exceptional save your goalie probably should not have made (breakaway stop, cross-crease dive, etc.). This gives a significant bonus to the Goalie Score. It automatically counts as a high-danger shot against, so do not log a separate Shot Against.</li>
+        <li><strong>Smother</strong> &mdash; Your goalie covered the puck and froze play, killing the opponent&rsquo;s momentum. This gives a bonus to the Goalie Rating.</li>
+        <li><strong>Big Save</strong> &mdash; An exceptional save your goalie probably should not have made (breakaway stop, cross-crease dive, etc.). This gives a significant bonus to the Goalie Rating. It automatically counts as a high-danger shot against, so do not log a separate Shot Against.</li>
       </ul>
       <h4>Offensive Context</h4>
       <ul>
@@ -1415,7 +1415,7 @@
       <p>The dashboard updates in real time as you track. Tap any stat tile to see a brief explanation of what it measures.</p>
       <h4>Chance Quality Bar</h4>
       <p>The bar beneath the scoreboard shows which team is generating better scoring chances overall. Green tilting right means your team has the edge; red tilting left means the opponent does. It factors in shot danger, goals, and missed chances. It appears once there are at least 5 total shots in the game.</p>
-      <h4>Goalie Score (0&ndash;100)</h4>
+      <h4>Goalie Rating (0&ndash;100)</h4>
       <p>A single number summarizing your goalie&rsquo;s performance relative to expected workload. It factors in:</p>
       <ul>
         <li>Save percentage weighted by shot difficulty (breakaway saves count more than routine stops)</li>
@@ -1423,7 +1423,7 @@
         <li>Big saves (bonus) and soft goals (penalty)</li>
         <li>Context matters &mdash; goals off breakaways, screens, and deflections hurt the score less than clean-look goals</li>
       </ul>
-      <h4>Team Score (0&ndash;100)</h4>
+      <h4>Team Rating (0&ndash;100)</h4>
       <p>An overall team performance rating that combines five areas:</p>
       <ul>
         <li><strong>Result (25%)</strong> &mdash; Goal differential, adjusted so that power-play goals count less and short-handed goals count more</li>
@@ -1448,7 +1448,7 @@
         <li><strong>Power Play (PP)</strong> &mdash; Your team has more skaters because the opponent is serving a penalty.</li>
         <li><strong>Short Handed (SH)</strong> &mdash; Your team has fewer skaters because you are serving a penalty.</li>
       </ul>
-      <p>Strength data appears in the game summary breakdown and affects the Team Score. Power-play goals are weighted less (they&rsquo;re expected when you have the advantage), while short-handed goals are weighted more (they&rsquo;re harder to score).</p>
+      <p>Strength data appears in the game summary breakdown and affects the Team Rating. Power-play goals are weighted less (they&rsquo;re expected when you have the advantage), while short-handed goals are weighted more (they&rsquo;re harder to score).</p>
     </div>
 
     <hr class="help-divider">
@@ -1481,7 +1481,7 @@
       <p>Tap <strong>End Game &amp; Score</strong> and confirm to finish tracking and see a full post-game report. The summary includes:</p>
       <ul>
         <li>Final score with win/loss/tie result</li>
-        <li>Goalie Score and Team Score with component breakdowns (tap &ldquo;How is this scored?&rdquo; for details)</li>
+        <li>Goalie Rating and Team Rating with component breakdowns (tap &ldquo;How is this scored?&rdquo; for details)</li>
         <li>Shots and scoring stats, shot quality metrics, goaltending stats</li>
         <li>Offensive and defensive context breakdowns</li>
         <li>Goal-by-goal context analysis (what led to each goal for and against)</li>
@@ -1680,10 +1680,10 @@
   </div>
 </div>
 
-<script src="js/spectator.js?v=6.4.4"></script>
-<script type="module" src="js/auth.js?v=6.4.4"></script>
-<script src="js/teams.js?v=6.4.4"></script>
-<script src="js/share-card.js?v=6.4.4"></script>
-<script src="js/app.js?v=6.4.4"></script>
+<script src="js/spectator.js?v=6.4.5"></script>
+<script type="module" src="js/auth.js?v=6.4.5"></script>
+<script src="js/teams.js?v=6.4.5"></script>
+<script src="js/share-card.js?v=6.4.5"></script>
+<script src="js/app.js?v=6.4.5"></script>
 </body>
 </html>

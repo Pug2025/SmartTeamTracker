@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.4.4';
+const APP_VERSION = '6.4.5';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -5126,7 +5126,7 @@ $('btnCopySummary').addEventListener('click', ()=>{
     `${state.level||'?'} vs ${state.opponent||'Unknown'} on ${date}`,
     `Score: Us ${GF} – ${GA} Them`,
     `Shots: SF ${SF}, SA ${SA} | Saves ${saves} | SV% ${svText}`,
-    `Team Score: ${T.total}/100 | Goalie Score: ${K.total}/100`,
+    `Team Rating: ${T.total}/100 | Goalie Rating: ${K.total}/100`,
     `xGF ${sqCopy.xGF} | xGA ${sqCopy.xGA} | xG Diff ${sqCopy.xGDiff > 0 ? '+' : ''}${sqCopy.xGDiff} | HD For ${sqCopy.hdFor} (${sqCopy.hdPctFor}%) | HD Ag ${sqCopy.hdAg} (${sqCopy.hdPctAg}%)`,
     `Smothers ${state.countsA.smothers} | Bad Reb ${state.countsA.badRebounds} | Big Saves ${state.countsA.bigSaves} | Soft Goals ${state.countsA.softGoals}`,
     `Shot Share ${share} | Our Shooting% ${shootPct}`,
@@ -6276,7 +6276,7 @@ function renderHistoricSummary(game){
   const ringsHTML = `
     <div class="ringsRow rings-mt">
       <div class="ringCard">
-        <div class="small mb-sm">Goalie Score</div>
+        <div class="small mb-sm">Goalie Rating</div>
         <div class="scoreRing">
           <svg viewBox="0 0 80 80" class="ringSvg">
             <circle class="ringBg" cx="40" cy="40" r="35"></circle>
@@ -6286,7 +6286,7 @@ function renderHistoricSummary(game){
         </div>
       </div>
       <div class="ringCard">
-        <div class="small mb-sm">Team Score</div>
+        <div class="small mb-sm">Team Rating</div>
         <div class="scoreRing">
           <svg viewBox="0 0 80 80" class="ringSvg">
             <circle class="ringBg" cx="40" cy="40" r="35"></circle>
@@ -7192,8 +7192,8 @@ function renderSeasonDashboard(games){
   // Sparklines
   if(gkTrend.length >= 3){
     html += `<div class="season-spark-section">
-      <div class="season-spark-label">Goalie Score Trend</div>${sparkline(gkTrend,'var(--ice)',30)}
-      <div class="season-spark-label" style="margin-top:8px;">Team Score Trend</div>${sparkline(tmTrend,'var(--win)',30)}
+      <div class="season-spark-label">Goalie Rating Trend</div>${sparkline(gkTrend,'var(--ice)',30)}
+      <div class="season-spark-label" style="margin-top:8px;">Team Rating Trend</div>${sparkline(tmTrend,'var(--win)',30)}
       <div class="season-spark-label" style="margin-top:8px;">Shot Share Trend</div>${sparkline(ssTrend,'var(--muted2-ice)',24)}
       <div class="season-spark-label" style="margin-top:8px;">Goals (green=for, red=against)</div>
       <div class="spark-overlay">${sparkline(gfTrend,'var(--win)',24)}${sparkline(gaTrend,'var(--them)',24)}</div>

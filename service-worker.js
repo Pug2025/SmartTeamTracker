@@ -1,9 +1,9 @@
 // -----------------------------
 // Smart Team Tracker - Service Worker
-// Version: v6.4.7
+// Version: v6.4.8
 // -----------------------------
 
-const ASSET_VERSION = "6.4.7";
+const ASSET_VERSION = "6.4.8";
 const CACHE_VERSION = `team-tracker-cache-v${ASSET_VERSION}`;
 const CACHE_NAME = CACHE_VERSION;
 
@@ -17,6 +17,7 @@ const ASSETS_TO_CACHE = [
   `/js/spectator.js?v=${ASSET_VERSION}`,
   `/js/teams.js?v=${ASSET_VERSION}`,
   `/js/share-card.js?v=${ASSET_VERSION}`,
+  `/js/install-prompt.js?v=${ASSET_VERSION}`,
   `/manifest.json?v=${ASSET_VERSION}`,
   "/favicon.ico",
   "/icon-192.png",

@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.4.7';
+const APP_VERSION = '6.4.8';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -2980,6 +2980,10 @@ function renderSummaryScreen({ finalize = true, scrollBehavior = 'smooth' } = {}
   // Push final state to spectators (keeps the record so they see the final score)
   if(state.shareCode) endLiveShare();
   else save();
+
+  // Just-finished a game: a natural, non-intrusive moment to offer the
+  // "Add to Home Screen" nudge (module no-ops if not installable / dismissed).
+  if(window.InstallPrompt) window.InstallPrompt.onGameSaved();
 }
 
 function endGame(){

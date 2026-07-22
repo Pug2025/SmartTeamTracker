@@ -2848,6 +2848,91 @@
   font-weight:700; cursor:pointer; font-family:inherit;
 }
 
+/* ===== Add to Home Screen banner (6.PWA) =====
+   Dismissible, one-time-per-load nudge anchored to the bottom of the phone
+   viewport (above the safe area), slides up on show. Ice tokens only. */
+.install-banner{
+  position:fixed;
+  left:50%;
+  bottom:calc(16px + env(safe-area-inset-bottom, 0px));
+  transform:translate(-50%, 12px);
+  width:calc(100% - 24px);
+  max-width:420px;
+  box-sizing:border-box;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:12px 14px;
+  background:var(--surface-1);
+  border:1px solid var(--ice);
+  border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-2);
+  z-index:9500;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity var(--dur-2) var(--ease), transform var(--dur-2) var(--ease);
+}
+.install-banner.show{
+  opacity:1;
+  transform:translate(-50%, 0);
+  pointer-events:auto;
+}
+.install-banner-text{
+  flex:1 1 auto;
+  font-family:var(--ui);
+  font-size:var(--fs-13);
+  font-weight:600;
+  line-height:1.35;
+  color:var(--ink-ice);
+}
+.install-share-glyph{
+  vertical-align:-2px;
+  margin:0 1px;
+  color:var(--ice);
+}
+.install-banner-actions{
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.install-add-btn{
+  font-family:var(--display);
+  font-weight:800;
+  font-size:var(--fs-13);
+  letter-spacing:.3px;
+  color:var(--surface-0);
+  background:var(--ice);
+  border:none;
+  border-radius:var(--radius-full);
+  padding:0 18px;
+  min-height:40px;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.install-add-btn:active{ background:var(--ice-deep); }
+.install-close-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:40px;
+  height:40px;
+  padding:0;
+  background:transparent;
+  border:1px solid var(--surface-3);
+  border-radius:var(--radius-full);
+  color:var(--muted-ice);
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.install-close-btn:active{ background:var(--surface-2); }
+@media (prefers-reduced-motion: reduce){
+  .install-banner{
+    transition:opacity var(--dur-1) linear;
+    transform:translate(-50%, 0);
+  }
+}
+
 /* ===== Spectator View =====
    Phase 1 "Ice" skin: root layout lives here; the full skin (scoped under
    #spectatorView) is appended at the end of this file. P2.6 deleted every

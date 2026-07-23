@@ -640,7 +640,9 @@
 }
 .recap-score .us { color: var(--us); }
 .recap-score .them { color: var(--them); }
-.recap-score .dash { color: #9FB0BF; }
+/* Scoped name: a bare .dash collides with the Live Dashboard container in
+   styles.css, which would paint a dark rounded box over the score. */
+.recap-score .recap-dash { color: #9FB0BF; }
 .recap-matchup {
   font-family: var(--display);
   font-size: 16px;

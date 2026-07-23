@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.4.13';
+const APP_VERSION = '6.4.14';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -4135,22 +4135,42 @@ return;
     const ok2 = await showConfirm('Are you absolutely sure? All games will be permanently deleted.');
     if(!ok2) return;
     try{
+      // Capture the token BEFORE deleting the login. The ID token stays
+      // cryptographically valid until it expires, so it still authorises the
+      // data purge after the Firebase user is gone.
       const token = window.getAuthToken ? await window.getAuthToken() : null;
       if(!token){ showStatusToast('Not signed in', 'error'); return; }
-      const res = await fetch('/api/delete-account', {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
-      });
-      const d = await res.json();
-      if(d.success){
-        localStorage.clear();
-        showStatusToast('Account deleted', 'success');
-        setTimeout(()=> location.reload(), 1500);
-      } else {
-        showStatusToast(d.error || 'Delete failed', 'error', 3500);
+
+      // 1) Delete the Firebase login first. This is the step that can
+      // legitimately fail (Firebase demands a recent sign-in), and failing here
+      // leaves everything intact so the user can re-auth and retry cleanly.
+      const del = window.deleteAuthAccount
+        ? await window.deleteAuthAccount()
+        : { ok:false, code:'unavailable' };
+      if(!del.ok){
+        if(del.code === 'auth/requires-recent-login'){
+          showStatusToast('For security, sign out and sign in again, then delete your account.', 'warn', 5200);
+        } else {
+          showStatusToast('Could not delete your account. Please try again.', 'error', 3800);
+        }
+        return;
       }
+
+      // 2) The login is gone; purge the stored data with the captured token.
+      const res = await fetch('/api/entitlement', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete-account' })
+      });
+      if(!res.ok) console.error('delete-account: data purge returned', res.status);
+
+      // 3) Wipe anything local and start over.
+      localStorage.clear();
+      showStatusToast('Account deleted', 'success');
+      setTimeout(()=> location.reload(), 1500);
     }catch(e){
-      showStatusToast('Network error', 'error', 3500);
+      console.error('delete account error', e);
+      showStatusToast('Something went wrong deleting your account.', 'error', 3800);
     }
   };
 

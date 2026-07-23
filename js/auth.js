@@ -2,7 +2,7 @@
 /* Uses Firebase v12 modular SDK via CDN */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signOut, sendPasswordResetEmail, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signOut, sendPasswordResetEmail, deleteUser, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDWbQt4aUEUUsA6rZ-dvWuFwKlNA4ozpb4",
@@ -215,6 +215,22 @@ async function handleSignOut() {
     console.error('Sign out error:', err);
   }
 }
+
+// Delete the signed-in Firebase account itself. Firebase requires a recent
+// sign-in for this, so report that case distinctly: the caller deletes the
+// login BEFORE any data, so a failure here leaves everything intact and the
+// user can re-authenticate and retry cleanly.
+async function deleteAuthAccount() {
+  if (!currentUser) return { ok: false, code: 'no-user' };
+  try {
+    await deleteUser(currentUser);
+    localStorage.removeItem(GUEST_MODE_KEY);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, code: err.code || 'unknown', message: err.message || '' };
+  }
+}
+window.deleteAuthAccount = deleteAuthAccount;
 
 /* ===== Wire up UI when DOM is ready ===== */
 function initAuthUI() {

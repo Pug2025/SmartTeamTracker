@@ -710,7 +710,9 @@
   color: var(--muted2-ice);
   text-transform: uppercase;
   text-align: right;
-  padding: 0 6px 8px;
+  /* Symmetric top/bottom: a 0 top padding pinned the uppercase header against
+     the cell edge, which reads as clipped text (worse on iOS rendering). */
+  padding: 8px 6px;
 }
 .lgt-table th:first-child { text-align: left; }
 .lgt-table td {

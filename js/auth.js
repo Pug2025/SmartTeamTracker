@@ -2,7 +2,7 @@
 /* Uses Firebase v12 modular SDK via CDN */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signOut, sendPasswordResetEmail, deleteUser, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signOut, sendPasswordResetEmail, deleteUser, reauthenticateWithPopup, reauthenticateWithCredential, EmailAuthProvider, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDWbQt4aUEUUsA6rZ-dvWuFwKlNA4ozpb4",
@@ -215,6 +215,35 @@ async function handleSignOut() {
     console.error('Sign out error:', err);
   }
 }
+
+// Which provider this account signed in with ('google.com' or 'password').
+function authProviderId() {
+  const p = currentUser && currentUser.providerData && currentUser.providerData[0];
+  return p ? p.providerId : '';
+}
+window.getAuthProviderId = authProviderId;
+
+// Firebase refuses destructive actions on a stale sign-in. Google accounts can
+// re-authenticate through a popup with no extra UI; email accounts need the
+// password, which the caller supplies.
+async function reauthenticateUser(password) {
+  if (!currentUser) return { ok: false, code: 'no-user' };
+  try {
+    if (authProviderId() === 'google.com') {
+      await reauthenticateWithPopup(currentUser, googleProvider);
+    } else {
+      if (!password) return { ok: false, code: 'need-password' };
+      await reauthenticateWithCredential(
+        currentUser,
+        EmailAuthProvider.credential(currentUser.email, password)
+      );
+    }
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, code: err.code || 'unknown', message: err.message || '' };
+  }
+}
+window.reauthenticateUser = reauthenticateUser;
 
 // Delete the signed-in Firebase account itself. Firebase requires a recent
 // sign-in for this, so report that case distinctly: the caller deletes the

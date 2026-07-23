@@ -3866,6 +3866,25 @@
   margin-top:8px;
 }
 
+/* Persistent feedback for account deletion. Deliberately not a toast: a
+   delete failure must stay on screen long enough to read and act on. */
+.account-delete-msg{
+  margin-top:10px;
+  padding:10px 12px;
+  border-radius:var(--radius-md);
+  background:var(--surface-2);
+  border:1px solid var(--them);
+  color:var(--ink-ice);
+  font-size:var(--fs-13);
+  line-height:1.45;
+}
+.account-delete-msg .adm-code{
+  display:block;
+  margin-top:6px;
+  color:var(--muted2-ice);
+  font-size:11px;
+}
+
 /* Period-end flash summary */
 .period-flash{
   margin:8px 0;

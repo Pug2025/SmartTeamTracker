@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.4.15';
+const APP_VERSION = '6.4.16';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -14,15 +14,11 @@ if ('serviceWorker' in navigator) {
       return;
     }
 
-    const swReloadKey = 'team-tracker-sw-version';
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      try {
-        if (sessionStorage.getItem(swReloadKey) === APP_VERSION) return;
-        sessionStorage.setItem(swReloadKey, APP_VERSION);
-      } catch (_) {}
-      window.location.reload();
-    });
-
+    // No controllerchange reload. The service worker is network-first with
+    // cache:'no-store' for navigations and every js/css asset, so a page load
+    // always gets the newest shell already; reloading on activation only made
+    // the first load after a deploy visibly load twice (splash, landing,
+    // splash, landing). It also risked force-reloading a coach mid-game.
     try {
       const reg = await navigator.serviceWorker.register(
         `service-worker.js?v=${encodeURIComponent(APP_VERSION)}`,
@@ -4130,6 +4126,20 @@ return;
   };
   $('acctExportAll').onclick = exportAllData;
   $('acctDeleteAccount').onclick = async function(){
+    const msgEl = $('acctDeleteMsg');
+    const setMsg = (text, code) => {
+      if(!msgEl) return;
+      msgEl.textContent = text;
+      if(code){
+        const s = document.createElement('span');
+        s.className = 'adm-code';
+        s.textContent = 'Details: ' + code;
+        msgEl.appendChild(s);
+      }
+      msgEl.style.display = 'block';
+    };
+    if(msgEl){ msgEl.style.display = 'none'; msgEl.textContent = ''; }
+
     const ok1 = await showConfirm('Delete your account and all cloud data? This cannot be undone.');
     if(!ok1) return;
     const ok2 = await showConfirm('Are you absolutely sure? All games will be permanently deleted.');
@@ -4139,20 +4149,34 @@ return;
       // cryptographically valid until it expires, so it still authorises the
       // data purge after the Firebase user is gone.
       const token = window.getAuthToken ? await window.getAuthToken() : null;
-      if(!token){ showStatusToast('Not signed in', 'error'); return; }
+      if(!token){ setMsg('You are not signed in, so there is no account to delete.'); return; }
 
       // 1) Delete the Firebase login first. This is the step that can
       // legitimately fail (Firebase demands a recent sign-in), and failing here
       // leaves everything intact so the user can re-auth and retry cleanly.
-      const del = window.deleteAuthAccount
+      let del = window.deleteAuthAccount
         ? await window.deleteAuthAccount()
         : { ok:false, code:'unavailable' };
-      if(!del.ok){
-        if(del.code === 'auth/requires-recent-login'){
-          showStatusToast('For security, sign out and sign in again, then delete your account.', 'warn', 5200);
+
+      // Stale sign-in: re-authenticate and retry once instead of dead-ending.
+      if(!del.ok && del.code === 'auth/requires-recent-login'){
+        const provider = window.getAuthProviderId ? window.getAuthProviderId() : '';
+        if(provider === 'google.com' && window.reauthenticateUser){
+          const re = await window.reauthenticateUser();
+          if(re.ok){
+            del = await window.deleteAuthAccount();
+          } else {
+            setMsg('Confirm it is you to finish deleting. The Google sign-in did not complete.', re.code);
+            return;
+          }
         } else {
-          showStatusToast('Could not delete your account. Please try again.', 'error', 3800);
+          setMsg('For security, deleting needs a fresh sign-in. Sign out, sign back in, then delete your account.', del.code);
+          return;
         }
+      }
+
+      if(!del.ok){
+        setMsg('Your account was not deleted.', del.code + (del.message ? ': ' + del.message : ''));
         return;
       }
 
@@ -4170,7 +4194,7 @@ return;
       setTimeout(()=> location.reload(), 1500);
     }catch(e){
       console.error('delete account error', e);
-      showStatusToast('Something went wrong deleting your account.', 'error', 3800);
+      setMsg('Something went wrong deleting your account.', (e && (e.code || e.message)) || 'unknown');
     }
   };
 

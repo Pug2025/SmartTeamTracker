@@ -133,6 +133,14 @@ async function handleEmailAuth(e) {
     showAuthError('Password must be at least 6 characters.');
     return;
   }
+  if (mode === 'signup') {
+    const confirmEl = document.getElementById('authPassConfirm');
+    const confirmVal = confirmEl ? confirmEl.value : '';
+    if (pass !== confirmVal) {
+      showAuthError('Passwords do not match.');
+      return;
+    }
+  }
 
   try {
     if (mode === 'signup') {
@@ -224,9 +232,16 @@ function initAuthUI() {
     toggle.dataset.mode = 'login';
     toggle.addEventListener('click', () => {
       const isLogin = toggle.dataset.mode === 'login';
+      const nowSignup = isLogin; // toggling from login -> signup
       toggle.dataset.mode = isLogin ? 'signup' : 'login';
       toggle.textContent = isLogin ? 'Already have an account? Sign in' : "Don't have an account? Sign up";
       document.getElementById('authSubmitBtn').textContent = isLogin ? 'Sign Up' : 'Sign In';
+      // The confirm-password field only exists in signup mode.
+      const confirm = document.getElementById('authPassConfirm');
+      if (confirm) {
+        confirm.style.display = nowSignup ? '' : 'none';
+        if (!nowSignup) confirm.value = '';
+      }
       clearAuthError();
     });
   }

@@ -1,5 +1,5 @@
 /* ===== App Version ===== */
-const APP_VERSION = '6.4.16';
+const APP_VERSION = '6.4.17';
 
 const IS_LOCAL_DEV_HOST = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const IS_SPECTATOR_MODE = !!window.__spectatorMode;
@@ -822,14 +822,28 @@ function showStatusToast(msg, type='success', duration=2500){
 }
 
 /* Confirm modal (replaces confirm()) */
+/* Chaining confirms is a trap. Closing one pops a UI-layer history entry, and
+   that popstate lands asynchronously. If the next confirm opens before it
+   lands, closeTopUiLayer() sees an open dialog and clicks Cancel on it, so the
+   caller silently gets false and the flow dies with no visible cause. Let the
+   previous close settle before opening the next one. */
+let confirmClosedAt = 0;
 function showConfirm(msg){
   return new Promise(resolve => {
-    $('confirmMsg').textContent = msg;
-    $('confirmOverlay').style.display = 'flex';
-    function cleanup(){ $('confirmOverlay').style.display = 'none'; }
-    $('confirmOk').onclick = ()=>{ cleanup(); resolve(true); };
-    $('confirmCancel').onclick = ()=>{ cleanup(); resolve(false); };
-    $('confirmOverlay').onclick = (e)=>{ if(e.target === $('confirmOverlay')){ cleanup(); resolve(false); }};
+    const open = () => {
+      $('confirmMsg').textContent = msg;
+      $('confirmOverlay').style.display = 'flex';
+      function cleanup(){
+        $('confirmOverlay').style.display = 'none';
+        confirmClosedAt = Date.now();
+      }
+      $('confirmOk').onclick = ()=>{ cleanup(); resolve(true); };
+      $('confirmCancel').onclick = ()=>{ cleanup(); resolve(false); };
+      $('confirmOverlay').onclick = (e)=>{ if(e.target === $('confirmOverlay')){ cleanup(); resolve(false); }};
+    };
+    const since = Date.now() - confirmClosedAt;
+    if(since < 400) setTimeout(open, 400 - since);
+    else open();
   });
 }
 window.showAppConfirm = showConfirm;
@@ -4140,10 +4154,9 @@ return;
     };
     if(msgEl){ msgEl.style.display = 'none'; msgEl.textContent = ''; }
 
-    const ok1 = await showConfirm('Delete your account and all cloud data? This cannot be undone.');
-    if(!ok1) return;
-    const ok2 = await showConfirm('Are you absolutely sure? All games will be permanently deleted.');
-    if(!ok2) return;
+    // One decisive confirmation rather than two chained ones (see showConfirm).
+    const ok = await showConfirm('Delete your account? This permanently removes your account and every game you have saved. This cannot be undone.');
+    if(!ok) return;
     try{
       // Capture the token BEFORE deleting the login. The ID token stays
       // cryptographically valid until it expires, so it still authorises the
